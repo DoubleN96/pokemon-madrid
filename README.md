@@ -26,6 +26,12 @@ pokemon-madrid/
 └── resources-inbox/   # Recursos sin procesar que va pasando Marcelino
 ```
 
+## Controles
+
+**Teclado** (escritorio): flechas/WASD mover · `Z`/Espacio = A (confirmar/interactuar) · `X`/Shift = B (cancelar/correr) · `Enter` = menú.
+
+**Táctil** (móvil): aparecen automáticamente en pantalla — D-pad (mantener para andar), botón **A**, botón **B** y **START** (menú). Se ocultan al escribir en los formularios de login/nombre.
+
 ## Recursos
 
 | Recurso | URL | Uso |
