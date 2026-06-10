@@ -1,0 +1,7 @@
+node_modules
+dist
+resources-inbox
+docs
+.git
+tests
+*.log
