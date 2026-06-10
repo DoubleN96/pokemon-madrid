@@ -7,6 +7,7 @@ import WorldScene from './scenes/WorldScene.js';
 import BattleScene from './scenes/BattleScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import DialogScene from './scenes/DialogScene.js';
+import { initTouchControls } from './ui/touchControls.js';
 
 const forceCanvas = new URLSearchParams(location.search).has('canvas');
 
@@ -29,3 +30,6 @@ const config = {
 };
 
 window.game = new Phaser.Game(config);
+
+// Controles táctiles (solo en dispositivos con pantalla táctil)
+initTouchControls();
