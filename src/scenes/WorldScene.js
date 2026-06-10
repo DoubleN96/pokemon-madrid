@@ -70,20 +70,19 @@ export default class WorldScene extends Phaser.Scene {
   setupInput() {
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keys = this.input.keyboard.addKeys('W,A,S,D,Z,X,ENTER');
+    // Acciones "tap" por eventos (no por JustDown): JustDown deja de detectar
+    // tras dormir/despertar/reiniciar la escena (combate). El orden de escenas
+    // (World antes que Menu/Dialog) + la guarda inputLocked evitan el input-bleed:
+    // la pulsación que cierra un overlay llega a World con inputLocked aún activo.
+    const kb = this.input.keyboard;
+    const canAct = (ev) => !(ev && ev.repeat) && !this.transitioning && !this.inputLocked && !this.player.moving;
+    kb.on('keydown-ENTER', (ev) => { if (canAct(ev)) this.openMenu(); });
+    kb.on('keydown-Z', (ev) => { if (canAct(ev)) this.interact(); });
+    kb.on('keydown-SPACE', (ev) => { if (canAct(ev)) this.interact(); });
   }
 
   update() {
-    if (this.transitioning || this.inputLocked) {
-      // Consumir los flags JustDown para que la pulsación que cierra un
-      // overlay (Dialog/Tienda/Menu) no reabra la interacción al desbloquear.
-      Phaser.Input.Keyboard.JustDown(this.keys.ENTER);
-      Phaser.Input.Keyboard.JustDown(this.keys.Z);
-      Phaser.Input.Keyboard.JustDown(this.cursors.space);
-      return;
-    }
-    if (this.player.moving) return;
-    if (Phaser.Input.Keyboard.JustDown(this.keys.ENTER)) { this.openMenu(); return; }
-    if (this.isAJustPressed()) { this.interact(); return; }
+    if (this.transitioning || this.inputLocked || this.player.moving) return;
     const dir = this.heldDir();
     if (!dir) { this.player.idle(); return; }
     this.tryStep(dir);
@@ -97,11 +96,6 @@ export default class WorldScene extends Phaser.Scene {
     if (c.up.isDown || k.W.isDown) return 'up';
     if (c.down.isDown || k.S.isDown) return 'down';
     return null;
-  }
-
-  isAJustPressed() {
-    return Phaser.Input.Keyboard.JustDown(this.keys.Z)
-      || Phaser.Input.Keyboard.JustDown(this.cursors.space);
   }
 
   isRunHeld() {

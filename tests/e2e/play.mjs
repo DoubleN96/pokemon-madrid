@@ -22,8 +22,10 @@ const sceneActive = (key) => evalGame(`window.game && window.game.scene.isActive
 const playerPos = () => evalGame(`(() => { const s = window.game.registry.get('save'); return s ? { map: s.player.map, x: s.player.x, y: s.player.y } : null })()`);
 const fail = async (msg) => { console.error('FAIL:', msg); await shot('FAIL'); console.error('errores:', errors.slice(0, 8)); await browser.close(); process.exit(1); };
 
-console.log('1. Título');
+console.log('1. Título (storage limpio)');
 await page.goto(URL, { waitUntil: 'networkidle' });
+await page.evaluate(() => { try { localStorage.clear(); } catch (e) {} });
+await page.reload({ waitUntil: 'networkidle' });
 await sleep(2500);
 await shot('01-titulo');
 
@@ -130,8 +132,10 @@ await shot('12-tras-combate');
 console.log('   Combate terminado. Pos:', JSON.stringify(await playerPos()));
 
 console.log('9. Menú → GUARDAR');
+const st = await evalGame(`(() => { const w = window.game.scene.getScene('World'); return JSON.stringify({ worldActive: window.game.scene.isActive('World'), sleeping: window.game.scene.isSleeping('World'), inputLocked: w&&w.inputLocked, transitioning: w&&w.transitioning, moving: w&&w.player&&w.player.moving, kb: w&&w.input.keyboard.enabled, dialog: window.game.scene.isActive('Dialog'), battle: window.game.scene.isActive('Battle') }) })()`);
+console.log('   estado World pre-Enter:', st);
 await press('Enter', 1, 700);
-if (!(await sceneActive('Menu'))) await fail('Enter no abrió el menú');
+if (!(await sceneActive('Menu'))) { console.log('   estado tras Enter:', await evalGame(`(() => { const w=window.game.scene.getScene('World'); return JSON.stringify({inputLocked:w&&w.inputLocked, transitioning:w&&w.transitioning}) })()`)); await fail('Enter no abrió el menú'); }
 await shot('13-menu');
 await press('ArrowDown', 3, 300);
 await press('z', 1, 900);
