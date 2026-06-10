@@ -1,0 +1,516 @@
+/* ============================================================================
+   Carcasa Game Boy Advance SP (AGS-101) dibujada 100% en CSS — sin imágenes.
+   La consola entera vive dentro de #gba-sp y escala con una sola variable
+   (--gba-scale) para caber en cualquier viewport. El canvas de Phaser sigue
+   montándose en #game; aquí solo lo enmarcamos. No se toca #game canvas para
+   no romper image-rendering: pixelated ni el Scale.FIT de Phaser.
+   ============================================================================ */
+
+:root {
+  /* Métrica base de la consola (px lógicos). El escalado real lo hace
+     --gba-scale, recalculado en JS según el viewport. */
+  --gba-w: 460px;
+  --gba-h: 470px;
+  --gba-scale: 1;
+
+  /* Paleta grafito/plata glossy del SP */
+  --gba-body-1: #4a4f57;
+  --gba-body-2: #2f333b;
+  --gba-body-3: #20242b;
+  --gba-body-edge: #15181d;
+  --gba-body-hi: #6b7079;
+  --gba-screen-frame-1: #1c1f25;
+  --gba-screen-frame-2: #0c0e12;
+  --gba-ab-a: #b04a6e;   /* botón A — magenta apagado tipo SP */
+  --gba-ab-b: #8e4a96;   /* botón B — violeta apagado */
+  --gba-ab-a-hi: #d36a8e;
+  --gba-ab-b-hi: #ad6ab5;
+  --gba-led: #ff5a4d;
+  --gba-led-on: #6dff6a;
+  --gba-screen-glass: #0a1018;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, #232733 0%, #14161c 60%, #0c0d11 100%);
+  touch-action: none;
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Capa de centrado: ocupa el viewport y centra la consola escalada. */
+#gba-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+/* La consola completa. Se escala con transform para no afectar al layout
+   interno (todo en px lógicos) y mantener nitidez. */
+#gba-sp {
+  position: relative;
+  width: var(--gba-w);
+  height: var(--gba-h);
+  transform: scale(var(--gba-scale));
+  transform-origin: center center;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 24px 40px rgba(0, 0, 0, 0.55));
+}
+
+/* ---- Cuerpo: mitad superior (tapa con pantalla) + mitad inferior (mandos) ---- */
+
+.gba-lid,
+.gba-base {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: 26px;
+  background:
+    linear-gradient(155deg, var(--gba-body-hi) 0%, var(--gba-body-1) 14%,
+      var(--gba-body-2) 55%, var(--gba-body-3) 100%);
+  box-shadow:
+    inset 0 2px 1px rgba(255, 255, 255, 0.22),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.55),
+    inset 2px 0 4px rgba(0, 0, 0, 0.3),
+    inset -2px 0 4px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--gba-body-edge);
+}
+
+.gba-lid {
+  top: 0;
+  height: 232px;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* Brillo glossy en diagonal sobre la tapa. */
+.gba-lid::before {
+  content: '';
+  position: absolute;
+  inset: 6px 6px 40px 6px;
+  border-radius: 22px;
+  background: linear-gradient(150deg,
+    rgba(255, 255, 255, 0.18) 0%,
+    rgba(255, 255, 255, 0.05) 22%,
+    rgba(255, 255, 255, 0) 45%);
+  pointer-events: none;
+}
+
+.gba-base {
+  bottom: 0;
+  height: 232px;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.gba-base::before {
+  content: '';
+  position: absolute;
+  inset: 8px 8px 8px 8px;
+  border-radius: 20px;
+  background: linear-gradient(160deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0) 40%);
+  pointer-events: none;
+}
+
+/* ---- Bisagra clamshell (banda central con dos cilindros) ---- */
+
+.gba-hinge {
+  position: absolute;
+  left: 50%;
+  top: 218px;
+  transform: translateX(-50%);
+  width: 168px;
+  height: 36px;
+  z-index: 4;
+}
+
+.gba-hinge-bar {
+  position: absolute;
+  inset: 10px 0;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #3a3f47 0%, #1b1e24 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.6);
+}
+
+.gba-hinge-knuckle {
+  position: absolute;
+  top: 4px;
+  width: 30px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--gba-body-hi) 0%,
+    var(--gba-body-2) 60%, var(--gba-body-3) 100%);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.gba-hinge-knuckle.left { left: 8px; }
+.gba-hinge-knuckle.right { right: 8px; }
+
+/* ---- Bisel + cristal de pantalla. #game (canvas Phaser) va dentro ---- */
+
+.gba-screen-frame {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  /* Bisel: marco generoso alrededor de un cristal con relación 3:2 (como la
+     pantalla real del GBA, 240×160). Glass interior = 308×~205 (3:2). */
+  width: 372px;
+  height: 184px;
+  border-radius: 14px;
+  padding: 14px 32px;
+  background: linear-gradient(160deg, var(--gba-screen-frame-1), var(--gba-screen-frame-2));
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.06),
+    0 1px 1px rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Marca "GAME BOY ADVANCE SP" serigrafiada bajo la pantalla. */
+.gba-screen-frame::after {
+  content: 'GAME BOY ADVANCE SP';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  color: rgba(180, 188, 200, 0.5);
+  white-space: nowrap;
+  font-style: italic;
+}
+
+/* Pequeño LED de actividad junto a la pantalla. */
+.gba-screen-led {
+  position: absolute;
+  top: 7px;
+  left: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gba-led);
+  box-shadow: 0 0 5px 1px rgba(255, 90, 77, 0.8);
+}
+
+/* El cristal real que envuelve al canvas. Mantiene la relación 3:2 de la
+   pantalla GBA: se dimensiona por la altura disponible y se centra en el bisel,
+   con un margen de cristal negro uniforme. Phaser (Scale.FIT) ajusta el canvas
+   240×160 a este recuadro sin deformarlo. */
+#game {
+  position: relative;
+  height: 100%;
+  aspect-ratio: 3 / 2;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: var(--gba-screen-glass);
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, 0.7),
+    inset 0 0 14px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+
+/* Reflejo glossy sutil sobre el cristal (no interfiere con el canvas). */
+#game::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(155deg,
+    rgba(255, 255, 255, 0.10) 0%,
+    rgba(255, 255, 255, 0.03) 18%,
+    rgba(255, 255, 255, 0) 40%);
+  z-index: 2;
+}
+
+#game canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- LED de encendido (POWER) en la base, esquina ---- */
+
+.gba-power-led {
+  position: absolute;
+  left: 26px;
+  top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(190, 196, 206, 0.55);
+}
+
+.gba-power-led .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--gba-led-on);
+  box-shadow: 0 0 6px 1px rgba(109, 255, 106, 0.85);
+}
+
+/* ---- Altavoz (rejilla de puntos) en la base, abajo derecha ---- */
+
+.gba-speaker {
+  position: absolute;
+  right: 24px;
+  bottom: 22px;
+  width: 56px;
+  height: 40px;
+  border-radius: 8px;
+  background:
+    radial-gradient(circle, rgba(0, 0, 0, 0.55) 1px, transparent 1.4px) 0 0 / 8px 8px,
+    linear-gradient(180deg, #2a2e35, #1a1d22);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================================
+   BOTONES FÍSICOS
+   ============================================================================ */
+
+/* Base común para cualquier botón pulsable de la carcasa. */
+.gba-btn {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  user-select: none;
+  z-index: 6;
+  transition: transform 60ms ease, box-shadow 60ms ease, filter 60ms ease;
+}
+
+/* Estado "pulsado": se hunde levemente. Aplicado por JS (clase .is-pressed). */
+.gba-btn.is-pressed {
+  transform: translateY(1px) scale(0.96);
+  filter: brightness(1.12);
+}
+
+/* ---- Cruceta (D-pad) ---- */
+
+.gba-dpad {
+  position: absolute;
+  left: 36px;
+  top: 268px;
+  width: 108px;
+  height: 108px;
+  z-index: 6;
+}
+
+/* Cruz negra de fondo del dpad. */
+.gba-dpad-cross {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.gba-dpad-cross::before,
+.gba-dpad-cross::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(180deg, #34383f 0%, #1a1d22 100%);
+  border-radius: 8px;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.18),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.6),
+    0 2px 3px rgba(0, 0, 0, 0.5);
+}
+
+.gba-dpad-cross::before { /* barra vertical */
+  left: 38px;
+  top: 0;
+  width: 32px;
+  height: 108px;
+}
+
+.gba-dpad-cross::after {  /* barra horizontal */
+  top: 38px;
+  left: 0;
+  width: 108px;
+  height: 32px;
+}
+
+/* Punto central de la cruceta. */
+.gba-dpad-hub {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #44494f, #1c1f24);
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Cada flecha pulsable de la cruceta (zona transparente sobre la cruz). */
+.gba-dpad-seg {
+  position: absolute;
+  z-index: 3;
+}
+
+.gba-dpad-seg::after { /* triángulo direccional grabado */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  opacity: 0.45;
+}
+
+.gba-dpad-up    { left: 38px; top: 0;    width: 32px; height: 44px; }
+.gba-dpad-down  { left: 38px; bottom: 0; width: 32px; height: 44px; }
+.gba-dpad-left  { left: 0;    top: 38px; width: 44px; height: 32px; }
+.gba-dpad-right { right: 0;   top: 38px; width: 44px; height: 32px; }
+
+.gba-dpad-up::after    { border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 8px solid rgba(0,0,0,0.7); }
+.gba-dpad-down::after  { border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid rgba(0,0,0,0.7); }
+.gba-dpad-left::after  { border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-right: 8px solid rgba(0,0,0,0.7); }
+.gba-dpad-right::after { border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 8px solid rgba(0,0,0,0.7); }
+
+.gba-dpad-seg.is-pressed::after { opacity: 0.85; }
+
+/* ---- Botones A y B (diagonal, derecha) ---- */
+
+.gba-ab {
+  position: absolute;
+  right: 36px;
+  top: 262px;
+  width: 120px;
+  height: 110px;
+  z-index: 6;
+}
+
+.gba-btn-round {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 19px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  box-shadow:
+    inset 0 2px 2px rgba(255, 255, 255, 0.35),
+    inset 0 -4px 6px rgba(0, 0, 0, 0.45),
+    0 3px 4px rgba(0, 0, 0, 0.5);
+}
+
+.gba-btn-a {
+  right: 4px;
+  top: 6px;
+  background: radial-gradient(circle at 38% 30%, var(--gba-ab-a-hi), var(--gba-ab-a) 70%);
+}
+
+.gba-btn-b {
+  left: 4px;
+  top: 50px;
+  background: radial-gradient(circle at 38% 30%, var(--gba-ab-b-hi), var(--gba-ab-b) 70%);
+}
+
+/* ---- START / SELECT (pastillas centradas bajo el dpad/AB) ---- */
+
+.gba-pill {
+  position: absolute;
+  bottom: 26px;
+  width: 46px;
+  height: 16px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, #4a4f57 0%, #23262d 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.55),
+    0 2px 3px rgba(0, 0, 0, 0.5);
+  transform: rotate(-24deg);
+}
+
+.gba-pill .gba-pill-label {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%) rotate(24deg);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(190, 196, 206, 0.6);
+  white-space: nowrap;
+}
+
+.gba-select { left: 156px; }
+.gba-start  { right: 156px; }
+
+/* ---- Hombros L / R ---- */
+
+.gba-shoulder {
+  position: absolute;
+  top: 226px;
+  width: 96px;
+  height: 30px;
+  z-index: 5;
+  font-size: 13px;
+  font-weight: 800;
+  color: rgba(230, 234, 240, 0.85);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.6);
+  background: linear-gradient(180deg, var(--gba-body-hi) 0%, var(--gba-body-2) 70%, var(--gba-body-3) 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.5),
+    0 2px 3px rgba(0, 0, 0, 0.45);
+}
+
+.gba-shoulder-l {
+  left: -6px;
+  border-radius: 16px 4px 4px 16px;
+  padding-left: 10px;
+  justify-content: flex-start;
+}
+
+.gba-shoulder-r {
+  right: -6px;
+  border-radius: 4px 16px 16px 4px;
+  padding-right: 10px;
+  justify-content: flex-end;
+}
+
+/* ============================================================================
+   El canvas de Phaser, vía Scale.FIT, ajusta su tamaño al recuadro #game.
+   Cuando un input DOM (login/nombre) toma el foco, ocultamos los listeners
+   de los botones pero la carcasa permanece (clase del body abajo).
+   ============================================================================ */
+
+/* Mientras se escribe en un input/overlay DOM, dejamos pasar los toques al
+   formulario sin que los botones de la carcasa interfieran. */
+body.gba-input-active .gba-btn {
+  pointer-events: none;
+  opacity: 0.7;
+}

@@ -7,6 +7,7 @@ import { createMapLayers } from '../world/engine/mapRenderer.js';
 import GridMover, { DIRS, tileToX, tileToY } from '../world/engine/GridMover.js';
 import Npc from '../world/engine/Npc.js';
 import { rollEncounter } from '../world/engine/encounters.js';
+import { playGrassRustle } from '../world/grassRustle.js';
 
 const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
 const TURN_DELAY_MS = 90;   // toque corto = girarse sin andar (estilo GBA)
@@ -133,7 +134,11 @@ export default class WorldScene extends Phaser.Scene {
     const y = this.player.tileY;
     const warp = (this.mapData.warps || []).find((w) => w.x === x && w.y === y);
     if (warp) { this.useWarp(warp); return; }
-    if (this.isTallGrass(x, y)) this.maybeEncounter();
+    if (this.isTallGrass(x, y)) {
+      // Animación de hojas a los pies (justo por debajo del jugador en depth).
+      playGrassRustle(this, x, y, this.player.sprite.depth - 0.5);
+      this.maybeEncounter();
+    }
   }
 
   isTallGrass(x, y) {

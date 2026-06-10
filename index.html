@@ -2,17 +2,22 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#14161c" />
   <title>Pokémon Madrid — Edición Castiza</title>
-  <style>
-    html, body { margin: 0; padding: 0; background: #181820; height: 100%; overflow: hidden;
-      touch-action: none; overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
-    #game { display: flex; align-items: center; justify-content: center; height: 100%; }
-    #game canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
-  </style>
+  <!--
+    La carcasa Game Boy Advance SP (CSS puro) se construye en src/ui/gbaShell.js.
+    gbaShell.js crea el <div id="game"> dentro del bisel ANTES de que Phaser
+    arranque (src/main.js usa parent:'game'). Por eso este módulo se importa
+    primero y monta la carcasa de forma síncrona.
+  -->
+  <script type="module">
+    import { mountGbaShell } from '/src/ui/gbaShell.js';
+    mountGbaShell();
+  </script>
 </head>
 <body>
-  <div id="game"></div>
+  <!-- #game lo inserta gbaShell.js dentro de la pantalla de la consola. -->
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

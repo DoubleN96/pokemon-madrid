@@ -1,0 +1,50 @@
+[
+  {
+    "id": "marcelino",
+    "name": "Marcelino",
+    "role": "protagonista",
+    "portrait": "portraits/marcelino.png",
+    "overworld": {
+      "down": "portraits/marcelino_down.png",
+      "up": "portraits/marcelino_up.png",
+      "left": "portraits/marcelino_left.png",
+      "right": "portraits/marcelino_right.png"
+    }
+  },
+  {
+    "id": "alvaro_rival",
+    "name": "Álvaro Alonso",
+    "role": "rival",
+    "portrait": "portraits/alvaro_rival.png",
+    "overworld": {
+      "down": "portraits/alvaro_rival_down.png",
+      "up": "portraits/alvaro_rival_up.png",
+      "left": "portraits/alvaro_rival_left.png",
+      "right": "portraits/alvaro_rival_right.png"
+    }
+  },
+  {
+    "id": "alex_digital",
+    "name": "Alex",
+    "role": "amigo",
+    "portrait": "portraits/alex_digital.png",
+    "overworld": {
+      "down": "portraits/alex_digital_down.png",
+      "up": "portraits/alex_digital_up.png",
+      "left": "portraits/alex_digital_left.png",
+      "right": "portraits/alex_digital_right.png"
+    }
+  },
+  {
+    "id": "ivan_fintips",
+    "name": "Iván \"FinTips\"",
+    "role": "lider-gimnasio",
+    "portrait": "portraits/ivan_fintips.png",
+    "overworld": {
+      "down": "portraits/ivan_fintips_down.png",
+      "up": "portraits/ivan_fintips_up.png",
+      "left": "portraits/ivan_fintips_left.png",
+      "right": "portraits/ivan_fintips_right.png"
+    }
+  }
+]

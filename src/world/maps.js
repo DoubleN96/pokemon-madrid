@@ -1,8 +1,15 @@
-// Módulo E — Mapas de Madrid (Tetuán, Ruta 2, Chamberí)
+// Módulo E — Mapas de Madrid (Tetuán, Ruta 2, Chamberí) + interiores.
 // Formato según docs/CONTRACTS.md. Índices de tile = frame Phaser del tileset
 // reempaquetado `tiles` (127 col × 16 px, frame = GID del TMX de gracidea − 1).
 // Paleta minada de littleroot/oldale/verdanturf/petalburg/rutas 101-102
 // (ver scripts/map_tools/palette.mjs y scripts/map_tools/out/*.png).
+//
+// Los INTERIORES de cada edificio (casas, tiendas, centros, café, estación...)
+// viven en src/world/interiors.js y se fusionan aquí en MAPS. Cada puerta del
+// overworld recibe un warp de entrada (wireBuildingDoors) que clava el tile de
+// la puerta y conecta con el interior; el felpudo del interior devuelve fuera.
+
+import { buildInteriors, BUILDING_LINKS } from './interiors.js';
 
 const GRASS = 113;
 const TALL = 94;
@@ -165,6 +172,21 @@ function sprinkle(m, tile, spots) {
   }
 }
 
+// Conecta cada puerta del overworld con su interior: libera la colisión del
+// tile de la puerta (para poder pisarlo) y añade el warp de entrada. Idempotente.
+function wireBuildingDoors(maps) {
+  for (const link of BUILDING_LINKS) {
+    const m = maps[link.door.map];
+    if (!m || !maps[link.interior]) continue;
+    const { x, y } = link.door;
+    if (m.collision[y]) m.collision[y][x] = 0; // la puerta es pisable (warp)
+    const dest = maps[link.interior].playerSpawn || { x: 1, y: 1 };
+    if (!(m.warps || []).some((w) => w.x === x && w.y === y)) {
+      m.warps.push({ x, y, toMap: link.interior, toX: dest.x, toY: dest.y, dir: 'up' });
+    }
+  }
+}
+
 // ---------- TETUÁN (36×36) ----------
 
 function buildTetuan() {
@@ -204,14 +226,14 @@ function buildTetuan() {
 }
 
 function tetuanFurniture(m) {
-  addSign(m, 8, 11, 'BRAVO MURILLO, 37 — Aquí vive el héroe de esta historia.');
-  addSign(m, 17, 9, 'BAR "EL TETUÁN" — Hoy: cocido completo, 12 pavos.');
-  addSign(m, 11, 27, 'ULTRAMARINOS "DON PACO" — Desde 1962. Hoy hay género fresco.');
-  addSign(m, 15, 27, 'FARMACIA — De guardia 24 horas.');
-  addSign(m, 5, 27, 'PELUQUERÍA "MANOLI" — Corte y marcado, 10 pavos.');
-  addSign(m, 21, 17, '[M] METRO DE TETUÁN — Línea 1. "Cerrado por obras. Disculpen las molestias."');
-  addSign(m, 31, 12, '[PARQUE MÓVIL DEL ESTADO] "Ministerio de la Presidencia" — "Acceso restringido al personal".');
-  addSign(m, 28, 23, 'PLAZA DE TETUÁN — Cuidado: hay Pokémon en la hierba alta.');
+  addSign(m, 8, 11, 'BRAVO MURILLO, 37. "Aquí vive Marcelino, el Emprendedor Caótico. Llamar al telefonillo y rezar para que esté."');
+  addSign(m, 17, 9, 'BAR "EL TETUÁN". Hoy: cocido completo por 12 pavos. "El tapeo sube la moral. Pasa y prueba."');
+  addSign(m, 11, 27, 'ULTRAMARINOS "DON PACO". Desde 1962. "Hoy hay género fresco. Aquí no se fía, que se fió Jesús."');
+  addSign(m, 15, 27, 'FARMACIA. De guardia 24 horas. "Para el burnout aún no hay pastilla. Para todo lo demás, entre."');
+  addSign(m, 5, 27, 'PELUQUERÍA "MANOLI". Corte y marcado, 10 pavos. "Injertos capilares: derivamos a Luxemburgo."');
+  addSign(m, 21, 17, '[M] METRO DE TETUÁN — Línea 1. "Cerrado por obras desde tiempos inmemoriales. Disculpen las molestias."');
+  addSign(m, 31, 12, 'PARQUE MÓVIL DEL ESTADO — Ministerio de la Presidencia. "Acceso restringido. Vuelva cuando sea Campeón... o nunca."');
+  addSign(m, 28, 23, 'PLAZA DE TETUÁN. "Ojo con la hierba alta: ahí dentro hay bichos. Trae pociones o trae suerte."');
   m.encounters = [
     { species: 19, min: 2, max: 4, weight: 40 },  // Rattata
     { species: 16, min: 2, max: 4, weight: 35 },  // Pidgey
@@ -228,59 +250,37 @@ function tetuanFurniture(m) {
 }
 
 const TETUAN_NPCS = [
-  // Danna — novia de Marcelino. En casa, cura el equipo (heal). Madre trabajadora (Kangaskhan).
-  {
-    id: 'danna', sprite: 'aroma', x: 6, y: 11, dir: 'down', roam: false, heal: true,
-    dialog: [
-      '¡Hombre, mi amor! ¿Ya de aventura otra vez? Anda, deja que te cure a los bichos.',
-      '...¡Listo! Tu equipo está como nuevo. Yo, mientras, hago tres turnos: Mapfre, El Rincón de Jaén y un cafecito.',
-      '¡A ordenar ese caos, mi amor! Y no te me distraigas con ninguna eslava por el camino, ¿eh?',
-    ],
-  },
-  // Enfermera del Centro Pokémon (heal) — guiño castizo.
-  {
-    id: 'enfermera_tetuan', sprite: 'pokefan', x: 25, y: 10, dir: 'down', roam: false, heal: true,
-    dialog: [
-      '¡Bienvenido al Centro Pokémon de Tetuán, majo! Te curo el equipo en un periquete, gratis y sin cita previa.',
-      '...¡Listo! Tus Pokémon están como nuevos. ¡Toma nota, José Antonio: esto sí que es servicio público!',
-      '¡Que vaya bien! Y si ves a Álvaro, dile que se duche más de tres minutos.',
-    ],
-  },
-  // Eduardo — el tacaño. Tendero (shop). Greedent → Persian/Meowth en el lore; aquí solo cobra.
-  {
-    id: 'eduardo', sprite: 'rich_boy', x: 9, y: 27, dir: 'down', roam: false, shop: true,
-    dialog: [
-      'Hombre, Marcelino. Mira, te atiendo porque eres tú, que si no, cobro hasta por mirar el escaparate.',
-      'Mi madre me enseñó bien: una vez le cobró una Coca-Cola a Álvaro. ¡Una leyenda, mi madre!',
-      'Te dejo los precios... de catálogo. Ni un duro de rebaja. Que Sofía y yo tenemos una boda eterna que pagar. ¿Qué te pongo?',
-    ],
-  },
-  // Álvaro Alonso — RIVAL. Te reta nada más empezar. flag alvaro_rival_1. sprite norman (sin dir 'right').
+  // (Mamá, la enfermera y Eduardo se han trasladado a sus INTERIORES:
+  //  Mamá cura en la casa de Marcelino, la enfermera en el Centro Pokémon y
+  //  Eduardo cobra en Ultramarinos. Sus tiles de puerta quedan libres como warp.)
+  // Álvaro Alonso — RIVAL. Te reta nada más empezar. flag alvaro_rival_1.
+  // BALANCE: primer combate del rival = UN solo Pokémon de nivel ~5-6, ganable
+  // con el inicial L5 por un jugador novato cuidadoso (objetivo compartido con
+  // el agente de combate). Su equipo grande llega más adelante (es el Campeón).
   {
     id: 'alvaro_rival', sprite: 'norman', x: 9, y: 12, dir: 'left', roam: false,
     trainer: {
       name: 'ÁLVARO ALONSO',
       title: 'Rival · Vicepresidente del Humo',
       party: [
-        { species: 4, level: 6 },    // Charmander (el "burnout" que lo incendia todo)
-        { species: 58, level: 6 },   // Growlithe
-        { species: 63, level: 7 },   // Abra (lógica pura, eficiencia)
+        // Solo Charmander Nv.6: el "burnout" del rival, todavía una chispa.
+        { species: 4, level: 6 },
       ],
       intro: [
-        'Hombre, Marcelino. Justo te tenía en el Excel para las 9:14. Llegas con catorce segundos de retraso.',
-        '*da una calada al cigarro* Mira, yo trabajo 20 horas, duermo 3 y me baño en exactamente 3 minutos. Tú improvisas. La improvisación NO escala.',
-        'Blanca me llama en nada, así que vamos rápido: te voy a optimizar la derrota. ¿Listo o lo metemos en una reunión recurrente?',
+        'Hombre, Marcelino. Te tenía agendado para las 9:14. Llegas con catorce segundos de retraso, lo apunto.',
+        '*da una calada al cigarro* Yo trabajo veinte horas, duermo tres y me ducho en tres minutos clavados. Tú improvisas. Y la improvisación NO escala, compañero de piso.',
+        'Blanca me llama en nada, así que esto va a ser un combate corto. Saco un bicho, te optimizo la derrota y cada uno a lo suyo. ¿Listo?',
       ],
       win: [
-        '...Imposible. Esto no estaba en la hoja de cálculo. *otra calada*',
-        'Vale. Anotado en riesgos. La improvisación ha batido a la lógica... esta vez. Voy a hacer un postmortem.',
-        'Disfruta tu victoria, compañero de piso. Yo soy el Campeón y te espero en la cima. Y paga tu parte de la luz, que la dejas encendida como yo el portátil.',
+        '...Vaya. Eso no estaba en la hoja de cálculo. *otra calada, mira el cigarro como si tuviera la culpa*',
+        'Lo anoto en el registro de riesgos. La improvisación me ha ganado un asalto. UNO. No te acostumbres.',
+        'Disfruta el momento, anda. Yo soy el Campeón de esta Liga y te espero arriba del todo. Y paga tu parte de la luz, que la dejas encendida igual que yo el portátil.',
       ],
       defeat: [
-        'Previsible. Todo estaba en el Excel. *apaga el cigarro en el cenicero rebosante*',
-        'Vuelve cuando hayas... optimizado. Y dúchate, anda, que para eso no hace falta hoja de cálculo.',
+        'Previsible. Estaba todo en el Excel. *apaga el cigarro en un cenicero que rebosa*',
+        'Vuelve cuando hayas... iterado. Y entrena un poco a ese inicial, que da penita. Nos vemos, compañero.',
       ],
-      prize: 600,
+      prize: 500,
       flag: 'alvaro_rival_1',
     },
   },
@@ -288,18 +288,18 @@ const TETUAN_NPCS = [
   {
     id: 'ivan_fintips', sprite: 'gentleman', x: 8, y: 16, dir: 'down', roam: false,
     dialog: [
-      'Ah, Marcelino, el visionario. ¿Ya sales a "poner orden en el caos"? Bien, bien. ¿Y la rentabilidad de eso cuál es?',
-      'Yo lo veo todo desde la barrera, con mi cartera diversificada. Cripto, ladrillo, un poco de rent2rent... el caos da ROI si sabes leerlo.',
-      'Consejo de socio: un equipo Pokémon es una cartera. Diversifica tipos, no te apalanques en un solo bicho. Y nunca, NUNCA, le pidas un préstamo a Eduardo.',
+      'Ah, Marcelino, el visionario. ¿Ya sales a eso de "poner orden en el caos"? Muy bien, muy bien... pero dime, ¿la rentabilidad de eso cuál es exactamente?',
+      'Yo lo observo todo desde la barrera, con mi cartera bien diversificada: cripto, ladrillo, un poco de rent2rent. El caos da ROI si sabes leerlo, te lo digo yo.',
+      'Consejo de socio gratis, que para algo soy tu mentor: un equipo Pokémon es una cartera. Diversifica tipos, no te apalanques en un solo bicho. Y nunca, jamás, le pidas un préstamo a Eduardo.',
     ],
   },
-  // José Antonio — el casero. NPC de bloqueo temático ligero (solo charla en MVP). Junto a la salida sur.
+  // José Antonio — el casero. NPC de bloqueo temático ligero (solo charla). Junto a la salida sur.
   {
     id: 'jose_antonio_casero', sprite: 'elder_m', x: 16, y: 30, dir: 'down', roam: false,
     dialog: [
-      'Eh, eh, eh. Marcelino. ¿Dónde vamos con tanta prisa? Que es día 1, majo.',
-      'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa como una bola de billar*',
-      'Anda, hoy te dejo pasar porque vas a hacer cosas de Pokémon. Pero a la vuelta... el alquiler, majo. El alquiler.',
+      'Eh, eh, eh. Marcelino. ¿Dónde vas con tanta prisa, majo? Que estamos a día 1, no te hagas el loco.',
+      'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa y reluciente como una bola de billar*',
+      'Anda, hoy te dejo salir porque vas a hacer cosas de Pokémon y eso da prestigio al edificio. Pero a la vuelta... el recibo, majo. El recibo.',
     ],
   },
   // Alex — el Tentado Digital. Trainer menor (Pikachu/Magnemite). Toca la guitarra → sprite guitarist.
@@ -329,21 +329,22 @@ const TETUAN_NPCS = [
       flag: 'alex_tetuan',
     },
   },
-  // Flavor castizo conservado (re-tematizado ligero).
+  // Vecino apoyado en la fachada del Bar El Tetuán (charla de barrio).
   {
-    id: 'viejo_bar', sprite: 'generic_m1', x: 14, y: 9, dir: 'down', roam: false,
+    id: 'vecino_bar', sprite: 'generic_m1', x: 13, y: 9, dir: 'right', roam: false,
     dialog: [
-      'Este bar lleva aquí desde antes de que tú nacieras, chaval. Bravo Murillo en estado puro.',
-      'Antes venía Álvaro a "trabajar" con el portátil. Lo dejaba encendido y se iba a fumar. ¡Menudo elemento!',
-      'Tú a lo tuyo: cocido, una caña y a poner orden en el caos.',
+      'Vengo todos los días a tomar el sol a la puerta del bar. Es mi oficina, como el portal era la de Álvaro.',
+      'Tú eres el del 37, ¿no? El que se va a la Liga a "poner orden". Suerte, chaval, que orden en Madrid hay poco y caro.',
+      'Si entras al bar, pídete las bravas. Y dile a Manoli la peluquera que ya me toca corte, que parezco un Pidgey despeinado.',
     ],
   },
+  // Niño de la plaza, sueña con ser entrenador como Marcelino (el jugador).
   {
-    id: 'nino_balon', sprite: 'youngster', x: 29, y: 30, dir: 'left', roam: true,
+    id: 'nino_plaza', sprite: 'youngster', x: 29, y: 30, dir: 'left', roam: true,
     dialog: [
-      '¡Eh! ¿Vas a ser entrenador Pokémon como Marcelino? ¡Yo también quiero!',
-      'Mi madre dice que primero acabe el cole. ¡Pero yo quiero un Metagross como el del jefe!',
-      '¡Cuando tenga mi Pokémon, te reto en la plaza!',
+      '¡Eh, tú! ¿Te vas a la Liga Chamberí? ¡Yo de mayor quiero ser entrenador, como tú!',
+      'Mi madre dice que primero el cole, luego la hierba alta. ¡Pero yo ya tengo nombre para mi primer Pokémon!',
+      '¡Cuando lo atrape, te reto aquí en la plaza! Tú entrena, que yo voy a por ti.',
     ],
   },
 ];
@@ -381,8 +382,8 @@ function buildRuta2() {
   sprinkle(m, FLOWER, [[7, 11], [12, 20], [6, 30], [3, 5]]);
   sprinkle(m, FLOWER_Y, [[3, 19], [11, 32], [17, 35], [2, 27]]);
   sprinkle(m, BUSH, [[2, 12], [17, 10], [3, 35]]);
-  addSign(m, 11, 3, 'RUTA 2 — Bravo Murillo, dirección CHAMBERÍ.');
-  addSign(m, 16, 16, 'QUIOSCO — Prensa, cromos y pipas.');
+  addSign(m, 11, 3, 'RUTA 2 — Bravo Murillo abajo, dirección CHAMBERÍ. "Tramo con entrenadores. Camina con el equipo a tono."');
+  addSign(m, 16, 16, 'QUIOSCO. Prensa, cromos y pipas. "Ya están los cromos de la Liga Chamberí. El de Álvaro fumando es el raro."');
   ruta2Data(m);
   return m;
 }
@@ -406,58 +407,59 @@ function ruta2Data(m) {
 }
 
 const RUTA2_NPCS = [
-  // Sergio Guillén — camionero de Lavapiés. Trainer (Snorlax dormido + Machop). Slaking/Coalossal → Snorlax.
+  // Sergio Guillén — camionero de Lavapiés. Trainer de fuerza bruta.
+  // BALANCE ruta temprana: 2 Pokémon, Nv.5-6 (Snorlax es tanque, va a Nv.6).
   {
     id: 'sergio_guillen', sprite: 'hiker', x: 8, y: 22, dir: 'down', roam: false,
     trainer: {
       name: 'SERGIO',
       title: 'Camionero de la Bundesliga',
       party: [
-        { species: 66, level: 6 },   // Machop (fuerza bruta)
-        { species: 143, level: 7 },  // Snorlax (dormido en el camión)
+        { species: 66, level: 5 },   // Machop (la fuerza bruta de Lavapiés)
+        { species: 143, level: 6 },  // Snorlax (sobándola en la cabina del camión)
       ],
       intro: [
-        '¿Una cañita y unas bravas antes del combate? Que tengo 7 días de vacaciones al año y los gasto todos contigo, majo. No hay huevos.',
-        'Echaban La que se avecina y el Bayern, pero he parado el camión solo para zurrarte. Eso es cariño, ¿eh?',
-        'Avisa, que mi Snorlax está sobándola en la cabina. Como el rato libre, hay que despertarlo a gritos.',
+        '¿Una cañita y unas bravas antes del combate, majo? Que yo tengo siete días de vacaciones al año y me los gasto todos contigo. No hay huevos.',
+        'Echaban La que se avecina y el Bayern a la vez, pero he parado el camión solo para zurrarte. Eso es cariño del de verdad, ¿eh?',
+        'Avisa cuando estés. Mi Snorlax está sobándola en la cabina y, como el rato libre, hay que despertarlo a gritos.',
       ],
       win: [
-        '¡Buah! Pues nada, otra birra que me debo. ¡Salud, campeón!',
-        'Oye, ¿tú no conocerás a alguna ucraniana maja para mi hermano David? ...Digo, para un amigo. Eso, para un amigo.',
+        '¡Buah! Pues nada, otra birra que me debo. ¡Salud, campeón, que has podido con el camión y todo!',
+        'Oye, ¿tú no conocerás a alguna ucraniana maja para mi hermano David? ...Digo, para un amigo. Eso, para un amigo, claro.',
       ],
       defeat: [
-        '¡JA! A casa con tu madre, que esto es la Bundesliga, no la regional. *eructa*',
-        'Venga, te invito a una caña de consolación. Que no se diga que Sergio no es generoso... con la cerveza.',
+        '¡JA! A casa con tu madre, chaval, que esto es la Bundesliga y no la regional. *eructa con orgullo*',
+        'Venga, no te enfades: te invito a una caña de consolación. Que no se diga que Sergio no es generoso... con la cerveza.',
       ],
-      prize: 420,
+      prize: 360,
       flag: 'sergio_ruta2',
     },
   },
-  // Jesús "la Rata" — ente del caos, vapeador. Trainer fantasma/veneno (Koffing/Gastly). Weezing en el lore.
+  // Jesús "la Rata" — ente del caos vapeador, vuelto de Luxemburgo.
+  // BALANCE ruta temprana: 2 Pokémon, Nv.6-7.
   {
     id: 'jesus_la_rata', sprite: 'pokemaniac', x: 14, y: 34, dir: 'up', roam: false,
     trainer: {
       name: 'JESÚS "LA RATA"',
       title: 'El que volvió de Luxemburgo',
       party: [
-        { species: 92, level: 6 },   // Gastly
-        { species: 109, level: 7 },  // Koffing
-        { species: 109, level: 8 },  // Koffing (humo de vapeo doble)
+        { species: 92, level: 6 },   // Gastly (la nube de vapor hecha Pokémon)
+        { species: 109, level: 7 },  // Koffing (humo de fresa tóxica)
       ],
       intro: [
-        '*da una calada larguísima al vape; una nube morada lo envuelve* Te abandoné en el piso, Marcelino... pero he vuelto.',
-        'He vuelto con pelo nuevo, con flow y con VENGANZA. Bueno, el pelo es injerto, pero cuenta igual.',
-        'Llevo semanas sobreviviendo a base de comida ajena y vapor. Estoy en mi mejor momento. Prepárate para oler a fresa tóxica.',
+        '*da una calada larguísima al vape y una nube morada lo envuelve entero* Te abandoné en el piso, Marcelino... pero he vuelto.',
+        'He vuelto con pelo nuevo, con flow y con VENGANZA. Vale, el pelo es injerto, pero a efectos de drama cuenta igual.',
+        'Llevo semanas sobreviviendo a base de comida ajena y vapor de fresa. Estoy en mi mejor momento. Prepárate para olerme a kilómetros.',
       ],
       win: [
-        '*tose una nube de vapor* Vale... vale... has ganado. Pero la próxima vez vuelvo con MÁS pelo. Y con barba.',
-        'Me piro a Luxemburgo otra vez. O al sofá. Donde haya comida gratis, vaya.',
+        '*tose una nube espesa* Vale... vale... has ganado. Pero la próxima vez vuelvo con MÁS pelo. Y a lo mejor con barba.',
+        'Me piro otra vez. A Luxemburgo, o al sofá de alguien. Donde haya comida gratis y un enchufe para el vape.',
       ],
       defeat: [
-        '*calada triunfal* ¿Lo ves? El caos siempre gana. Y el pelo... el pelo ya volverá.',
-        'Anda, vete a entrenar y déjame mi nube en paz.',
+        '*calada triunfal entre la niebla* ¿Lo ves? El caos siempre gana. Y el pelo... el pelo ya volverá, dalo por hecho.',
+        'Anda, vete a entrenar y déjame disfrutar mi nube en paz, que la tengo cara.',
       ],
-      prize: 480,
+      prize: 420,
       flag: 'jesus_ruta2',
     },
   },
@@ -465,15 +467,16 @@ const RUTA2_NPCS = [
   {
     id: 'nina_lucia', sprite: 'lass', x: 3, y: 14, dir: 'down', roam: false,
     dialog: [
-      '¿Tú también vas a la Liga Chamberí? ¡Yo empecé ayer!',
-      'Dicen que el campeón es un tal Álvaro que combate fumando. ¡Qué miedo, oye!',
+      '¿Tú también vas a la Liga Chamberí? ¡Yo empecé ayer y ya me ha mordido un Rattata!',
+      'Dicen que el Campeón es un tal Álvaro que combate fumando y mirando un Excel. A mí me da más miedo el Excel, la verdad.',
+      'Cuidado con la hierba alta de aquí, que está hasta arriba de bichos. ¡Lleva pociones de sobra!',
     ],
   },
   {
     id: 'senora_carmen', sprite: 'generic_f1', x: 13, y: 27, dir: 'left', roam: false,
     dialog: [
-      'Oh, qué entrenador tan joven. Eres el novio de Danna, ¿verdad? Esa chica trabaja por cuatro, ¡un sol!',
-      'Cuídamela, anda, que tú con tus Excels y tus negocios raros... a ver si la lías otra vez.',
+      'Anda, qué entrenador tan apañado. Tú eres el chaval de los Excels y los Pokémon, ¿a que sí? Tu madre habla mucho de ti.',
+      'A ver si sientas la cabeza, ¿eh? Que con tus negocios raros... a ver si la vas a liar otra vez como la del rent2rent.',
     ],
   },
 ];
@@ -508,11 +511,11 @@ function buildChamberi() {
   sprinkle(m, FLOWER, [[10, 9], [20, 9], [9, 21], [21, 19], [12, 11], [18, 20]]);
   sprinkle(m, FLOWER_Y, [[11, 10], [19, 21], [8, 18], [22, 10], [16, 22]]);
   sprinkle(m, BUSH, [[3, 10], [26, 10], [2, 25], [27, 19]]);
-  addSign(m, 12, 10, 'PLAZA DE OLAVIDE — Chamberí. Jardines con Pokémon.');
-  addSign(m, 24, 10, 'CAFÉ DEL MODERNISMO — Tertulia diaria a las cinco.');
-  addSign(m, 9, 25, 'MERCADO DE VALLEHERMOSO — Género fresco de la sierra.');
-  addSign(m, 23, 26, 'ESTACIÓN DE CHAMBERÍ — "CLAUSURADA EN 1966".');
-  addSign(m, 19, 10, '[M] METRO DE IGLESIA — Línea 1. "Cerrada por obras".');
+  addSign(m, 12, 10, 'PLAZA DE OLAVIDE — Chamberí. "Jardines señoriales con Pokémon en la hierba. Redonda como una rosquilla."');
+  addSign(m, 24, 10, 'CAFÉ DEL MODERNISMO. Tertulia diaria a las cinco. "Hoy: ¿puede la improvisación vencer a la lógica? Pase y opine."');
+  addSign(m, 9, 25, 'MERCADO DE VALLEHERMOSO. "Género fresco de la sierra. Curativos castizos. Regatear, con la madre de Eduardo."');
+  addSign(m, 23, 26, 'ESTACIÓN DE CHAMBERÍ. "CLAUSURADA EN 1966. No baje al andén. Lo que sube por el túnel no es un tren."');
+  addSign(m, 19, 10, '[M] METRO DE IGLESIA — Línea 1. "Cerrada por obras. Como casi todo en esta región, oiga."');
   chamberiData(m);
   return m;
 }
@@ -535,92 +538,87 @@ function chamberiData(m) {
 }
 
 const CHAMBERI_NPCS = [
-  // Enfermera del Centro Pokémon de Chamberí (heal) — guiño castizo señorial.
-  {
-    id: 'enfermera_chamberi', sprite: 'aroma', x: 6, y: 10, dir: 'down', roam: false, heal: true,
-    dialog: [
-      'Bienvenido al Centro Pokémon de Chamberí, joven. Permítame su equipo, que aquí se cura con clase.',
-      '...Sus Pokémon han quedado perfectamente restablecidos. Sin cobrarle, no como cierto casero calvo.',
-      'Vuelva usted cuando guste. Y salude a Blanca de mi parte, esa muchacha es la única cuerda del grupo.',
-    ],
-  },
-  // Blanca — novia de Álvaro, estudia notarías. Trainer hada-simulada (Clefairy/Mr. Mime). Gardevoir en el lore.
+  // (La enfermera de Chamberí se ha trasladado a su INTERIOR: cura dentro del
+  //  Centro Pokémon. Su tile de puerta queda libre como warp de entrada.)
+  // Blanca — novia de Álvaro, estudia notarías. Gardevoir en el lore.
+  // BALANCE: 3.ª ciudad; equipo Nv.8-9, ajustado a un inicial recién crecido.
   {
     id: 'blanca_notarias', sprite: 'lass', x: 10, y: 11, dir: 'down', roam: false,
     trainer: {
       name: 'BLANCA',
       title: 'Academia de Notarías Encantadas',
       party: [
-        { species: 35, level: 9 },   // Clefairy (hada-simulada en Gen 1: Normal)
-        { species: 122, level: 10 }, // Mr. Mime (psíquico/notarial)
+        { species: 35, level: 8 },   // Clefairy (el "hada" castiza; en Gen 1 es Normal)
+        { species: 122, level: 9 },  // Mr. Mime (la pantomima notarial)
       ],
       intro: [
-        'Hola, Marcelino. Perdona el papeleo: para combatir en la Liga necesito que firmes este consentimiento. Aquí, aquí y aquí.',
-        'Soy la novia de Álvaro, sí. Alguien tiene que ser el único punto de cordura de todo este caos de pisos, Tinder y vapeo.',
-        'Te voy a ganar con cariño y jurisprudencia, ¿vale? Sin acritud. ¿Firmas también el consentimiento para perder?',
+        'Hola, Marcelino. Antes de nada, el papeleo: para batirte en la Liga necesito que me firmes este consentimiento. Aquí, aquí y... aquí.',
+        'Sí, soy la novia de Álvaro. Alguien tiene que ser el único punto de cordura en todo este caos de pisos, Tinder y vapeo, ¿no crees?',
+        'Te voy a ganar con cariño y jurisprudencia, sin acritud. ¿Me firmas también el consentimiento para perder? Es por dejarlo todo en regla.',
       ],
       win: [
-        'Vaya, impecable. Queda debidamente registrado en acta: has ganado en buena lid.',
-        'Toma tu premio, está todo en regla y con su factura. Y dile a Álvaro que se duche, por favor, que tú tienes más confianza que yo.',
+        'Vaya, impecable. Queda debidamente registrado en acta: has ganado en buena lid y sin un solo vicio de forma.',
+        'Aquí tienes tu premio, con su factura y todo en regla. Y por favor, dile a Álvaro que se duche más de tres minutos. A ti te hará más caso que a mí.',
       ],
       defeat: [
-        'Caso cerrado. Sin rencor, ¿eh? La burocracia siempre gana, cielo.',
-        'Estudia un poco y vuelves. Te espero con los papeles preparados.',
+        'Caso cerrado. Sin rencor, ¿eh, cielo? La burocracia siempre gana, es ley de vida.',
+        'Estudia un poquito y vuelves cuando quieras. Te espero con los papeles preparados y el sello a mano.',
       ],
-      prize: 720,
+      prize: 640,
       flag: 'blanca_chamberi',
     },
   },
-  // Ángel — el ansiolítico perfeccionista. Trainer psíquico (Drowzee/Kadabra).
+  // Ángel — el ansiolítico perfeccionista, el que endereza a Alex.
+  // BALANCE: equipo Nv.9-10.
   {
     id: 'angel_perfeccionista', sprite: 'scientist', x: 18, y: 11, dir: 'down', roam: false,
     trainer: {
       name: 'ÁNGEL',
       title: 'El Ansiolítico Perfeccionista',
       party: [
-        { species: 96, level: 9 },   // Drowzee
-        { species: 64, level: 11 },  // Kadabra (revisión psíquica)
+        { species: 96, level: 9 },   // Drowzee (la mente que todo lo repasa)
+        { species: 64, level: 10 },  // Kadabra (la revisión psíquica final)
       ],
       intro: [
-        'Un momento. Nada sale de aquí sin pasar por mi revisión. Ni tú, ni tu estrategia, ni esa cuarta poción mal colocada en la mochila.',
-        'Soy el que mantiene a Alex con los pies en la tierra. Si por él fuera, estaría ligando en el máster en vez de aprobando. Yo no lo permito.',
-        'He repasado tu equipo tres veces. Tiene fallos. Permíteme que te los señale... uno por uno, con calma. Combate.',
+        'Un momento. Aquí nada pasa sin mi revisión. Ni tú, ni tu estrategia, ni esa cuarta poción que llevas mal colocada en la mochila. La he visto.',
+        'Soy el que mantiene a Alex con los pies en la tierra. Si fuera por él, estaría ligando en el máster en lugar de aprobando. No lo permito.',
+        'He repasado tu equipo tres veces y tiene fallos. Permíteme que te los señale... uno a uno, con calma. Cuando quieras, combatimos.',
       ],
       win: [
-        'Mmm. Aceptable. No perfecto, pero... aceptable. Lo apunto en mi cuaderno de mejoras.',
-        'Toma. Y ordena la mochila al salir, te lo pido por favor. El orden reduce la ansiedad. La mía, sobre todo.',
+        'Mmm. Aceptable. No es perfecto, pero... es aceptable. Lo anoto en mi cuaderno de mejoras, sección "imprevistos".',
+        'Toma tu premio. Y ordena la mochila antes de salir, te lo pido por favor. El orden reduce la ansiedad. La tuya, y sobre todo la mía.',
       ],
       defeat: [
-        'Lo ves. Un fallo en la línea tres de tu plan. Te lo dije. Siempre hay un fallo.',
-        'Respira, corrige y vuelve. La perfección es un proceso. Yo te espero, no tengo prisa.',
+        'Lo ves. Un fallo en la línea tres de tu plan. Te lo avisé. Siempre, siempre hay un fallo.',
+        'Respira, corrígelo y vuelve. La perfección es un proceso, no un golpe de suerte. Yo te espero, no tengo ninguna prisa.',
       ],
-      prize: 760,
+      prize: 680,
       flag: 'angel_chamberi',
     },
   },
-  // Adrián Barrera — villano (Team Schizo). Cameo NPC que amenaza con el "Orden Perfecto". Mr. Mime/Hypno en el lore.
+  // Adrián Barrera — villano (Team Schizo). Cameo que amenaza con el "Orden Perfecto".
   {
     id: 'adrian_schizo', sprite: 'psychic', x: 20, y: 12, dir: 'down', roam: false,
     dialog: [
-      'Vaya, vaya. El célebre Marcelino. El "Emprendedor Caótico". Qué espanto de apodo.',
-      'Yo soy Adrián. Y este caos vuestro —pisos, Tinder, vapeo, improvisación— se acabó. El Team Schizo va a imponer el ORDEN PERFECTO.',
-      'Vacaciones planificadas por decreto. Debates ganados por decreto. Risas... cuando yo lo diga. *frunce el ceño como un niño enfadado*',
-      'Aún no estoy listo para combatirte. Pero pronto. Mi Mr. Mime y yo te pondremos en tu sitio. En el sitio CORRECTO.',
+      'Vaya, vaya. El célebre Marcelino. El "Emprendedor Caótico". Qué apodo más espantoso, por cierto.',
+      'Yo soy Adrián. Y todo este caos vuestro —los pisos, el Tinder, el vapeo, la improvisación de tres al cuarto— se ha acabado. El Team Schizo va a imponer el ORDEN PERFECTO.',
+      'Vacaciones planificadas por decreto. Debates ganados por decreto. Y las risas... cuando yo lo diga. *frunce el ceño como un crío al que le quitan el postre*',
+      'Hoy no voy a combatirte; no estás a mi altura todavía. Pero pronto mi Mr. Mime y yo te pondremos en tu sitio. En el sitio CORRECTO. Tú espera.',
     ],
   },
-  // Flavor castizo conservado.
+  // Flavor castizo conservado, mejorado.
   {
     id: 'senora_olavide', sprite: 'generic_f1', x: 12, y: 20, dir: 'down', roam: true,
     dialog: [
-      'La plaza de Olavide es redonda como una rosquilla de San Isidro.',
-      'Antes había un mercado aquí en medio, ¿sabes? Lo volaron en el 74. ¡Pum!',
+      'La plaza de Olavide es redonda como una rosquilla de San Isidro, hijo. Me he criado dando vueltas a esta fuente.',
+      'Antes había un mercado de hierro aquí en medio, ¿sabes? Lo derribaron en el 74. ¡Pum! Y mira ahora, todo terracitas y perritos.',
     ],
   },
   {
     id: 'viejo_fuente', sprite: 'fisher', x: 17, y: 17, dir: 'left', roam: false,
     dialog: [
-      'En esta fuente no se pesca, chaval, pero a veces se asoma algún Pokémon de agua.',
-      '...O eso dicen los del barrio. Yo, por si acaso, traigo la caña.',
+      'En esta fuente no se pesca, chaval, te lo digo yo. Pero a veces se asoma algún Pokémon de agua a beber, lo he visto.',
+      '...O eso cuentan los del barrio en el café. Yo, por si las moscas, vengo todos los días con la caña preparada.',
     ],
   },
 ];
@@ -631,4 +629,8 @@ export const MAPS = {
   tetuan: buildTetuan(),
   ruta2: buildRuta2(),
   chamberi: buildChamberi(),
+  ...buildInteriors(),
 };
+
+// Enlaza las puertas del overworld con sus interiores (warps de ida).
+wireBuildingDoors(MAPS);

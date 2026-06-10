@@ -16,31 +16,31 @@ import { el, ROOT_CSS, PANEL_CSS, TITLE_CSS, INPUT_CSS, BTN_CSS } from '../ui/au
 const K = Phaser.Input.Keyboard.KeyCodes;
 
 const LINES_BIENVENIDA = [
-  '¡Eh, eh, eh! ¡Bienvenido al mundo de los Pokémon de Madrid, bro!',
-  'Soy Iván. Iván "FinTips", para los amigos. Tu socio financiero.',
-  'Aquí los Pokémon son como los activos: unos suben en el Metro, otros se desploman en los parques... y otros echan la siesta en una terraza tomando el sol.',
-  'En este mundo, majo, cada criatura es una posición. Y toda posición tiene su ROI.',
-  'Yo me dedico a analizar este caos desde la barrera, buscando rentabilidad. Es lo mío.',
-  'Y tú... tú vives en un piso de Bravo Murillo, en Tetuán, ahogado entre Excels y desorden vital.',
-  'Tu compañero de piso, Álvaro Alonso, "el Vicepresidente del Humo", se cree el Campeón porque lo tiene TODO optimizado. Lógica pura. Cero improvisación.',
-  'Ha llegado la hora de demostrarle que la improvisación le gana a la lógica. Vas a poner orden en este caos a tu manera.',
+  '¡Eh, eh, eh! Bienvenido al mundo de los Pokémon de Madrid, bro.',
+  'Soy Iván. Iván "FinTips", para los amigos. Tu socio financiero de confianza.',
+  'Aquí los Pokémon son como los activos: unos suben en el Metro, otros se desploman en los parques...',
+  '...y otros echan la siesta en una terraza al sol. Cada bicho es una posición. Y toda posición tiene su ROI.',
+  'Yo lo analizo todo desde la barrera, buscando rentabilidad. Para eso me pagan... bueno, me pagaría yo.',
+  'Y tú, majo... tú vives en un piso de Bravo Murillo, en Tetuán, ahogado entre Excels y desorden vital.',
+  'Tu compañero de piso es Álvaro Alonso, "el Vicepresidente del Humo". Se cree el Campeón porque lo tiene TODO optimizado: lógica pura, cero improvisación.',
+  'Pues ha llegado la hora de bajarle los humos. Vas a poner orden en este caos a tu manera y a demostrarle que la improvisación le gana a la lógica.',
   'Pero antes de meter capital... cuéntame, ¿cómo te llamas? Que lo apunto en el Excel.',
 ];
 
 const STARTER_DESC = {
-  1: 'BULBASAUR, tipo Planta. Inversión a largo plazo, bro: crece despacio pero compone como un fondo indexado. Cazado en la verbena de San Isidro. ¡No se rinde ni a tiros!',
-  4: 'CHARMANDER, tipo Fuego. Volátil y agresivo, puro growth: si lo riegas bien, se revaloriza una barbaridad. Apareció una noche en los tejados de Malasaña. Alto riesgo, alta recompensa.',
-  7: 'SQUIRTLE, tipo Agua. Activo defensivo, majo: aguanta cualquier corrección de mercado sin pestañear. Rescatado de una estación de Metro abandonada. Liquidez y caparazón a prueba de hostias.',
+  1: 'BULBASAUR, tipo Planta. Inversión a largo plazo, bro: crece despacio pero compone como un fondo indexado. ¡No se rinde ni a tiros!',
+  4: 'CHARMANDER, tipo Fuego. Volátil y agresivo, puro growth: si lo riegas bien, se revaloriza una barbaridad. Alto riesgo, alta recompensa.',
+  7: 'SQUIRTLE, tipo Agua. Activo defensivo, majo: aguanta cualquier corrección de mercado sin pestañear. Caparazón a prueba de hostias.',
 };
 
 function linesTrasNombre(name) {
   return [
     `¡Ahí va, ${name}! Nombre con caché. Eso revaloriza la marca personal, bro.`,
-    `Mira, ${name}... he estado mirando los números y tienes que diversificar la cartera YA. Necesitas un primer activo.`,
-    'Te he traído tres Pokébolas. Considéralo capital semilla: una inversión de alto riesgo en tu propia aventura.',
-    'Yo te lo presto, pero ojo: esto NO es un regalo. Es una posición. Cuando peten en valor, me debes el dividendo en cañas.',
-    'Spoiler: rentabilidades pasadas no garantizan rentabilidades futuras. Pero tú improvisa, que para eso eres el mejor.',
-    `Venga, ${name}, abre posición. ¡Elige tu compañero!`,
+    `Mira, ${name}... he echado un ojo a tus números y tienes que diversificar la cartera YA. Necesitas un primer activo.`,
+    'Te he traído cinco Poké Balls y unas pociones. Considéralo capital semilla: una inversión de alto riesgo en tu propia aventura.',
+    'Te lo presto, pero ojo: esto NO es un regalo, es una posición. Cuando se revalorice, me debes el dividendo en cañas.',
+    'Y un consejo de socio: si tu Pokémon flojea en combate, no seas rácano y úsale una poción. Más vale gastar que perder la posición entera.',
+    `Venga, ${name}, abre posición. ¡Elige a tu compañero!`,
   ];
 }
 
@@ -48,7 +48,7 @@ function linesFinal(name, pkmn) {
   return [
     `¡Así que abres posición con ${pkmn}! Buena entrada, bro. El mercado te lo va a premiar.`,
     `Cuídalo bien, ${name}. Un activo bien gestionado vale más que mil Excels de Álvaro.`,
-    `Ahora sí, ${name}... sal de ese piso de Bravo Murillo y ¡pon orden en el caos de Madrid!`,
+    `Ahora sí, ${name}... sal de ese piso de Bravo Murillo y pon orden en el caos de Madrid.`,
     'Demuéstrale a Álvaro Alonso que la improvisación le gana a la lógica. ¡Y hazte con todos, que diversificar es la clave!',
   ];
 }

@@ -184,19 +184,22 @@ export default class BattleScene extends Phaser.Scene {
   async runBattle() {
     this.cameras.main.fadeIn(250, 0, 0, 0);
     if (this.isTrainer) await this.trainerIntro();
-    else await this.msg.type(`¡Anda! ¡Ha aparecido un ${this.enemyName()} salvaje!`, { confirm: true });
+    else await this.msg.type(`¡Anda! ¡Te ha salido un ${this.enemyName()} salvaje!`, { confirm: true });
     await this.sendOut();
     await this.mainLoop();
   }
 
   // Secuencia de apertura de un combate de entrenador: reto, líneas de intro y
-  // presentación de su primer Pokémon.
+  // presentación de su primer Pokémon. El título (si lo trae el NPC) da caché.
   async trainerIntro() {
-    await this.msg.type(`¡${this.trainer.name} quiere combatir!`, { confirm: true });
+    const reto = this.trainer.title
+      ? `¡${this.trainer.name} (${this.trainer.title}) te corta el paso!`
+      : `¡${this.trainer.name} te corta el paso!`;
+    await this.msg.type(reto, { confirm: true });
     for (const line of this.trainer.intro || []) {
       await this.msg.type(line, { confirm: true });
     }
-    await this.msg.type(`¡${this.trainer.name} ha enviado a ${this.enemyName()}!`, { holdMs: 350 });
+    await this.msg.type(`¡${this.trainer.name} saca a ${this.enemyName()}!`, { holdMs: 500 });
   }
 
   async sendOut() {
@@ -483,25 +486,25 @@ export default class BattleScene extends Phaser.Scene {
     }
   }
 
-  // Victoria contra entrenador: diálogo de derrota del rival, premio en dinero,
-  // marca de bandera y, si es líder, medalla.
+  // Victoria contra entrenador: anuncio de victoria, diálogo de derrota del
+  // rival, premio en dinero (su "parte"), marca de bandera y, si es líder, medalla.
   async handleTrainerWin() {
     const t = this.trainer;
-    await this.msg.type(`¡Has ganado a ${t.name}!`, { confirm: true });
+    await this.msg.type(`¡Le has ganado a ${t.name}!`, { confirm: true });
     for (const line of t.win || []) {
       await this.msg.type(line, { confirm: true });
     }
     const prize = Math.max(0, Math.floor(t.prize || 0));
     if (prize > 0) {
       this.save.player.money = (this.save.player.money || 0) + prize;
-      await this.msg.type(`¡${t.name} te da ${prize}₧!`, { confirm: true });
+      await this.msg.type(`Como premio, ${t.name} te suelta ${prize}₧.`, { confirm: true });
     }
     if (!this.save.flags) this.save.flags = {};
     if (t.flag) this.save.flags[t.flag] = true;
     if (t.badge) {
       if (!Array.isArray(this.save.flags.badges)) this.save.flags.badges = [];
       if (!this.save.flags.badges.includes(t.badge)) this.save.flags.badges.push(t.badge);
-      await this.msg.type(`¡Has conseguido la Medalla ${t.badge}!`, { confirm: true });
+      await this.msg.type(`¡Te has llevado la Medalla ${t.badge}!`, { confirm: true });
     }
   }
 
