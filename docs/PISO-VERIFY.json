@@ -1,0 +1,23 @@
+[
+  {
+    "titulo": "Soft-lock permanente si se reta a un entrenador con el equipo vacío",
+    "gravedad": "ALTO",
+    "evidencia": "WorldScene.js: interact() pone this.inputLocked=true y npc.paused=true en las líneas 187-188 ANTES de llamar a startTrainerBattle(npc) (línea 190). startTrainerBattle hace return temprano si el equipo está vacío (línea 211: `if (!save || !Array.isArray(save.party) || save.party.length === 0) return;`) SIN lanzar el combate y SIN restaurar inputLocked ni npc.paused. Como no se duerme World, onWake nunca dispara y nada vuelve a poner inputLocked=false. El jugador queda bloqueado para siempre (update() y los keydown gated por canAct quedan inertes). Contrasta con el flujo salvaje, que comprueba el equipo en maybeEncounter() (líneas 145-146) ANTES de bloquear.",
+    "fix": "Mover la comprobación de equipo vacío fuera de startTrainerBattle, al principio de interact() (antes de la línea 187), igual que hace maybeEncounter; o bien, si startTrainerBattle va a abortar, restaurar estado: en su return temprano hacer `this.inputLocked=false; if (npcOrTrainer && npcOrTrainer.def) npcOrTrainer.paused=false; return;`. Mínimo: en interact, condicionar el bloqueo: comprobar `npc.def.trainer && !beaten` y party.length>0 antes de setear inputLocked, o devolver el lock cuando startTrainerBattle no arranca.",
+    "check": "trainer-flow"
+  },
+  {
+    "titulo": "RUTA 2 no tiene ningún NPC con heal:true (la check literal \"cada zona conserva un NPC con heal\" falla en esa zona)",
+    "gravedad": "BAJO",
+    "evidencia": "En src/world/maps.js, RUTA2_NPCS (líneas 408-479) solo contiene 2 trainers (sergio_guillen, jesus_la_rata) y 2 NPCs de charla (nina_lucia, senora_carmen). Ninguno tiene heal:true. Verificación programática: ZONE ruta2: heal=false shop=false (tetuan: heal=true shop=true; chamberi: heal=true shop=false). El healSpawn de ruta2 {9,3} == playerSpawn, es solo un ancla, no hay enfermera. NOTA: esto es coherente con el diseño canónico Pokémon (ruta2 es una RUTA, no una ciudad, y las rutas no tienen Centro Pokémon; el PISO-PLAN.md líneas 80-83 NO lista enfermera para Ruta 2, y la red de seguridad de whiteout recoloca siempre en el healSpawn de Tetuán — WorldScene.js:300-302). Es la única discrepancia frente a la check literal del encargo; se reporta por exhaustividad, no es un defecto de gameplay.",
+    "fix": "Si se exige heal en TODAS las zonas: añadir a RUTA2_NPCS un NPC con heal:true en una casilla caminable adyacente al camino (p.ej. un \"merendero\"/enfermera de descanso cerca del quiosco en {15,13} o similar, validando con validate.mjs que sea caminable y sin solape). Si se acepta el diseño de ruta sin Centro Pokémon, dejar como está: no es bug real, solo no cumple la check literal.",
+    "check": "world-data"
+  },
+  {
+    "titulo": "Nombre por defecto NO es \"MARCELINO\" sino \"MARCELI\" (truncado a 7)",
+    "gravedad": "BAJO",
+    "evidencia": "src/scenes/IntroScene.js: el input usa input.maxLength=7 e input.value='MARCELINO'.slice(0,7) (línea 60-61) → muestra 'MARCELI'. this.playerName='MARCELINO'.slice(0,7)='MARCELI' (línea 84). Y el fallback al vaciar el campo es 'MARCELI' (línea 129). La cadena literal 'MARCELINO' (9 chars) NUNCA se guarda en el SaveState; siempre queda 'MARCELI'. La tarea pide 'default MARCELINO' pero el nombre real almacenado es 'MARCELI'.",
+    "fix": "Es coherente con el límite de 7 chars del contrato, así que no rompe nada. Si se quiere que aparezca 'MARCELINO' completo hay que subir input.maxLength y el slice a 9 en config y revisar que las cajas de texto del HUD/menú no se desborden a 7px. Si el límite de 7 es intencional, dejar como está y aceptar 'MARCELI' como default oficial.",
+    "check": "build-intro"
+  }
+]

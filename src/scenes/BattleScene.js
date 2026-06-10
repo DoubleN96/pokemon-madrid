@@ -4,7 +4,7 @@
 import Phaser from 'phaser';
 import { createBattle } from '../core/battle.js';
 import { calcStats, expForLevel } from '../core/formulas.js';
-import { evolve } from '../core/monster.js';
+import { evolve, createMonster } from '../core/monster.js';
 import { drawBox, textStyle, ITEM_NAMES } from '../ui/theme.js';
 import { MessageBox } from '../ui/battle/typewriter.js';
 import { DataBox } from '../ui/battle/databoxes.js';
@@ -20,18 +20,33 @@ export default class BattleScene extends Phaser.Scene {
   constructor() { super('Battle'); }
 
   init(data) {
-    this.wild = data.wild;
+    this.trainer = data.trainer || null;
+    this.isTrainer = !!this.trainer;
     this.leveledIndexes = new Set();
     this.lastBatchHadText = false;
     this.closing = false;
+    // `save` defensivo: garantiza flags antes de leerlo en `finishBattle`.
+    const save = this.registry.get('save');
+    if (save && !save.flags) save.flags = {};
+    // Construye el equipo enemigo. Salvaje: un único monstruo `data.wild`.
+    // Entrenador: instancia cada miembro de `trainer.party` con createMonster.
+    if (this.isTrainer) {
+      const pokedex = this.registry.get('pokedex');
+      this.enemyParty = (this.trainer.party || []).map((p) => createMonster(pokedex, p.species, p.level));
+    } else {
+      this.enemyParty = [data.wild];
+    }
+    // El enemigo "activo" es el primer miembro sano (igual criterio que el motor).
+    this.enemyIndex = Math.max(0, this.enemyParty.findIndex((m) => m.currentHp > 0));
+    this.enemyMon = this.enemyParty[this.enemyIndex];
   }
 
-  // Carga bajo demanda: front del salvaje, back de todo el equipo y fronts
-  // de los candidatos a evolución (forma actual + forma evolucionada).
+  // Carga bajo demanda: fronts de TODO el equipo enemigo (entrenador o salvaje),
+  // back de todo el equipo y fronts de los candidatos a evolución.
   preload() {
     const pokedex = this.registry.get('pokedex');
     const save = this.registry.get('save');
-    this.queueFront(this.wild.species);
+    for (const foe of this.enemyParty) this.queueFront(foe.species);
     for (const mon of save.party) {
       this.queueBack(mon.species);
       const { evolution } = pokedex[mon.species - 1];
@@ -56,15 +71,16 @@ export default class BattleScene extends Phaser.Scene {
     this.pokedex = this.registry.get('pokedex');
     this.movesData = this.registry.get('movesData');
     this.save = this.registry.get('save');
-    this.markSeen(this.wild.species);
+    if (!this.save.flags) this.save.flags = {};
+    this.markSeen(this.enemyMon.species);
     this.activeIndex = Math.max(0, this.save.party.findIndex((m) => m.currentHp > 0));
     this.playerMon = this.save.party[this.activeIndex];
     this.battle = createBattle({
       pokedex: this.pokedex,
       movesData: this.movesData,
       party: this.save.party,
-      enemyParty: [this.wild],
-      isTrainer: false,
+      enemyParty: this.enemyParty,
+      isTrainer: this.isTrainer,
       bag: this.save.bag,
     });
     this.buildField();
@@ -89,7 +105,7 @@ export default class BattleScene extends Phaser.Scene {
     ground.fillStyle(0x68a060, 1);
     ground.fillEllipse(this.playerHome.x, 110, 92, 18);
     this.enemySprite = this.add
-      .image(this.enemyHome.x, this.enemyHome.y, `pkmn_front_${this.wild.species}`)
+      .image(this.enemyHome.x, this.enemyHome.y, `pkmn_front_${this.enemyMon.species}`)
       .setOrigin(0.5, 1).setDepth(2);
     this.playerSprite = this.add
       .image(this.playerHome.x, this.playerHome.y, `pkmn_back_${this.playerMon.species}`)
@@ -106,7 +122,7 @@ export default class BattleScene extends Phaser.Scene {
 
   buildHandlers() {
     this.eventHandlers = {
-      text: (ev) => this.msg.type(ev.msg),
+      text: (ev) => this.onTextEvent(ev),
       move: (ev) => this.onMoveEvent(ev),
       hp: (ev) => this.onHpEvent(ev),
       eff: (ev) => this.onEffEvent(ev),
@@ -125,7 +141,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   refreshBox(side) {
-    const inst = side === 'player' ? this.playerMon : this.wild;
+    const inst = side === 'player' ? this.playerMon : this.enemyMon;
     const species = this.pokedex[inst.species - 1];
     const stats = calcStats(species, inst);
     const box = side === 'player' ? this.playerBox : this.enemyBox;
@@ -150,16 +166,37 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   enemyName() {
-    return monName(this.wild, this.pokedex);
+    return monName(this.enemyMon, this.pokedex);
+  }
+
+  // Coletilla del enemigo según el tipo de combate: "salvaje" o "enemigo".
+  enemySuffix() {
+    return this.isTrainer ? 'enemigo' : 'salvaje';
+  }
+
+  // Frase completa "El RATTATA salvaje" / "El RATTATA enemigo".
+  enemyLabel() {
+    return `El ${this.enemyName()} ${this.enemySuffix()}`;
   }
 
   // ── Bucle principal del combate ─────────────────────────────────────────
 
   async runBattle() {
     this.cameras.main.fadeIn(250, 0, 0, 0);
-    await this.msg.type(`¡Anda! ¡Ha aparecido un ${this.enemyName()} salvaje!`, { confirm: true });
+    if (this.isTrainer) await this.trainerIntro();
+    else await this.msg.type(`¡Anda! ¡Ha aparecido un ${this.enemyName()} salvaje!`, { confirm: true });
     await this.sendOut();
     await this.mainLoop();
+  }
+
+  // Secuencia de apertura de un combate de entrenador: reto, líneas de intro y
+  // presentación de su primer Pokémon.
+  async trainerIntro() {
+    await this.msg.type(`¡${this.trainer.name} quiere combatir!`, { confirm: true });
+    for (const line of this.trainer.intro || []) {
+      await this.msg.type(line, { confirm: true });
+    }
+    await this.msg.type(`¡${this.trainer.name} ha enviado a ${this.enemyName()}!`, { holdMs: 350 });
   }
 
   async sendOut() {
@@ -230,6 +267,7 @@ export default class BattleScene extends Phaser.Scene {
 
   bagEntries() {
     return BAG_ITEMS
+      .filter((key) => !(this.isTrainer && key === 'poke-ball'))
       .filter((key) => (this.save.bag[key] || 0) > 0)
       .map((key) => ({ item: key, label: ITEM_NAMES[key] || key.toUpperCase(), qty: this.save.bag[key] }));
   }
@@ -256,6 +294,15 @@ export default class BattleScene extends Phaser.Scene {
 
   // ── Reproducción secuencial de la cola de eventos del motor ─────────────
 
+  // Un único texto a silenciar tras el relevo enemigo (lo sustituye nuestra línea).
+  onTextEvent(ev) {
+    if (this.swallowNextText) {
+      this.swallowNextText = false;
+      return Promise.resolve();
+    }
+    return this.msg.type(ev.msg);
+  }
+
   async playEvents(events) {
     this.lastBatchHadText = events.some((ev) => ev.t === 'text');
     for (const ev of events) {
@@ -268,7 +315,7 @@ export default class BattleScene extends Phaser.Scene {
     const attacker = ev.side === 'player' ? this.playerSprite : this.enemySprite;
     const text = ev.side === 'player'
       ? `¡${monName(this.playerMon, this.pokedex)} usó ${ev.moveName.toUpperCase()}!`
-      : `¡El ${this.enemyName()} salvaje usó ${ev.moveName.toUpperCase()}!`;
+      : `¡${this.enemyLabel()} usó ${ev.moveName.toUpperCase()}!`;
     await this.msg.type(text, { holdMs: 150 });
     await fx.lunge(this, attacker, ev.side === 'player' ? 10 : -10);
   }
@@ -294,7 +341,7 @@ export default class BattleScene extends Phaser.Scene {
     if (!ev.status) return;
     const name = ev.side === 'player'
       ? monName(this.playerMon, this.pokedex)
-      : `El ${this.enemyName()} salvaje`;
+      : this.enemyLabel();
     const template = STATUS_MSG_ES[ev.status];
     if (template) await this.msg.type(template.replace('{N}', name));
   }
@@ -303,7 +350,7 @@ export default class BattleScene extends Phaser.Scene {
     const stat = STAT_ES[ev.stat] || `El ${String(ev.stat).toUpperCase()}`;
     const who = ev.side === 'player'
       ? `de ${monName(this.playerMon, this.pokedex)}`
-      : `del ${this.enemyName()} salvaje`;
+      : `del ${this.enemyName()} ${this.enemySuffix()}`;
     const verb = ev.change > 0
       ? (ev.change > 1 ? 'ha subido mucho' : 'ha subido')
       : (ev.change < -1 ? 'ha bajado mucho' : 'ha bajado');
@@ -315,7 +362,7 @@ export default class BattleScene extends Phaser.Scene {
     await fx.faintDrop(this, sprite);
     const text = ev.side === 'player'
       ? `¡${monName(this.playerMon, this.pokedex)} se ha debilitado!`
-      : `¡El ${this.enemyName()} salvaje se ha debilitado!`;
+      : `¡${this.enemyLabel()} se ha debilitado!`;
     await this.msg.type(text, { confirm: true });
   }
 
@@ -368,7 +415,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async onSwitchEvent(ev) {
-    if (ev.side !== 'player') return;
+    if (ev.side === 'enemy') return this.onEnemySwitch(ev);
     const leaving = monName(this.playerMon, this.pokedex);
     if (this.playerMon.currentHp > 0) {
       await this.msg.type(`¡Vuelve, ${leaving}!`, { holdMs: 200 });
@@ -387,10 +434,34 @@ export default class BattleScene extends Phaser.Scene {
     await fx.tweenPromise(this, { targets: this.playerSprite, scale: 1, duration: 250, ease: 'Back.out' });
   }
 
+  // Relevo del entrenador rival: el motor saca al siguiente Pokémon sano.
+  // Animamos la entrada del nuevo front y mostramos "¡{name} ha enviado a {especie}!".
+  async onEnemySwitch(ev) {
+    this.enemyMon = ev.monster;
+    const index = this.enemyParty.indexOf(ev.monster);
+    if (index >= 0) this.enemyIndex = index;
+    this.markSeen(ev.monster.species);
+    // El motor empuja un "¡El rival saca a X!" justo después; lo silenciamos
+    // para no duplicar con nuestra línea de entrenador.
+    this.swallowNextText = true;
+    await this.ensureFrontLoaded([ev.monster.species]);
+    this.enemySprite
+      .setTexture(`pkmn_front_${ev.monster.species}`)
+      .setPosition(this.enemyHome.x, this.enemyHome.y)
+      .setAlpha(1)
+      .setScale(0);
+    this.refreshBox('enemy');
+    const sender = this.trainer ? this.trainer.name : 'El rival';
+    await this.msg.type(`¡${sender} ha enviado a ${this.enemyName()}!`, { holdMs: 250 });
+    await fx.tweenPromise(this, { targets: this.enemySprite, scale: 1, duration: 250, ease: 'Back.out' });
+  }
+
   // ── Final del combate ───────────────────────────────────────────────────
 
   async finishBattle(over) {
-    if (over.result === 'caught') await this.handleCaught(over.caughtMonster || this.wild);
+    if (over.result === 'caught') await this.handleCaught(over.caughtMonster || this.enemyMon);
+    if (over.result === 'win' && this.isTrainer) await this.handleTrainerWin();
+    if (over.result === 'lose' && this.isTrainer) await this.handleTrainerDefeat();
     if (over.result === 'lose') await this.handleWhiteout();
     if (over.result === 'ran' && !this.lastBatchHadText) {
       await this.msg.type('¡Has escapado por los pelos!', { confirm: true });
@@ -409,6 +480,36 @@ export default class BattleScene extends Phaser.Scene {
       await this.msg.type(`¡${name} se une a tu equipo!`, { confirm: true });
     } else {
       await this.msg.type(`Tu equipo está completo. ${name} ha sido liberado... ¡Hasta otra, majo!`, { confirm: true });
+    }
+  }
+
+  // Victoria contra entrenador: diálogo de derrota del rival, premio en dinero,
+  // marca de bandera y, si es líder, medalla.
+  async handleTrainerWin() {
+    const t = this.trainer;
+    await this.msg.type(`¡Has ganado a ${t.name}!`, { confirm: true });
+    for (const line of t.win || []) {
+      await this.msg.type(line, { confirm: true });
+    }
+    const prize = Math.max(0, Math.floor(t.prize || 0));
+    if (prize > 0) {
+      this.save.player.money = (this.save.player.money || 0) + prize;
+      await this.msg.type(`¡${t.name} te da ${prize}₧!`, { confirm: true });
+    }
+    if (!this.save.flags) this.save.flags = {};
+    if (t.flag) this.save.flags[t.flag] = true;
+    if (t.badge) {
+      if (!Array.isArray(this.save.flags.badges)) this.save.flags.badges = [];
+      if (!this.save.flags.badges.includes(t.badge)) this.save.flags.badges.push(t.badge);
+      await this.msg.type(`¡Has conseguido la Medalla ${t.badge}!`, { confirm: true });
+    }
+  }
+
+  // Derrota frente a un entrenador: solo su diálogo; el whiteout (curar +
+  // recolocar) lo gestiona handleWhiteout. NO se marca la bandera (se reintenta).
+  async handleTrainerDefeat() {
+    for (const line of this.trainer.defeat || []) {
+      await this.msg.type(line, { confirm: true });
     }
   }
 

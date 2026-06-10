@@ -187,9 +187,44 @@ export default class WorldScene extends Phaser.Scene {
     this.inputLocked = true;
     npc.paused = true;
     npc.facePlayer(this.player.dir);
-    if (npc.def.heal) this.healInteraction(npc);
+    if (npc.def.trainer && !this.isTrainerBeaten(npc.def.trainer)) this.startTrainerBattle(npc);
+    else if (npc.def.heal) this.healInteraction(npc);
     else if (npc.def.shop) this.shopInteraction(npc);
+    else if (npc.def.trainer) this.talk(npc.def.trainer.win, () => this.endInteraction(npc));
     else this.talk(npc.def.dialog, () => this.endInteraction(npc));
+  }
+
+  // ¿Ya derrotado este entrenador? (bandera única en save.flags).
+  isTrainerBeaten(trainer) {
+    const save = this.registry.get('save');
+    return !!(save && save.flags && trainer.flag && save.flags[trainer.flag] === true);
+  }
+
+  // Lanza un combate de entrenador: persiste posición, bloquea input y duerme
+  // World mientras Battle corre en overlay. Reutilizable desde NPC o desde tests.
+  startTrainerBattle(npcOrTrainer) {
+    const trainer = npcOrTrainer && npcOrTrainer.def
+      ? npcOrTrainer.def.trainer
+      : npcOrTrainer;
+    if (!trainer) return;
+    const save = this.registry.get('save');
+    if (!save || !Array.isArray(save.party) || save.party.length === 0) {
+      // Sin equipo no se puede combatir: restaurar estado para no dejar soft-lock.
+      this.inputLocked = false;
+      if (npcOrTrainer && npcOrTrainer.def) npcOrTrainer.paused = false;
+      return;
+    }
+    if (!save.flags) save.flags = {};
+    this.inputLocked = true;
+    this.transitioning = true;
+    if (this.player) this.player.idle();
+    this.persistPlayer();
+    const cam = this.cameras.main;
+    cam.flash(140, 248, 248, 248);
+    cam.once('cameraflashcomplete', () => {
+      this.scene.sleep('World');
+      this.scene.launch('Battle', { trainer });
+    });
   }
 
   talk(lines, onClose) {
@@ -247,6 +282,8 @@ export default class WorldScene extends Phaser.Scene {
     this.transitioning = false;
     this.inputLocked = false;
     this.player.idle();
+    // Reanuda NPCs que quedaron pausados al iniciar un combate de entrenador.
+    (this.npcs || []).forEach((n) => { n.paused = false; });
     this.cameras.main.fadeIn(250, 0, 0, 0);
     const save = this.registry.get('save');
     if (!save || !save.player) return;

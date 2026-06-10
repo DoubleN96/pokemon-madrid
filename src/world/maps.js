@@ -228,68 +228,122 @@ function tetuanFurniture(m) {
 }
 
 const TETUAN_NPCS = [
+  // Danna — novia de Marcelino. En casa, cura el equipo (heal). Madre trabajadora (Kangaskhan).
   {
-    id: 'mama', sprite: 'mom', x: 6, y: 11, dir: 'down', roam: false, heal: true,
+    id: 'danna', sprite: 'aroma', x: 6, y: 11, dir: 'down', roam: false, heal: true,
     dialog: [
-      '¡Bienvenido a casa, cariño! ¿Quieres que cure a tus Pokémon?',
-      '...¡Listo! Tus Pokémon están perfectamente sanos ahora.',
-      '¡Ten cuidado ahí fuera!',
+      '¡Hombre, mi amor! ¿Ya de aventura otra vez? Anda, deja que te cure a los bichos.',
+      '...¡Listo! Tu equipo está como nuevo. Yo, mientras, hago tres turnos: Mapfre, El Rincón de Jaén y un cafecito.',
+      '¡A ordenar ese caos, mi amor! Y no te me distraigas con ninguna eslava por el camino, ¿eh?',
     ],
   },
+  // Enfermera del Centro Pokémon (heal) — guiño castizo.
   {
-    id: 'enfermera_tetuan', sprite: 'aroma', x: 25, y: 10, dir: 'down', roam: false, heal: true,
+    id: 'enfermera_tetuan', sprite: 'pokefan', x: 25, y: 10, dir: 'down', roam: false, heal: true,
     dialog: [
-      '¡Bienvenido al Centro Pokémon de Tetuán! Te curo el equipo en un periquete.',
-      '...¡Listo! Tus Pokémon están como nuevos.',
-      '¡Que vaya bien, majo!',
+      '¡Bienvenido al Centro Pokémon de Tetuán, majo! Te curo el equipo en un periquete, gratis y sin cita previa.',
+      '...¡Listo! Tus Pokémon están como nuevos. ¡Toma nota, José Antonio: esto sí que es servicio público!',
+      '¡Que vaya bien! Y si ves a Álvaro, dile que se duche más de tres minutos.',
     ],
   },
+  // Eduardo — el tacaño. Tendero (shop). Greedent → Persian/Meowth en el lore; aquí solo cobra.
   {
-    id: 'don_paco', sprite: 'shopkeeper_m', x: 9, y: 27, dir: 'down', roam: false, shop: true,
+    id: 'eduardo', sprite: 'rich_boy', x: 9, y: 27, dir: 'down', roam: false, shop: true,
     dialog: [
-      '¡Hombre, el chavalín de Arturo! Tu padre era buen cliente.',
-      'Siempre compraba Repelentes antes de sus expediciones.',
-      '¿Qué te pongo?',
+      'Hombre, Marcelino. Mira, te atiendo porque eres tú, que si no, cobro hasta por mirar el escaparate.',
+      'Mi madre me enseñó bien: una vez le cobró una Coca-Cola a Álvaro. ¡Una leyenda, mi madre!',
+      'Te dejo los precios... de catálogo. Ni un duro de rebaja. Que Sofía y yo tenemos una boda eterna que pagar. ¿Qué te pongo?',
     ],
   },
+  // Álvaro Alonso — RIVAL. Te reta nada más empezar. flag alvaro_rival_1. sprite norman (sin dir 'right').
   {
-    id: 'viejo_bar', sprite: 'elder_m', x: 14, y: 9, dir: 'down', roam: false,
+    id: 'alvaro_rival', sprite: 'norman', x: 9, y: 12, dir: 'left', roam: false,
+    trainer: {
+      name: 'ÁLVARO ALONSO',
+      title: 'Rival · Vicepresidente del Humo',
+      party: [
+        { species: 4, level: 6 },    // Charmander (el "burnout" que lo incendia todo)
+        { species: 58, level: 6 },   // Growlithe
+        { species: 63, level: 7 },   // Abra (lógica pura, eficiencia)
+      ],
+      intro: [
+        'Hombre, Marcelino. Justo te tenía en el Excel para las 9:14. Llegas con catorce segundos de retraso.',
+        '*da una calada al cigarro* Mira, yo trabajo 20 horas, duermo 3 y me baño en exactamente 3 minutos. Tú improvisas. La improvisación NO escala.',
+        'Blanca me llama en nada, así que vamos rápido: te voy a optimizar la derrota. ¿Listo o lo metemos en una reunión recurrente?',
+      ],
+      win: [
+        '...Imposible. Esto no estaba en la hoja de cálculo. *otra calada*',
+        'Vale. Anotado en riesgos. La improvisación ha batido a la lógica... esta vez. Voy a hacer un postmortem.',
+        'Disfruta tu victoria, compañero de piso. Yo soy el Campeón y te espero en la cima. Y paga tu parte de la luz, que la dejas encendida como yo el portátil.',
+      ],
+      defeat: [
+        'Previsible. Todo estaba en el Excel. *apaga el cigarro en el cenicero rebosante*',
+        'Vuelve cuando hayas... optimizado. Y dúchate, anda, que para eso no hace falta hoja de cálculo.',
+      ],
+      prize: 600,
+      flag: 'alvaro_rival_1',
+    },
+  },
+  // Iván "FinTips" — socio/mentor financiero. Porygon en el lore.
+  {
+    id: 'ivan_fintips', sprite: 'gentleman', x: 8, y: 16, dir: 'down', roam: false,
     dialog: [
-      'Este bar lleva aquí desde antes de que tú nacieras, chaval.',
-      'Tu padre se tomaba el café aquí cada mañana antes de entrar al Parque Móvil.',
-      'Un hombre de bien, sí señor. Ojalá vuelva pronto.',
+      'Ah, Marcelino, el visionario. ¿Ya sales a "poner orden en el caos"? Bien, bien. ¿Y la rentabilidad de eso cuál es?',
+      'Yo lo veo todo desde la barrera, con mi cartera diversificada. Cripto, ladrillo, un poco de rent2rent... el caos da ROI si sabes leerlo.',
+      'Consejo de socio: un equipo Pokémon es una cartera. Diversifica tipos, no te apalanques en un solo bicho. Y nunca, NUNCA, le pidas un préstamo a Eduardo.',
     ],
   },
+  // José Antonio — el casero. NPC de bloqueo temático ligero (solo charla en MVP). Junto a la salida sur.
   {
-    id: 'senora_bata', sprite: 'generic_f1', x: 12, y: 16, dir: 'down', roam: true,
+    id: 'jose_antonio_casero', sprite: 'elder_m', x: 16, y: 30, dir: 'down', roam: false,
     dialog: [
-      '¡Anda, el hijo de Arturo! ¿Cómo está tu madre, majo?',
-      'Tu padre era un hombre muy majo. Siempre me ayudaba con la compra.',
-      'Ojalá aparezca pronto...',
+      'Eh, eh, eh. Marcelino. ¿Dónde vamos con tanta prisa? Que es día 1, majo.',
+      'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa como una bola de billar*',
+      'Anda, hoy te dejo pasar porque vas a hacer cosas de Pokémon. Pero a la vuelta... el alquiler, majo. El alquiler.',
     ],
   },
+  // Alex — el Tentado Digital. Trainer menor (Pikachu/Magnemite). Toca la guitarra → sprite guitarist.
   {
-    id: 'hombre_periodico', sprite: 'elder_m', x: 20, y: 22, dir: 'down', roam: false,
+    id: 'alex_digital', sprite: 'guitarist', x: 22, y: 16, dir: 'down', roam: false,
+    trainer: {
+      name: 'ALEX',
+      title: 'El Tentado Digital',
+      party: [
+        { species: 25, level: 5 },   // Pikachu (eléctrico = tecnología/IA)
+        { species: 81, level: 6 },   // Magnemite
+      ],
+      intro: [
+        '¡Marcelino, bro! Mira, justo estaba haciendo match con una chica de Liubliana... pero te combato, que yo a un plan no le digo que no JAMÁS.',
+        'Programé este combate ayer mientras stalkeaba Instagram y daba mi clase del máster. Multitarea, ¿eh? Ángel me mata si se entera.',
+        'Va, rapidito, que he quedado para tres planes más y todavía tengo que fingir que esta semana sí adelgazo.',
+      ],
+      win: [
+        '¡Buah, qué owned! Vale, vale, lo desinstalo todo... el Tinder, el Bumble, el Instagram... bueno, el Instagram no.',
+        'Oye, ¿te vienes luego a tocar la guitarra y a planear un Erasmus a Eslovenia? ¡Va, di que sí, que tú nunca dices que no... espera, ese soy yo!',
+      ],
+      defeat: [
+        'Jaja, te he ganado mientras miraba el móvil. Imagínate con las dos manos, bro.',
+        'Va, entrena un poco y vuelves. Yo me apunto a la revancha, como a todo.',
+      ],
+      prize: 320,
+      flag: 'alex_tetuan',
+    },
+  },
+  // Flavor castizo conservado (re-tematizado ligero).
+  {
+    id: 'viejo_bar', sprite: 'generic_m1', x: 14, y: 9, dir: 'down', roam: false,
     dialog: [
-      '¿Tú eres el chaval que va a ver al profesor ese de los bichos?',
-      'En mis tiempos no había esas cosas. ¡Solo teníamos cromos de fútbol!',
-      'Aunque debo admitir que esos Pokémon del Metro molan bastante.',
+      'Este bar lleva aquí desde antes de que tú nacieras, chaval. Bravo Murillo en estado puro.',
+      'Antes venía Álvaro a "trabajar" con el portátil. Lo dejaba encendido y se iba a fumar. ¡Menudo elemento!',
+      'Tú a lo tuyo: cocido, una caña y a poner orden en el caos.',
     ],
   },
   {
     id: 'nino_balon', sprite: 'youngster', x: 29, y: 30, dir: 'left', roam: true,
     dialog: [
-      '¡Eh! ¿Vas a ser entrenador Pokémon? ¡Yo también quiero!',
-      'Pero mi madre dice que primero acabe el cole.',
-      '¡Cuando tenga mi Pokémon, te reto!',
-    ],
-  },
-  {
-    id: 'vigilante_parque', sprite: 'generic_m1', x: 30, y: 12, dir: 'down', roam: false,
-    dialog: [
-      'Esto es el Parque Móvil del Estado. Acceso restringido al personal, chaval.',
-      '...¿Eres el hijo de Arturo? Tu padre trabajaba aquí, de mecánico jefe.',
-      'Ahora está cerrado al público. Órdenes de arriba.',
+      '¡Eh! ¿Vas a ser entrenador Pokémon como Marcelino? ¡Yo también quiero!',
+      'Mi madre dice que primero acabe el cole. ¡Pero yo quiero un Metagross como el del jefe!',
+      '¡Cuando tenga mi Pokémon, te reto en la plaza!',
     ],
   },
 ];
@@ -352,28 +406,75 @@ function ruta2Data(m) {
 }
 
 const RUTA2_NPCS = [
+  // Sergio Guillén — camionero de Lavapiés. Trainer (Snorlax dormido + Machop). Slaking/Coalossal → Snorlax.
   {
-    id: 'nino_oscar', sprite: 'youngster', x: 8, y: 5, dir: 'right', roam: false,
-    dialog: ['¡Mi Rattata es el más fuerte del barrio! ¡Te lo demuestro!'],
+    id: 'sergio_guillen', sprite: 'hiker', x: 8, y: 22, dir: 'down', roam: false,
+    trainer: {
+      name: 'SERGIO',
+      title: 'Camionero de la Bundesliga',
+      party: [
+        { species: 66, level: 6 },   // Machop (fuerza bruta)
+        { species: 143, level: 7 },  // Snorlax (dormido en el camión)
+      ],
+      intro: [
+        '¿Una cañita y unas bravas antes del combate? Que tengo 7 días de vacaciones al año y los gasto todos contigo, majo. No hay huevos.',
+        'Echaban La que se avecina y el Bayern, pero he parado el camión solo para zurrarte. Eso es cariño, ¿eh?',
+        'Avisa, que mi Snorlax está sobándola en la cabina. Como el rato libre, hay que despertarlo a gritos.',
+      ],
+      win: [
+        '¡Buah! Pues nada, otra birra que me debo. ¡Salud, campeón!',
+        'Oye, ¿tú no conocerás a alguna ucraniana maja para mi hermano David? ...Digo, para un amigo. Eso, para un amigo.',
+      ],
+      defeat: [
+        '¡JA! A casa con tu madre, que esto es la Bundesliga, no la regional. *eructa*',
+        'Venga, te invito a una caña de consolación. Que no se diga que Sergio no es generoso... con la cerveza.',
+      ],
+      prize: 420,
+      flag: 'sergio_ruta2',
+    },
   },
+  // Jesús "la Rata" — ente del caos, vapeador. Trainer fantasma/veneno (Koffing/Gastly). Weezing en el lore.
   {
-    id: 'nina_lucia', sprite: 'lass', x: 3, y: 14, dir: 'right', roam: false,
-    dialog: ['¿Tú también vas a ser entrenador? ¡Yo empecé ayer!', '¡Vamos a ver quién ha aprendido más!'],
+    id: 'jesus_la_rata', sprite: 'pokemaniac', x: 14, y: 34, dir: 'up', roam: false,
+    trainer: {
+      name: 'JESÚS "LA RATA"',
+      title: 'El que volvió de Luxemburgo',
+      party: [
+        { species: 92, level: 6 },   // Gastly
+        { species: 109, level: 7 },  // Koffing
+        { species: 109, level: 8 },  // Koffing (humo de vapeo doble)
+      ],
+      intro: [
+        '*da una calada larguísima al vape; una nube morada lo envuelve* Te abandoné en el piso, Marcelino... pero he vuelto.',
+        'He vuelto con pelo nuevo, con flow y con VENGANZA. Bueno, el pelo es injerto, pero cuenta igual.',
+        'Llevo semanas sobreviviendo a base de comida ajena y vapor. Estoy en mi mejor momento. Prepárate para oler a fresa tóxica.',
+      ],
+      win: [
+        '*tose una nube de vapor* Vale... vale... has ganado. Pero la próxima vez vuelvo con MÁS pelo. Y con barba.',
+        'Me piro a Luxemburgo otra vez. O al sofá. Donde haya comida gratis, vaya.',
+      ],
+      defeat: [
+        '*calada triunfal* ¿Lo ves? El caos siempre gana. Y el pelo... el pelo ya volverá.',
+        'Anda, vete a entrenar y déjame mi nube en paz.',
+      ],
+      prize: 480,
+      flag: 'jesus_ruta2',
+    },
   },
+  // NPCs de charla del lore.
   {
-    id: 'joven_marcos', sprite: 'generic_m1', x: 8, y: 22, dir: 'up', roam: false,
-    dialog: ['Los Pokémon de ciudad son más listos que los del campo.', '¡Déjame demostrártelo!'],
+    id: 'nina_lucia', sprite: 'lass', x: 3, y: 14, dir: 'down', roam: false,
+    dialog: [
+      '¿Tú también vas a la Liga Chamberí? ¡Yo empecé ayer!',
+      'Dicen que el campeón es un tal Álvaro que combate fumando. ¡Qué miedo, oye!',
+    ],
   },
   {
     id: 'senora_carmen', sprite: 'generic_f1', x: 13, y: 27, dir: 'left', roam: false,
     dialog: [
-      'Oh, qué entrenador tan joven. ¿No deberías estar en el colegio?',
-      '...¿Vacaciones? Bueno, entonces ¡vamos a combatir un poco!',
+      'Oh, qué entrenador tan joven. Eres el novio de Danna, ¿verdad? Esa chica trabaja por cuatro, ¡un sol!',
+      'Cuídamela, anda, que tú con tus Excels y tus negocios raros... a ver si la lías otra vez.',
     ],
-  },
-  {
-    id: 'punk_dani', sprite: 'guitarist', x: 15, y: 34, dir: 'up', roam: false,
-    dialog: ['Eh, ¿qué miras? ¿Buscas pelea?', '¡Pues la vas a encontrar!'],
   },
 ];
 
@@ -434,21 +535,80 @@ function chamberiData(m) {
 }
 
 const CHAMBERI_NPCS = [
+  // Enfermera del Centro Pokémon de Chamberí (heal) — guiño castizo señorial.
   {
     id: 'enfermera_chamberi', sprite: 'aroma', x: 6, y: 10, dir: 'down', roam: false, heal: true,
     dialog: [
-      'Bienvenido al Centro Pokémon de Chamberí, joven. Permítame su equipo.',
-      '...Sus Pokémon han quedado perfectamente restablecidos.',
-      'Vuelva usted cuando guste.',
+      'Bienvenido al Centro Pokémon de Chamberí, joven. Permítame su equipo, que aquí se cura con clase.',
+      '...Sus Pokémon han quedado perfectamente restablecidos. Sin cobrarle, no como cierto casero calvo.',
+      'Vuelva usted cuando guste. Y salude a Blanca de mi parte, esa muchacha es la única cuerda del grupo.',
     ],
   },
+  // Blanca — novia de Álvaro, estudia notarías. Trainer hada-simulada (Clefairy/Mr. Mime). Gardevoir en el lore.
   {
-    id: 'senor_elegante', sprite: 'gentleman', x: 21, y: 11, dir: 'down', roam: false,
+    id: 'blanca_notarias', sprite: 'lass', x: 10, y: 11, dir: 'down', roam: false,
+    trainer: {
+      name: 'BLANCA',
+      title: 'Academia de Notarías Encantadas',
+      party: [
+        { species: 35, level: 9 },   // Clefairy (hada-simulada en Gen 1: Normal)
+        { species: 122, level: 10 }, // Mr. Mime (psíquico/notarial)
+      ],
+      intro: [
+        'Hola, Marcelino. Perdona el papeleo: para combatir en la Liga necesito que firmes este consentimiento. Aquí, aquí y aquí.',
+        'Soy la novia de Álvaro, sí. Alguien tiene que ser el único punto de cordura de todo este caos de pisos, Tinder y vapeo.',
+        'Te voy a ganar con cariño y jurisprudencia, ¿vale? Sin acritud. ¿Firmas también el consentimiento para perder?',
+      ],
+      win: [
+        'Vaya, impecable. Queda debidamente registrado en acta: has ganado en buena lid.',
+        'Toma tu premio, está todo en regla y con su factura. Y dile a Álvaro que se duche, por favor, que tú tienes más confianza que yo.',
+      ],
+      defeat: [
+        'Caso cerrado. Sin rencor, ¿eh? La burocracia siempre gana, cielo.',
+        'Estudia un poco y vuelves. Te espero con los papeles preparados.',
+      ],
+      prize: 720,
+      flag: 'blanca_chamberi',
+    },
+  },
+  // Ángel — el ansiolítico perfeccionista. Trainer psíquico (Drowzee/Kadabra).
+  {
+    id: 'angel_perfeccionista', sprite: 'scientist', x: 18, y: 11, dir: 'down', roam: false,
+    trainer: {
+      name: 'ÁNGEL',
+      title: 'El Ansiolítico Perfeccionista',
+      party: [
+        { species: 96, level: 9 },   // Drowzee
+        { species: 64, level: 11 },  // Kadabra (revisión psíquica)
+      ],
+      intro: [
+        'Un momento. Nada sale de aquí sin pasar por mi revisión. Ni tú, ni tu estrategia, ni esa cuarta poción mal colocada en la mochila.',
+        'Soy el que mantiene a Alex con los pies en la tierra. Si por él fuera, estaría ligando en el máster en vez de aprobando. Yo no lo permito.',
+        'He repasado tu equipo tres veces. Tiene fallos. Permíteme que te los señale... uno por uno, con calma. Combate.',
+      ],
+      win: [
+        'Mmm. Aceptable. No perfecto, pero... aceptable. Lo apunto en mi cuaderno de mejoras.',
+        'Toma. Y ordena la mochila al salir, te lo pido por favor. El orden reduce la ansiedad. La mía, sobre todo.',
+      ],
+      defeat: [
+        'Lo ves. Un fallo en la línea tres de tu plan. Te lo dije. Siempre hay un fallo.',
+        'Respira, corrige y vuelve. La perfección es un proceso. Yo te espero, no tengo prisa.',
+      ],
+      prize: 760,
+      flag: 'angel_chamberi',
+    },
+  },
+  // Adrián Barrera — villano (Team Schizo). Cameo NPC que amenaza con el "Orden Perfecto". Mr. Mime/Hypno en el lore.
+  {
+    id: 'adrian_schizo', sprite: 'psychic', x: 20, y: 12, dir: 'down', roam: false,
     dialog: [
-      'Chamberí es el barrio más señorial de Madrid, joven.',
-      'Aquí hasta los Pokémon tienen pedigrí, no como esos gatos de Tetuán.',
+      'Vaya, vaya. El célebre Marcelino. El "Emprendedor Caótico". Qué espanto de apodo.',
+      'Yo soy Adrián. Y este caos vuestro —pisos, Tinder, vapeo, improvisación— se acabó. El Team Schizo va a imponer el ORDEN PERFECTO.',
+      'Vacaciones planificadas por decreto. Debates ganados por decreto. Risas... cuando yo lo diga. *frunce el ceño como un niño enfadado*',
+      'Aún no estoy listo para combatirte. Pero pronto. Mi Mr. Mime y yo te pondremos en tu sitio. En el sitio CORRECTO.',
     ],
   },
+  // Flavor castizo conservado.
   {
     id: 'senora_olavide', sprite: 'generic_f1', x: 12, y: 20, dir: 'down', roam: true,
     dialog: [

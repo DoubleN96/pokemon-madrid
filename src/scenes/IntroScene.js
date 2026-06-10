@@ -1,6 +1,10 @@
-// Módulo G — Intro tipo FRLG: el Profesor Galdós da la bienvenida, pide el
-// nombre (DOM, máx. 7 mayúsculas) y ofrece los 3 iniciales. Al confirmar crea
-// el SaveState inicial, lo guarda (Módulo F) y arranca el mundo.
+// Módulo INTRO-PISO — Intro tipo FRLG re-tematizada al lore de "Pokémon Piso":
+// el jugador ES MARCELINO y su socio Iván "FinTips" hace de mentor, entregándole
+// el primer Pokémon como "una inversión de alto riesgo". Pide el nombre (DOM,
+// máx. 9 mayúsculas, default MARCELINO) y ofrece los 3 iniciales. Al confirmar
+// crea el SaveState inicial, lo guarda (Módulo F) y arranca el mundo.
+// IMPORTANTE: solo cambian los textos/lore y el nombre por defecto; la mecánica,
+// la API de la escena y el flujo a 'World' son idénticos al original.
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, STARTERS, MONEY_START, SAVE_VERSION } from '../config.js';
 import { drawBox } from '../ui/theme.js';
@@ -12,37 +16,40 @@ import { el, ROOT_CSS, PANEL_CSS, TITLE_CSS, INPUT_CSS, BTN_CSS } from '../ui/au
 const K = Phaser.Input.Keyboard.KeyCodes;
 
 const LINES_BIENVENIDA = [
-  '¡Hola! ¡Bienvenido al mundo de los Pokémon de Madrid!',
-  'Mi nombre es Galdós. ¡Pero la gente me llama el Profesor Pokémon!',
-  'Este mundo está habitado por criaturas llamadas Pokémon.',
-  'Algunos viven en el Metro... otros en los parques... ¡y otros en las terrazas tomando el sol!',
-  'La gente y los Pokémon conviven en Madrid desde tiempos inmemoriales.',
-  'Yo estudio estas criaturas fascinantes como profesión.',
-  'Pero antes de continuar... ¡Cuéntame sobre ti! ¿Cómo te llamas?',
+  '¡Eh, eh, eh! ¡Bienvenido al mundo de los Pokémon de Madrid, bro!',
+  'Soy Iván. Iván "FinTips", para los amigos. Tu socio financiero.',
+  'Aquí los Pokémon son como los activos: unos suben en el Metro, otros se desploman en los parques... y otros echan la siesta en una terraza tomando el sol.',
+  'En este mundo, majo, cada criatura es una posición. Y toda posición tiene su ROI.',
+  'Yo me dedico a analizar este caos desde la barrera, buscando rentabilidad. Es lo mío.',
+  'Y tú... tú vives en un piso de Bravo Murillo, en Tetuán, ahogado entre Excels y desorden vital.',
+  'Tu compañero de piso, Álvaro Alonso, "el Vicepresidente del Humo", se cree el Campeón porque lo tiene TODO optimizado. Lógica pura. Cero improvisación.',
+  'Ha llegado la hora de demostrarle que la improvisación le gana a la lógica. Vas a poner orden en este caos a tu manera.',
+  'Pero antes de meter capital... cuéntame, ¿cómo te llamas? Que lo apunto en el Excel.',
 ];
 
 const STARTER_DESC = {
-  1: 'BULBASAUR, tipo Planta. Tu padre lo capturó en la Pradera de San Isidro, en plena verbena. ¡Tiene un espíritu que no se rinde!',
-  4: 'CHARMANDER, tipo Fuego. Tu padre lo encontró una noche en los tejados de Malasaña. Ágil, misterioso y astuto.',
-  7: 'SQUIRTLE, tipo Agua. Tu padre lo rescató de una estación de Metro abandonada. ¡Su caparazón aguanta lo que le echen!',
+  1: 'BULBASAUR, tipo Planta. Inversión a largo plazo, bro: crece despacio pero compone como un fondo indexado. Cazado en la verbena de San Isidro. ¡No se rinde ni a tiros!',
+  4: 'CHARMANDER, tipo Fuego. Volátil y agresivo, puro growth: si lo riegas bien, se revaloriza una barbaridad. Apareció una noche en los tejados de Malasaña. Alto riesgo, alta recompensa.',
+  7: 'SQUIRTLE, tipo Agua. Activo defensivo, majo: aguanta cualquier corrección de mercado sin pestañear. Rescatado de una estación de Metro abandonada. Liquidez y caparazón a prueba de hostias.',
 };
 
 function linesTrasNombre(name) {
   return [
-    `¡Ah, ${name}! ¡Qué nombre más castizo!`,
-    'Verás... tu padre vino a verme justo antes de desaparecer. Me confió estas tres Pokébolas.',
-    'Dijo: "Cuando cumpla los 11, dale a elegir uno de estos tres. Son especiales."',
-    'Arturo era un gran entrenador. Y un mejor amigo.',
-    'Ahora... es tu turno. ¡Adelante! ¡Elige tu compañero!',
+    `¡Ahí va, ${name}! Nombre con caché. Eso revaloriza la marca personal, bro.`,
+    `Mira, ${name}... he estado mirando los números y tienes que diversificar la cartera YA. Necesitas un primer activo.`,
+    'Te he traído tres Pokébolas. Considéralo capital semilla: una inversión de alto riesgo en tu propia aventura.',
+    'Yo te lo presto, pero ojo: esto NO es un regalo. Es una posición. Cuando peten en valor, me debes el dividendo en cañas.',
+    'Spoiler: rentabilidades pasadas no garantizan rentabilidades futuras. Pero tú improvisa, que para eso eres el mejor.',
+    `Venga, ${name}, abre posición. ¡Elige tu compañero!`,
   ];
 }
 
 function linesFinal(name, pkmn) {
   return [
-    `¡Así que eliges a ${pkmn}! ¡Parece que le gustas!`,
-    `Cuídalo bien, ${name}. Tu padre estaría orgulloso.`,
-    `Ahora sí, ${name}... ¡Tu aventura por Madrid comienza!`,
-    '¡Buena suerte, y recuerda...! ¡Hazte con todos!',
+    `¡Así que abres posición con ${pkmn}! Buena entrada, bro. El mercado te lo va a premiar.`,
+    `Cuídalo bien, ${name}. Un activo bien gestionado vale más que mil Excels de Álvaro.`,
+    `Ahora sí, ${name}... sal de ese piso de Bravo Murillo y ¡pon orden en el caos de Madrid!`,
+    'Demuéstrale a Álvaro Alonso que la improvisación le gana a la lógica. ¡Y hazte con todos, que diversificar es la clave!',
   ];
 }
 
@@ -50,8 +57,8 @@ function buildNamePanel() {
   const root = el('div', ROOT_CSS);
   const panel = el('div', PANEL_CSS);
   const input = el('input', INPUT_CSS);
-  input.maxLength = 7;
-  input.value = 'ROJO';
+  input.maxLength = 9;
+  input.value = 'MARCELINO';
   input.style.textTransform = 'uppercase';
   input.style.textAlign = 'center';
   const button = el('button', BTN_CSS, '¡ESE SOY YO!');
@@ -74,7 +81,7 @@ export default class IntroScene extends Phaser.Scene {
     this.phase = 'dialog';
     this.phaseAt = 0;
     this.selIndex = 0;
-    this.playerName = 'ROJO';
+    this.playerName = 'MARCELINO';
     this.drawBackdrop();
     this.prof = this.add.image(GAME_W / 2, 62, 'chars', 'scientist_down_0').setScale(2);
     this.cameras.main.fadeIn(400);
@@ -118,8 +125,8 @@ export default class IntroScene extends Phaser.Scene {
       root.remove();
       this.input.keyboard.enabled = true;
       this.input.keyboard.enableGlobalCapture();
-      const clean = input.value.toUpperCase().replace(/[^A-ZÁÉÍÓÚÑ0-9]/g, '').slice(0, 7);
-      this.playerName = clean || 'ROJO';
+      const clean = input.value.toUpperCase().replace(/[^A-ZÁÉÍÓÚÑ0-9]/g, '').slice(0, 9);
+      this.playerName = clean || 'MARCELINO';
       this.say(linesTrasNombre(this.playerName), () => this.showStarterSelect());
     };
     on(button, 'click', finish);
