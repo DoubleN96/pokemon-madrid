@@ -8,8 +8,10 @@ import BattleScene from './scenes/BattleScene.js';
 import MenuScene from './scenes/MenuScene.js';
 import DialogScene from './scenes/DialogScene.js';
 
+const forceCanvas = new URLSearchParams(location.search).has('canvas');
+
 const config = {
-  type: Phaser.AUTO,
+  type: forceCanvas ? Phaser.CANVAS : Phaser.AUTO,
   parent: 'game',
   width: GAME_W,
   height: GAME_H,

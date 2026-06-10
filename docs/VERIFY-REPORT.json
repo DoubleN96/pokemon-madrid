@@ -1,0 +1,166 @@
+{
+  "bugs": [
+    {
+      "titulo": "Evolución aplicada por DOS módulos: doble evolución latente en cadenas cortas + animación morph y registro Pokédex perdidos",
+      "gravedad": "ALTO",
+      "evidencia": "Lado A: src/core/battle.js:591 (finishBattle llama checkEvolutions en win/caught) y battle.js:597-606 (evolve(mon) + emite {t:'evolve'}). Lado C: src/scenes/BattleScene.js:395 (finishBattle→handleEvolutions), BattleScene.js:423-445 (maybeEvolve llama evolve(mon) OTRA VEZ en la línea 439). BattleScene.js:108-124: el mapa eventHandlers NO tiene handler 'evolve' → el evento de A se descarta en silencio. Datos: pokedex.json Caterpie evo nv7→Metapod, Metapod evo nv10→Butterfree; CONTRACTS.md:127 ordena añadir Caterpie/Weedle a Ruta 2 (hoy maps.js:335-341 aún no los tiene, por eso el doble-evolve es latente, no activo). Síntomas HOY: (1) caso común (p.ej. Charmander→Charmeleon nv16): C comprueba contra la especie ya mutada por A → no anima nunca el morph (solo se ven los textos de A) y (2) markSeen/markCaught de la forma evolucionada (BattleScene.js:440-441) nunca se ejecutan → Pokédex incompleta. Síntoma LATENTE: Caterpie capturado a nv9 que sube a nv10 → A: Caterpie→Metapod, C: Metapod nv10>=10 → Butterfree. Doble evolución en una sola subida (corrupción de save).",
+      "fix": "Un solo dueño de la evolución. Cambio mínimo: borrar la línea 591 de src/core/battle.js:\n```diff\n function finishBattle(b, events) {\n-  if (b.over.result === 'win' || b.over.result === 'caught') checkEvolutions(b, events);\n   events.push({ t: 'end', result: b.over.result });\n   b.phase = 'over';\n }\n```\n(y eliminar checkEvolutions + el import canEvolve/evolve de battle.js:10 como código muerto). C ya hace todo bien (animación, markSeen/markCaught, evolve). Complemento recomendado para no perder evoluciones pendientes de combates anteriores perdidos/huidos: en BattleScene.js:423-428 iterar todo el equipo en vez de leveledIndexes: `for (const mon of this.save.party) await this.maybeEvolve(mon);`",
+      "check": "evolucion-y-mutacion"
+    },
+    {
+      "titulo": "Forcejeo (Struggle) inalcanzable desde la UI: con 0 PP en los 4 movimientos el menú LUCHA queda muerto",
+      "gravedad": "ALTO",
+      "evidencia": "Lado A (soporta struggle): src/core/battle.js:174-175 — validateMove acepta la acción 'move' si NINGÚN movimiento tiene PP ('if (!anyPp) return false; // sin PP en nada → Forcejeo'), y battle.js:356-362 resolveMoveSlot devuelve STRUGGLE (definido en battle.js:14-18). Lado C (nunca la envía): src/ui/battle/menus.js:89 marca `disabled: move.pp <= 0` y menus.js:41-43 ignora el botón A sobre entradas deshabilitadas → con 4 movimientos a 0 PP solo funciona B (cancelar) → BattleScene.js:212-213 devuelve null → mainLoop (BattleScene.js:174) vuelve al menú principal. Resultado: el jugador jamás puede luchar (Forcejeo es código muerto desde la UI). No es bloqueo eterno absoluto en salvajes (HUIR acaba garantizado por battle.js:232: f += 30*runAttempts ≥256), pero LUCHA queda inutilizable y en combates de entrenador (canRun=false, battle.js:160-162) sería soft-lock hasta perder.",
+      "fix": "En src/scenes/BattleScene.js chooseMove (línea 209), atajar antes de abrir el menú:\n```diff\n async chooseMove() {\n   this.msg.clear();\n+  if (!this.playerMon.moves.some((m) => m.pp > 0)) {\n+    return { type: 'move', index: 0 }; // sin PP en nada → el motor resuelve Forcejeo\n+  }\n   const index = await fightMenu(this, this.playerMon.moves, this.movesData);\n   if (index === null) return null;\n   return { type: 'move', index };\n }\n```\nEl motor ya emite el texto '¡A X no le quedan PP!' (battle.js:369), así que la UI no necesita mensaje propio.",
+      "check": "evolucion-y-mutacion"
+    },
+    {
+      "titulo": "Doble narración: '¡El ataque ha fallado!' se muestra dos veces por cada fallo",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:414-415 emite {t:'miss'} seguido de {t:'text',msg:'¡El ataque ha fallado!'} ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:114 el handler de 'miss' también escribe '¡El ataque ha fallado!' (frase idéntica, se ve 2 veces seguidas)",
+      "fix": "Borrar battle.js:415 `events.push({ t: 'text', msg: '¡El ataque ha fallado!' });` (los tests no asertan este texto; verificado en tests/core.test.mjs)",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Doble narración: '¡X se ha debilitado!' duplicado en cada debilitamiento",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:552-553 emite {t:'faint'} + {t:'text','¡X se ha debilitado!'} ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:310-317 onFaintEvent anima la caída y escribe su propio '...se ha debilitado!' con confirm",
+      "fix": "Borrar battle.js:553 (la línea de texto tras el evento faint); C ya narra con mejor pacing (confirm)",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Doble narración: mensaje de estado (par/psn/brn/slp/frz) duplicado al aplicarse",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:496-497 emite {t:'status'} + texto de STATUS_APPLIED (battle.js:31-37, '...Quizá no pueda moverse.') ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:288-297 onStatusEvent escribe STATUS_MSG_ES (src/ui/battle/names.js:14-20, '...Quizá no pueda atacar.') — dos frases casi idénticas seguidas",
+      "fix": "Borrar battle.js:497 (y las plantillas STATUS_APPLIED si quedan sin uso); C ya narra al recibir {t:'status'} con status≠null. Los textos de despertar/descongelar (battle.js:392,401) NO se tocan porque C no narra status:null",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Doble narración: lanzamiento y resultado de Poké Ball narrados dos veces",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:263 ('¡Has lanzado una POKÉ BALL!'), :269 (BALL_FAIL_TEXT) y :272 ('¡Toma ya! ¡X capturado!') alrededor de {t:'ball'} ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:357-365 onBallEvent escribe '¡Allá va la POKÉ BALL!' + resultado (BALL_ESCAPE_ES de names.js:23-28 o '¡Toma ya! ¡X atrapado!') — 2 anuncios + 2 resultados por lanzamiento",
+      "fix": "En throwBall (battle.js:262-275) borrar los tres events.push de tipo 'text' (líneas 263, 269 y 272), dejando solo {t:'ball',shakes,caught}; C narra antes y después de la animación",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Doble narración: '¡X ha ganado N puntos de experiencia!' duplicado",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:582-583 emite {t:'exp'} + texto idéntico ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:319-323 onExpEvent escribe exactamente la misma frase y anima la barra",
+      "fix": "Borrar battle.js:583 (el texto tras {t:'exp'})",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Doble narración: '¡Vuelve, X!' y '¡Adelante, X!' duplicados en cada cambio del jugador",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:280 ('¡Vuelve...') y :286 ('¡Adelante...') alrededor de {t:'switch'} (:285) ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:367-384 onSwitchEvent escribe ambas frases con sus tweens — cada una se ve 2 veces",
+      "fix": "Borrar battle.js:280 y :286. NO tocar battle.js:573 ('¡El rival saca a X!'): es el relevo enemigo y C lo ignora (onSwitchEvent retorna en side!=='player'), ese texto es la única narración",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Evento {t:'evolve'} ignorado por C: evolución sin animación, sin registro en pokédex y posible doble evolución",
+      "gravedad": "ALTO",
+      "evidencia": "A: /home/n8nstratoma/pokemon-madrid/src/core/battle.js:597-606 ya evoluciona al mon (evolve(mon) :601) y emite {t:'evolve'} (:604) antes de {t:'end'} (comportamiento fijado por tests/core.test.mjs:473-489) ↔ C: /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:108-124 no registra handler 'evolve' y playEvents (:256-262) lo salta; C reimplementa la evolución en handleEvolutions/maybeEvolve (:423-445) que casi nunca dispara porque A ya cambió mon.species → el jugador ve los textos '¡está evolucionando!'/'¡ha evolucionado!' (battle.js:603,605) SIN la animación createEvolutionStage, la especie evolucionada nunca recibe markSeen/markCaught, y si el nivel alcanza justo el umbral de la 2ª evolución (p.ej. Charmander→Charmeleon a nv36) C la evoluciona OTRA vez (doble salto en un combate)",
+      "fix": "(1) En battle.js:604 incluir ids: `events.push({ t:'evolve', side:'player', index, from: <id especie vieja>, to: mon.species, fromName, toName })`. (2) En BattleScene.js añadir `evolve: (ev) => this.onEvolveEvent(ev)` al mapa de handlers: onEvolveEvent hace await ensureFrontLoaded([ev.from, ev.to]), reproduce fx.createEvolutionStage(this, `pkmn_front_${ev.from}`, `pkmn_front_${ev.to}`).morph() y llama markSeen/markCaught(ev.to). (3) Borrar handleEvolutions/maybeEvolve (BattleScene.js:423-445) y su llamada en :395 para eliminar la lógica duplicada",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Claves de stat desalineadas: STAT_ES nunca coincide y el texto cae siempre al fallback ('¡El ATK de X ha subido!')",
+      "gravedad": "MEDIO",
+      "evidencia": "A emite {t:'stat'} con claves cortas atk/def/spa/spd/spe/acc/eva (/home/n8nstratoma/pokemon-madrid/src/core/battle.js:23-26 STAT_KEY y :517; confirmado por tests/core.test.mjs:385 que aserta e.stat==='def') ↔ C busca con claves largas: /home/n8nstratoma/pokemon-madrid/src/ui/battle/names.js:4-12 STAT_ES usa 'attack','defense','special-attack'... y /home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js:300 `STAT_ES[ev.stat]` es siempre undefined → fallback feo en cada cambio de stat",
+      "fix": "En names.js:4-12 renombrar las claves de STAT_ES a las cortas del motor: { atk:'El ATAQUE', def:'La DEFENSA', spa:'El ATAQUE ESP.', spd:'La DEFENSA ESP.', spe:'La VELOCIDAD', acc:'La PRECISIÓN', eva:'La EVASIÓN' }",
+      "check": "narracion-y-eventos"
+    },
+    {
+      "titulo": "Flag registry 'whiteout' se setea pero nadie lo lee ni lo limpia (canal C→B muerto)",
+      "gravedad": "BAJO",
+      "evidencia": "BattleScene.js:418 (registry.set('whiteout', true)) y BattleScene.js:476 (scene.wake('World') SIN data) vs WorldScene.js:245-249 (handleDefeat solo mira data.defeat/data.result y el heurístico 'wiped'; jamás consulta registry 'whiteout'). grep de 'whiteout' en src/: único hit es el set. El flujo funciona HOY solo porque lose ⇔ equipo entero a 0 (battle.js:555-559) y 'wiped' lo captura; el flag queda true para siempre y el canal acordado (BUILD-REPORT.json:81) está sin consumir.",
+      "fix": "En WorldScene.handleDefeat (WorldScene.js:247): `const flagged = !!(data && (data.defeat || data.result === 'lose')) || this.registry.get('whiteout') === true;` y al principio de onWake (WorldScene.js:228): `this.registry.set('whiteout', false);`",
+      "check": "derrota-y-flujo-mundo"
+    },
+    {
+      "titulo": "Evolución duplicada: el motor (A) y la escena (C) evolucionan ambos; la animación de morph de C es código muerto y puede haber doble evolución en un combate",
+      "gravedad": "MEDIO",
+      "evidencia": "battle.js:591 + 597-607 (checkEvolutions llama evolve() sobre todo el equipo en win/caught y emite {t:'evolve'}, evento NO documentado en CONTRACTS.md:80-84) vs BattleScene.js:108-124 (sin handler 'evolve' → se ignora) y BattleScene.js:395+423-445 (handleEvolutions/maybeEvolve llega cuando mon.species YA es la forma evolucionada → no-op: createEvolutionStage nunca se reproduce; el jugador solo ve texto plano del motor y el back sprite/databox no se refrescan). Caso borde: si el nivel también cumple el umbral de la siguiente etapa (p.ej. nv36 como Charmander), evoluciona DOS etapas en un combate (motor→Charmeleon, escena→Charizard).",
+      "fix": "Quitar la evolución del motor: en battle.js:591 eliminar la llamada `checkEvolutions(b, events);` (y la función 597-607), dejando la evolución exclusivamente en BattleScene.handleEvolutions, que ya cubre win/caught con animación, markSeen/markCaught y refresco de sprites.",
+      "check": "derrota-y-flujo-mundo"
+    },
+    {
+      "titulo": "Input bleed al cerrar Dialog/Tienda/Menu: la misma pulsación que cierra reabre la interacción (flags JustDown no consumidos durante inputLocked)",
+      "gravedad": "ALTO",
+      "evidencia": "src/scenes/WorldScene.js:68 (update retorna por inputLocked ANTES de consumir JustDown en líneas 69-70 y 86-89) ↔ src/scenes/DialogScene.js:75-77 y src/ui/shop.js:125-127 (cierran con keydown-Z/SPACE/ENTER) + WorldScene.js:189-192/210 y 218-224 (onClose/unlock ponen inputLocked=false síncronamente) + MenuScene.js:60,85-88 (ENTER en raíz cierra el menú). Phaser 3.90: Key._justDown persiste hasta ser leído (node_modules/phaser/src/input/keyboard/keys/Key.js:282, JustDown.js:24-28) y la cola de teclado se procesa por escena ANTES de los update() (KeyboardPlugin.js:220,733-746). Resultado: la Z que cierra el diálogo/tienda deja keys.Z._justDown=true; en el siguiente update de World (ya desbloqueado) isAJustPressed()=true → interact() relanza el diálogo del mismo NPC (bucle si el jugador usa Z/Espacio; solo se escapa con X). Igual con ENTER: cerrar el Menu lo reabre al instante.",
+      "fix": "En WorldScene.update consumir los taps mientras está bloqueado. Diff mínimo en src/scenes/WorldScene.js:67-70:\n-  update() {\n-    if (this.transitioning || this.inputLocked || this.player.moving) return;\n+  update() {\n+    if (this.transitioning || this.inputLocked) {\n+      Phaser.Input.Keyboard.JustDown(this.keys.ENTER);\n+      Phaser.Input.Keyboard.JustDown(this.keys.Z);\n+      Phaser.Input.Keyboard.JustDown(this.cursors.space);\n+      return;\n+    }\n+    if (this.player.moving) return;\n     if (Phaser.Input.Keyboard.JustDown(this.keys.ENTER)) { this.openMenu(); return; }",
+      "check": "ui-transversal"
+    },
+    {
+      "titulo": "WorldScene ignora silenciosamente el campo 'signs' del Módulo E: 17 carteles sólidos sin interacción (contenido muerto)",
+      "gravedad": "MEDIO",
+      "evidencia": "src/world/maps.js:157-160 (addSign hace m.signs.push({x,y,lines}) y pone tile sólido vía setDeco, maps.js:74-77, collision=1) con 17 carteles (maps.js:207-214, 330, …) ↔ src/scenes/WorldScene.js:165-177 (interact() solo busca this.npcs; cero referencias a 'signs' en todo src/scenes/). El jugador pulsa A frente a un cartel y no pasa nada. CONTRACTS.md:116-124 no modela signs (extensión documentada por E en docs/BUILD-REPORT.json:133), pero el contenido queda inaccesible.",
+      "fix": "En src/scenes/WorldScene.js interact(), tras el lookup de NPC (línea 169-170):\n     const npc = this.npcs.find((n) => n.isAt(tx, ty));\n-    if (!npc) return;\n+    if (!npc) {\n+      const sign = (this.mapData.signs || []).find((s) => s.x === tx && s.y === ty);\n+      if (!sign) return;\n+      this.inputLocked = true;\n+      this.talk(sign.lines, () => { this.inputLocked = false; });\n+      return;\n+    }",
+      "check": "ui-transversal"
+    },
+    {
+      "titulo": "playTimeS nunca se incrementa: pm_saves.play_time_s y el campo del SaveState quedan siempre a 0",
+      "gravedad": "MEDIO",
+      "evidencia": "src/services/saves.js:76 (play_time_s = Math.floor(state.playTimeS ?? 0)) lee el campo, pero las ÚNICAS escrituras en todo src/ son inicializaciones a 0: src/scenes/IntroScene.js:236 y src/scenes/WorldScene.js:291. Ningún módulo (World, Menu, Battle) lo incrementa; grep de 'playTimeS' confirma 3 ocurrencias totales. El menú guarda el SaveState completo (MenuScene.js:430) pero el tiempo de juego persiste como 0 para siempre.",
+      "fix": "Añadir contador en src/scenes/WorldScene.js create() (tras línea 35, persistPlayer()):\n+    this.time.addEvent({ delay: 1000, loop: true, callback: () => {\n+      const s = this.registry.get('save');\n+      if (s) s.playTimeS = (s.playTimeS || 0) + 1;\n+    } });\n(El timer se pausa solo cuando World duerme en combate; aceptable en MVP.)",
+      "check": "ui-transversal"
+    },
+    {
+      "titulo": "Flujo 'SIN CUENTA' (invitado) lee y puede sobrescribir el save en la nube de una sesión Supabase persistida — G y F discrepan sobre qué es 'sesión'",
+      "gravedad": "ALTO",
+      "evidencia": "src/ui/authForm.js:107 (bGuest → finish(null), nunca cierra sesión) ↔ src/services/saves.js:126-128 y 93 (loadGame/saveGame usan getSession() de supabase, ignoran registry 'session') + src/services/supabase.js:7-9 (persistSession: true) + signOut() de src/services/auth.js no se llama en ningún sitio de src/ (grep sin resultados). Consecuencia: TitleScene.js:129-131 ofrece CONTINUAR con el save de la cuenta a un usuario que eligió invitado, y al guardar (saves.js:100-102) hace upsert sobre el slot 1 de esa cuenta.",
+      "fix": "En src/ui/authForm.js: importar { signOut } from '../services/auth.js' y cambiar la línea 107 de `on(bGuest, 'click', () => finish(null));` a `on(bGuest, 'click', async () => { await signOut(); finish(null); });` — así getSession() devuelve null y F cae a localStorage pm_save_guest como exige el contrato.",
+      "check": "titulo-intro-saves"
+    },
+    {
+      "titulo": "BootScene crea anims de andar con frames inexistentes en el atlas (elder_m_*_1/2 y generic_m1_up_2) → 9 console.warn al arrancar y anims degradadas",
+      "gravedad": "BAJO",
+      "evidencia": "src/scenes/BootScene.js:29 (walkChars incluye 'elder_m' y 'generic_m1') y :36-40 (frames _1/_0/_2) ↔ public/assets/sprites/chars/npcs.json: elder_m solo tiene elder_m_{down,up,left,right}_0 (4 frames) y generic_m1 carece de generic_m1_up_2 (11/12). Phaser NO crashea: node_modules/phaser/src/animations/Animation.js:456-461 hace console.warn('Texture \"%s\" not found') y omite el frame; además GridMover.playWalkAnim guarda con anims.exists (src/world/engine/GridMover.js:55). Resultado: 9 warnings en consola y elder_m_walk_* / generic_m1_walk_up con frames repetidos si algún día caminan.",
+      "fix": "En BootScene.create(), filtrar por existencia antes de crear: `const tex = this.textures.get('chars');` y dentro del bucle `const frames = [1,0,2,0].map(n => ({ key: 'chars', frame: `${c}_${dir}_${n}` })).filter(f => tex.has(f.frame)); if (frames.length > 1) this.anims.create({ key, frames, frameRate: 8, repeat: -1 });` (alternativa mínima: quitar 'elder_m' de walkChars, que solo tiene frames idle).",
+      "check": "titulo-intro-saves"
+    },
+    {
+      "titulo": "docs/CONTRACTS.md describe dimensiones obsoletas del tileset (2036×1010, 63 filas) que ya no corresponden al PNG reempaquetado",
+      "gravedad": "BAJO",
+      "evidencia": "docs/CONTRACTS.md:90 ('la imagen es 2036×1010 → 127 columnas × 63 filas') vs public/assets/tilesets/rse-tileset.png (cabecera IHDR = 2032×800) y scripts/map_tools/repack_tileset.mjs:16-18 (127 cols × 50 filas). Solo coincide el nº de columnas por casualidad (floor(2036/16)=127); el PNG original tiene margin/spacing 2 y NO se puede trocear a 16px sin desalinear — por eso existe el repack. Sin efecto en runtime (el código usa el PNG reempaquetado correcto), pero el contrato induce a error a futuros módulos.",
+      "fix": "En docs/CONTRACTS.md:90 sustituir 'la imagen es 2036×1010 → 127 columnas × 63 filas' por 'la imagen es el tileset REEMPAQUETADO 2032×800 (sin margin/spacing) → 127 columnas × 50 filas; frame = GID del TMX − 1 (ver scripts/map_tools/repack_tileset.mjs)'.",
+      "check": "datos-y-render"
+    },
+    {
+      "titulo": "BootScene carga la textura duplicada 'tilesetimg' que nadie usa (≈6.3 MB RGBA extra en GPU)",
+      "gravedad": "BAJO",
+      "evidencia": "src/scenes/BootScene.js:18 (this.load.image('tilesetimg', 'assets/tilesets/rse-tileset.png')) — grep de 'tilesetimg' en todo src/ solo devuelve esa línea; src/world/engine/mapRenderer.js:15 usa exclusivamente el key 'tiles' (spritesheet de BootScene.js:17). Es el mismo PNG cargado dos veces como texturas independientes.",
+      "fix": "Eliminar la línea src/scenes/BootScene.js:18: `this.load.image('tilesetimg', 'assets/tilesets/rse-tileset.png');`",
+      "check": "datos-y-render"
+    }
+  ],
+  "oks": [
+    "Riesgo 2 (mutación vs clon): FALSA ALARMA — createBattle guarda party/bag por referencia sin clonar (battle.js:50-52) y muta in situ HP (battle.js:90), PP (battle.js:368), bolsa (battle.js:245) y exp/nivel vía gainExp (monster.js:66-79); C pasa save.party/save.bag (BattleScene.js:65,68) y persiste con registry.set('save') (BattleScene.js:473), por lo que el registry SÍ refleja todos los cambios.",
+    "Riesgo 3 (firma de evolve): FALSA ALARMA — monster.js:110 define `export function evolve(inst)` (1 argumento, muta la instancia, devuelve {fromName,toName,species}|null) y C la invoca exactamente así con 1 argumento en BattleScene.js:439 (igual que A en battle.js:601).",
+    "Riesgo 3 (invalid): OK — battle.js:128 devuelve {invalid:true} sin consumir turno (b.turn+=1 va después, :129) y aunque BattleScene no comprueba 'invalid', su bucle for(;;) (BattleScene.js:171-183) reproduce el texto de error y vuelve a chooseAction → regresa al menú correctamente",
+    "Riesgo 4 (switch forzoso): OK — ambos lados coinciden: battle.js:126+290-299 solo acepta {type:'switch'} sin ataque gratis enemigo y vuelve a phase 'choice'; BattleScene.js:181+186-196 detecta hp<=0, abre partyMenu(forced) no cancelable (menus.js:118-128, canCancel:!forced) con debilitados/activo deshabilitados (BattleScene.js:250) y recursa si el nuevo también cae",
+    "Riesgo 5 (poción a banquillo): OK — inalcanzable desde la UI: BattleScene.js:225 siempre envía target=this.activeIndex (nunca banquillo); y aunque llegara, battle.js:249-253 solo emite {t:'text'} que C reproduce sin tocar databoxes (sin romper nada)",
+    "crit y eff NO duplicados: battle.js:436-437 emite solo los eventos tipados sin texto; la única narración es la de C (BattleScene.js:113, 281-285); el caso mult=0 de C es código muerto (A emite texto y no evento, battle.js:431-433) pero inofensivo",
+    "Huida NO duplicada: el texto '¡Has escapado sin problemas!' de battle.js:239 activa lastBatchHadText y C salta su fallback (BattleScene.js:392-394)",
+    "DERROTA (flujo funcional): mitad de dinero descontada en C (BattleScene.js:413-414, persistida por referencia + registry.set en :473); B cura con healFull (WorldScene.js:250) y recoloca a MAPS.tetuan.healSpawn {25,11} (WorldScene.js:251-253, maps.js:227); syncToSavedPosition (WorldScene.js:256-263) hace scene.restart({map:'tetuan',...}) que cambia de mapa correctamente incluso desde ruta2/chamberi (create honra startPos en :17-24). Solo el flag es el defecto (ver bugs).",
+    "wake vs resume: correctamente conectado — sleep en WorldScene.js:148, wake en BattleScene.js:476 (tras fadeOut, antes de scene.stop); B registra 'wake' y 'resume' con dedup off/on (WorldScene.js:37-40) y onWake desbloquea input (transitioning=false, inputLocked=false, :229-231).",
+    "CAPTURA: battle.js:273 devuelve over={result:'caught', caughtMonster: foe}; BattleScene.js:390→404-406 añade al equipo si <6 (descarta con aviso si lleno, :408) y marca pokedex.caught (:401, :465-468); 'seen' se marca al INICIAR el combate en create() (BattleScene.js:59); estructura save.pokedex {seen,caught} garantizada (IntroScene.js:234, WorldScene.js:289).",
+    "ENCUENTROS: WorldScene.js:137 usa ENCOUNTER_RATE (0.12, config.js:8) y los pesos del mapa via rollEncounter; encounters.js:25 calcula level=randInt(entry.min, entry.max); WorldScene.js:144 pasa (pokedex, enc.species, enc.level) que casa exactamente con createMonster(pokedex, speciesId, level) de monster.js:37; las 3 tablas de mapas tienen {species,min,max,weight} válidos (maps.js:215-220, 337-342, 420-426).",
+    "TIENDA firma: WorldScene.js:208 openShop(this, { onClose }) coincide exactamente con export openShop(scene, opts={}) de shop.js:24 (opts.onClose consumido en shop.js:37,210); usa el registry correctamente: scene.registry.get('save') (shop.js:26), save.player.money (shop.js:68,184-192) y save.bag con guard de creación (shop.js:190-191); precios 200/300/100 idénticos a CONTRACTS.md:111.",
+    "DialogScene prompt API: implementa fielmente prompt:{options, defaultIndex, onSelect(index,label)} (DialogScene.js:118-148, choose pasa (i,label) en :147); NINGÚN caller usa prompt todavía (grep sin resultados fuera de DialogScene), y todos los launch('Dialog', {lines, onClose}) coinciden con el contrato: WorldScene.js:181, IntroScene.js:101, MenuScene.js:112-115.",
+    "MenuScene cierre/wiring: World escucha shutdown Y sleep con once + limpieza cruzada (WorldScene.js:218-224); Menu hace scene.stop() que emite shutdown (MenuScene.js:121) y sus resume/wake condicionales sobre World (MenuScene.js:119-120) son no-ops seguros porque World nunca se pausa — el unlock funciona (el único defecto es el bleed de ENTER, reportado como bug 1).",
+    "GUARDAR: MenuScene.doSave llama saveGame(this.save) (MenuScene.js:9,427-432) con el SaveState completo del registry (this.save = registry.get('save'), MenuScene.js:30 — misma referencia mutada por todos); saveGame del módulo F acepta esa forma, valida y lee state.playTimeS (saves.js:88-105,76) — la integración es correcta (que el valor sea siempre 0 es el bug 3, no un fallo de la llamada).",
+    "Menu↔Dialog sin doble-manejo del mismo keydown: Menu va antes que Dialog en el orden de escenas (main.js:28) así que su KeyboardPlugin procesa primero con busy=true (MenuScene.js:51,110-116) y el cierre del Dialog en el mismo evento no dispara acciones del Menu.",
+    "Riesgo 1: TitleScene.js:129-131 interpreta cualquier ok:false de loadGame (incl. {ok:false, where:'supabase', error:'No hay ninguna partida guardada.'} de saves.js:116) como ir a Intro/nueva partida, nunca como error fatal — falsa alarma.",
+    "Riesgo 2: IntroScene.buildSaveState (IntroScene.js:227-238) coincide campo a campo con el contrato y con lo que consumen B (save.player.map/x/y/dir en WorldScene.js:23,256-276), Menu (Object.entries(save.bag) MenuScene.js:345; pokedex.seen/caught MenuScene.js:386-394) y F (state.version === SAVE_VERSION, saves.js:47 con SAVE_VERSION=1 de config.js); única desviación cosmética sin efecto: antidote:1 vs el ejemplo antidote:0 del contrato (bag es mapa libre item→cantidad).",
+    "Riesgo 3: la firma real de A es createMonster(pokedex, speciesId, level, rng=Math.random) (src/core/monster.js:37) y G llama createMonster(pokedex, id, 5) (IntroScene.js:220) con pokedex del registry — compatible; moves del starter lv5 correctos vía movesAtLevel (monster.js:21-28): Bulbasaur [tackle,growl], Charmander [scratch,growl], Squirtle [tackle,tail-whip], exp=expForLevel y currentHp=calcStats().hp.",
+    "Riesgo 4 (parte DOM): authForm.finish() (src/ui/authForm.js:87-93) quita TODOS los listeners registrados, hace root.remove() y tiene guard `done` contra doble cierre; TitleScene reactiva teclado y global capture (TitleScene.js:127-128); el flujo invitado puro (sin sesión Supabase previa) sí carga de localStorage pm_save_guest (saves.js:127-128 → parseLocal) — la única grieta es la sesión persistida (ver bug ALTO).",
+    "Riesgo 5 (crash al play): falsa alarma — los únicos NPCs roam:true son senora_bata y senora_olavide (generic_f1, maps.js:264,453) y nino_balon (youngster, maps.js:280), ambos sprites en walkChars de BootScene.js:29 con 12/12 frames en el atlas; guitarist (punk_dani, maps.js:375) no tiene anim pero es roam:false y GridMover.playWalkAnim hace early-return si !anims.exists (GridMover.js:55); todos los frames estáticos '<sprite>_<dir>_0' usados existen en npcs.json (incl. guitarist_up_0, generic_m1_up_0, elder_m_down_0) y Npc.js:16-18 además tiene fallback de sprite.",
+    "Riesgo 1 (índices vs PNG reempaquetado): OK — el PNG commiteado es byte-idéntico (0 diffs) a re-ejecutar el repack desde el original gracidea; frame Phaser (2032/16=127 cols, sin margin) == GID−1, exactamente la convención de palette.mjs:1-3 y maps.js:2-3.",
+    "Riesgo 2 (mapRenderer): OK — usa key 'tiles' (mapRenderer.js:15) que coincide con BootScene.js:17; addTilesetImage con margin/spacing 0,0 correcto para el repack; -1 lo salta Phaser (Parse2DArray.js:59-63 + TilemapLayerWebGLRenderer.js:54-58, gidMap[-1]→continue); overhead depth 100 > jugador máx 49 (GridMover.js:19 depth=10+tileY, mapa más alto = 40 tiles, maps.js:300).",
+    "Riesgo 3 (animación de tiles): OK — agua/flores quedan 100% estáticas; cero código de animación de tiles en src/ (sin putTileAt ni anims sobre capas), nada a medias que pueda crashear; los comentarios 'animada' en palette.mjs:26 son solo documentación del tsx original.",
+    "Riesgo 4 (calcStats): OK — formulas.js:12-20 devuelve exactamente {hp,atk,def,spa,spd,spe}; MenuScene.js:290-299 lee las 6 claves, battle.js:99-101 lee .hp/.spe/stats, BattleScene.js:130/247 lee .hp; tests/core.test.mjs pasa 66/66.",
+    "Riesgo 5 (iconos): OK — MenuScene.js:125-133 patrón correcto (filtra por textures.exists, registra once('complete') ANTES de load.start, guard scene.isActive + guard mode==='team' en buildTeam:171); existen exactamente 151 PNGs (1.png…151.png) en public/assets/sprites/pokemon/icons/.",
+    "Riesgo 6 (imports JSON): OK — verificado empíricamente con el dev server: Vite 8 reescribe ambos estilos a '/src/data/pokedex.json?import' eliminando el atributo 'with {type:json}' (monster.js:5-6) y el import plano (BootScene.js:2-3); el build inlina el JSON; paths '../data/*.json' resuelven a src/data/{pokedex,moves}.json existentes; Node 22 soporta el atributo para los tests."
+  ]
+}

@@ -1,0 +1,482 @@
+// Módulo C — Escena de combate salvaje estilo FRLG (240×160).
+// TODA la lógica vive en el motor puro (src/core/battle.js); esta escena solo
+// pinta el layout GBA y reproduce en orden la cola de eventos del motor.
+import Phaser from 'phaser';
+import { createBattle } from '../core/battle.js';
+import { calcStats, expForLevel } from '../core/formulas.js';
+import { evolve } from '../core/monster.js';
+import { drawBox, textStyle, ITEM_NAMES } from '../ui/theme.js';
+import { MessageBox } from '../ui/battle/typewriter.js';
+import { DataBox } from '../ui/battle/databoxes.js';
+import { mainMenu, fightMenu, bagMenu, partyMenu } from '../ui/battle/menus.js';
+import { STAT_ES, STATUS_MSG_ES, BALL_ESCAPE_ES, monName } from '../ui/battle/names.js';
+import { waitForButton } from '../ui/battle/keys.js';
+import * as fx from '../ui/battle/animations.js';
+
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const BAG_ITEMS = ['poke-ball', 'potion', 'antidote'];
+
+export default class BattleScene extends Phaser.Scene {
+  constructor() { super('Battle'); }
+
+  init(data) {
+    this.wild = data.wild;
+    this.leveledIndexes = new Set();
+    this.lastBatchHadText = false;
+    this.closing = false;
+  }
+
+  // Carga bajo demanda: front del salvaje, back de todo el equipo y fronts
+  // de los candidatos a evolución (forma actual + forma evolucionada).
+  preload() {
+    const pokedex = this.registry.get('pokedex');
+    const save = this.registry.get('save');
+    this.queueFront(this.wild.species);
+    for (const mon of save.party) {
+      this.queueBack(mon.species);
+      const { evolution } = pokedex[mon.species - 1];
+      if (evolution) {
+        this.queueFront(mon.species);
+        this.queueFront(evolution.to);
+      }
+    }
+  }
+
+  queueFront(id) {
+    if (this.textures.exists(`pkmn_front_${id}`)) return;
+    this.load.image(`pkmn_front_${id}`, `assets/sprites/pokemon/front/${id}.png`);
+  }
+
+  queueBack(id) {
+    if (this.textures.exists(`pkmn_back_${id}`)) return;
+    this.load.image(`pkmn_back_${id}`, `assets/sprites/pokemon/back/${id}.png`);
+  }
+
+  create() {
+    this.pokedex = this.registry.get('pokedex');
+    this.movesData = this.registry.get('movesData');
+    this.save = this.registry.get('save');
+    this.markSeen(this.wild.species);
+    this.activeIndex = Math.max(0, this.save.party.findIndex((m) => m.currentHp > 0));
+    this.playerMon = this.save.party[this.activeIndex];
+    this.battle = createBattle({
+      pokedex: this.pokedex,
+      movesData: this.movesData,
+      party: this.save.party,
+      enemyParty: [this.wild],
+      isTrainer: false,
+      bag: this.save.bag,
+    });
+    this.buildField();
+    this.buildBoxes();
+    this.buildHandlers();
+    this.runBattle().catch((err) => {
+      console.error('[Battle] error en el combate:', err);
+      this.closeBattle();
+    });
+  }
+
+  // ── Construcción del escenario ──────────────────────────────────────────
+
+  buildField() {
+    this.add.rectangle(120, 80, 240, 160, 0xa8d8b0);
+    this.add.rectangle(120, 22, 240, 44, 0xc8e8dc);
+    this.enemyHome = { x: 176, y: 76 };
+    this.playerHome = { x: 60, y: 112 };
+    const ground = this.add.graphics().setDepth(1);
+    ground.fillStyle(0x78b070, 1);
+    ground.fillEllipse(this.enemyHome.x, 74, 76, 20);
+    ground.fillStyle(0x68a060, 1);
+    ground.fillEllipse(this.playerHome.x, 110, 92, 18);
+    this.enemySprite = this.add
+      .image(this.enemyHome.x, this.enemyHome.y, `pkmn_front_${this.wild.species}`)
+      .setOrigin(0.5, 1).setDepth(2);
+    this.playerSprite = this.add
+      .image(this.playerHome.x, this.playerHome.y, `pkmn_back_${this.playerMon.species}`)
+      .setOrigin(0.5, 1).setDepth(2);
+  }
+
+  buildBoxes() {
+    this.enemyBox = new DataBox(this, { x: 4, y: 6, isPlayer: false });
+    this.playerBox = new DataBox(this, { x: 132, y: 72, isPlayer: true });
+    this.msg = new MessageBox(this);
+    this.refreshBox('enemy');
+    this.refreshBox('player');
+  }
+
+  buildHandlers() {
+    this.eventHandlers = {
+      text: (ev) => this.msg.type(ev.msg),
+      move: (ev) => this.onMoveEvent(ev),
+      hp: (ev) => this.onHpEvent(ev),
+      eff: (ev) => this.onEffEvent(ev),
+      crit: () => this.msg.type('¡Golpe crítico!'),
+      miss: () => this.msg.type('¡El ataque ha fallado!'),
+      status: (ev) => this.onStatusEvent(ev),
+      stat: (ev) => this.onStatEvent(ev),
+      faint: (ev) => this.onFaintEvent(ev),
+      exp: (ev) => this.onExpEvent(ev),
+      levelup: (ev) => this.onLevelUpEvent(ev),
+      learn: (ev) => this.onLearnEvent(ev),
+      ball: (ev) => this.onBallEvent(ev),
+      switch: (ev) => this.onSwitchEvent(ev),
+      end: () => Promise.resolve(),
+    };
+  }
+
+  refreshBox(side) {
+    const inst = side === 'player' ? this.playerMon : this.wild;
+    const species = this.pokedex[inst.species - 1];
+    const stats = calcStats(species, inst);
+    const box = side === 'player' ? this.playerBox : this.enemyBox;
+    box.setMonster({
+      name: monName(inst, this.pokedex),
+      level: inst.level,
+      hp: inst.currentHp,
+      maxHp: stats.hp,
+      status: inst.status,
+      expRatio: side === 'player' ? this.expRatio(inst, inst.level) : 0,
+    });
+    if (side === 'player') this.shownLevel = inst.level;
+  }
+
+  // Progreso 0..1 de la barra de EXP dentro del nivel mostrado.
+  expRatio(inst, level) {
+    const species = this.pokedex[inst.species - 1];
+    const lo = expForLevel(species.growthRate, level);
+    const hi = expForLevel(species.growthRate, level + 1);
+    if (hi <= lo) return 1;
+    return clamp01((inst.exp - lo) / (hi - lo));
+  }
+
+  enemyName() {
+    return monName(this.wild, this.pokedex);
+  }
+
+  // ── Bucle principal del combate ─────────────────────────────────────────
+
+  async runBattle() {
+    this.cameras.main.fadeIn(250, 0, 0, 0);
+    await this.msg.type(`¡Anda! ¡Ha aparecido un ${this.enemyName()} salvaje!`, { confirm: true });
+    await this.sendOut();
+    await this.mainLoop();
+  }
+
+  async sendOut() {
+    this.playerSprite.setScale(0);
+    await this.msg.type(`¡Adelante, ${monName(this.playerMon, this.pokedex)}!`, { holdMs: 200 });
+    await fx.tweenPromise(this, { targets: this.playerSprite, scale: 1, duration: 250, ease: 'Back.out' });
+  }
+
+  async mainLoop() {
+    for (;;) {
+      const action = await this.chooseAction();
+      if (!action) continue;
+      const result = this.battle.act(action);
+      await this.playEvents(result.events || []);
+      if (result.over) {
+        await this.finishBattle(result.over);
+        return;
+      }
+      if (this.playerMon.currentHp <= 0 && await this.forcedSwitch()) return;
+    }
+  }
+
+  // Cambio obligatorio cuando el Pokémon activo se debilita y quedan más.
+  async forcedSwitch() {
+    const index = await this.openPartyMenu(true);
+    const result = this.battle.act({ type: 'switch', index });
+    await this.playEvents(result.events || []);
+    if (result.over) {
+      await this.finishBattle(result.over);
+      return true;
+    }
+    if (this.playerMon.currentHp <= 0) return this.forcedSwitch();
+    return false;
+  }
+
+  // ── Menús ───────────────────────────────────────────────────────────────
+
+  async chooseAction() {
+    this.msg.setInstant(`¿Qué hará ${monName(this.playerMon, this.pokedex)}?`);
+    const choice = await mainMenu(this);
+    if (choice === 'fight') return this.chooseMove();
+    if (choice === 'bag') return this.chooseItem();
+    if (choice === 'pokemon') return this.chooseSwitch();
+    return { type: 'run' };
+  }
+
+  async chooseMove() {
+    this.msg.clear();
+    if (!this.playerMon.moves.some((m) => m.pp > 0)) {
+      return { type: 'move', index: 0 }; // sin PP en nada: el motor resuelve Forcejeo
+    }
+    const index = await fightMenu(this, this.playerMon.moves, this.movesData);
+    if (index === null) return null;
+    return { type: 'move', index };
+  }
+
+  async chooseItem() {
+    const items = this.bagEntries();
+    if (!items.length) {
+      await this.msg.type('¡No llevas nada en la mochila!', { confirm: true });
+      return null;
+    }
+    const item = await bagMenu(this, items);
+    if (!item) return null;
+    if (item === 'poke-ball') return { type: 'item', item };
+    return { type: 'item', item, target: this.activeIndex };
+  }
+
+  bagEntries() {
+    return BAG_ITEMS
+      .filter((key) => (this.save.bag[key] || 0) > 0)
+      .map((key) => ({ item: key, label: ITEM_NAMES[key] || key.toUpperCase(), qty: this.save.bag[key] }));
+  }
+
+  async chooseSwitch() {
+    const index = await this.openPartyMenu(false);
+    if (index === null) return null;
+    return { type: 'switch', index };
+  }
+
+  openPartyMenu(forced) {
+    return partyMenu(this, this.buildPartyRows(), { forced });
+  }
+
+  buildPartyRows() {
+    return this.save.party.map((mon, i) => {
+      const species = this.pokedex[mon.species - 1];
+      const stats = calcStats(species, mon);
+      const state = mon.currentHp <= 0 ? 'DEB' : (mon.status || '').toUpperCase();
+      const label = `${monName(mon, this.pokedex).padEnd(11)}Nv${String(mon.level).padStart(2)}  ${Math.max(0, mon.currentHp)}/${stats.hp} ${state}`.trimEnd();
+      return { index: i, label, disabled: mon.currentHp <= 0 || i === this.activeIndex };
+    });
+  }
+
+  // ── Reproducción secuencial de la cola de eventos del motor ─────────────
+
+  async playEvents(events) {
+    this.lastBatchHadText = events.some((ev) => ev.t === 'text');
+    for (const ev of events) {
+      const handler = this.eventHandlers[ev.t];
+      if (handler) await handler(ev);
+    }
+  }
+
+  async onMoveEvent(ev) {
+    const attacker = ev.side === 'player' ? this.playerSprite : this.enemySprite;
+    const text = ev.side === 'player'
+      ? `¡${monName(this.playerMon, this.pokedex)} usó ${ev.moveName.toUpperCase()}!`
+      : `¡El ${this.enemyName()} salvaje usó ${ev.moveName.toUpperCase()}!`;
+    await this.msg.type(text, { holdMs: 150 });
+    await fx.lunge(this, attacker, ev.side === 'player' ? 10 : -10);
+  }
+
+  async onHpEvent(ev) {
+    const box = ev.side === 'player' ? this.playerBox : this.enemyBox;
+    const sprite = ev.side === 'player' ? this.playerSprite : this.enemySprite;
+    const anims = [box.tweenHp(ev.from, ev.to, ev.max)];
+    if (ev.to < ev.from) anims.push(fx.damageFlash(this, sprite), fx.shake(this, sprite));
+    await Promise.all(anims);
+  }
+
+  onEffEvent(ev) {
+    if (ev.mult === 0) return this.msg.type('No tiene ningún efecto...');
+    if (ev.mult > 1) return this.msg.type('¡Es muy eficaz!');
+    if (ev.mult < 1) return this.msg.type('No es muy eficaz...');
+    return Promise.resolve();
+  }
+
+  async onStatusEvent(ev) {
+    const box = ev.side === 'player' ? this.playerBox : this.enemyBox;
+    box.setStatus(ev.status);
+    if (!ev.status) return;
+    const name = ev.side === 'player'
+      ? monName(this.playerMon, this.pokedex)
+      : `El ${this.enemyName()} salvaje`;
+    const template = STATUS_MSG_ES[ev.status];
+    if (template) await this.msg.type(template.replace('{N}', name));
+  }
+
+  async onStatEvent(ev) {
+    const stat = STAT_ES[ev.stat] || `El ${String(ev.stat).toUpperCase()}`;
+    const who = ev.side === 'player'
+      ? `de ${monName(this.playerMon, this.pokedex)}`
+      : `del ${this.enemyName()} salvaje`;
+    const verb = ev.change > 0
+      ? (ev.change > 1 ? 'ha subido mucho' : 'ha subido')
+      : (ev.change < -1 ? 'ha bajado mucho' : 'ha bajado');
+    await this.msg.type(`¡${stat} ${who} ${verb}!`);
+  }
+
+  async onFaintEvent(ev) {
+    const sprite = ev.side === 'player' ? this.playerSprite : this.enemySprite;
+    await fx.faintDrop(this, sprite);
+    const text = ev.side === 'player'
+      ? `¡${monName(this.playerMon, this.pokedex)} se ha debilitado!`
+      : `¡El ${this.enemyName()} salvaje se ha debilitado!`;
+    await this.msg.type(text, { confirm: true });
+  }
+
+  async onExpEvent(ev) {
+    const name = monName(this.playerMon, this.pokedex);
+    await this.msg.type(`¡${name} ha ganado ${ev.amount} puntos de experiencia!`);
+    await this.playerBox.tweenExp(this.expRatio(this.playerMon, this.shownLevel));
+  }
+
+  async onLevelUpEvent(ev) {
+    this.leveledIndexes.add(this.activeIndex);
+    this.shownLevel = ev.level;
+    this.playerBox.setExp(0);
+    this.playerBox.setLevel(ev.level);
+    if (ev.newStats) this.playerBox.updateHp(this.playerMon.currentHp, ev.newStats.hp);
+    await this.msg.type(`¡${monName(this.playerMon, this.pokedex)} ha subido al nivel ${ev.level}!`, { confirm: true });
+    await this.showLevelStats(ev.newStats);
+    await this.playerBox.tweenExp(this.expRatio(this.playerMon, ev.level));
+  }
+
+  // Cuadro con las estadísticas nuevas tras subir de nivel; se cierra con A.
+  async showLevelStats(stats) {
+    if (!stats) return;
+    const frame = drawBox(this, 148, 26, 88, 80, { depth: 10 });
+    const rows = [
+      ['PS', stats.hp], ['ATAQUE', stats.atk], ['DEFENSA', stats.def],
+      ['AT. ESP.', stats.spa], ['DEF. ESP.', stats.spd], ['VELOCIDAD', stats.spe],
+    ];
+    const texts = rows.map(([label, value], i) => this.add
+      .text(154, 32 + i * 12, `${label.padEnd(10)}${String(value).padStart(3)}`, textStyle())
+      .setDepth(11));
+    await waitForButton(this, ['a', 'b']);
+    texts.forEach((t) => t.destroy());
+    frame.destroy();
+  }
+
+  async onLearnEvent(ev) {
+    const name = monName(this.playerMon, this.pokedex);
+    await this.msg.type(`¡${name} ha aprendido ${ev.moveName.toUpperCase()}!`, { confirm: true });
+  }
+
+  async onBallEvent(ev) {
+    await this.msg.type('¡Allá va la POKÉ BALL!', { holdMs: 200 });
+    await fx.ballThrow(this, this.enemySprite, this.enemyHome, ev.shakes, ev.caught);
+    if (ev.caught) {
+      await this.msg.type(`¡Toma ya! ¡${this.enemyName()} atrapado!`, { confirm: true });
+    } else {
+      await this.msg.type(BALL_ESCAPE_ES[Math.min(ev.shakes, 3)], { confirm: true });
+    }
+  }
+
+  async onSwitchEvent(ev) {
+    if (ev.side !== 'player') return;
+    const leaving = monName(this.playerMon, this.pokedex);
+    if (this.playerMon.currentHp > 0) {
+      await this.msg.type(`¡Vuelve, ${leaving}!`, { holdMs: 200 });
+      await fx.tweenPromise(this, { targets: this.playerSprite, scale: 0, duration: 200 });
+    }
+    this.playerMon = ev.monster;
+    const index = this.save.party.indexOf(ev.monster);
+    if (index >= 0) this.activeIndex = index;
+    this.playerSprite
+      .setTexture(`pkmn_back_${ev.monster.species}`)
+      .setPosition(this.playerHome.x, this.playerHome.y)
+      .setAlpha(1)
+      .setScale(0);
+    this.refreshBox('player');
+    await this.msg.type(`¡Adelante, ${monName(this.playerMon, this.pokedex)}!`, { holdMs: 200 });
+    await fx.tweenPromise(this, { targets: this.playerSprite, scale: 1, duration: 250, ease: 'Back.out' });
+  }
+
+  // ── Final del combate ───────────────────────────────────────────────────
+
+  async finishBattle(over) {
+    if (over.result === 'caught') await this.handleCaught(over.caughtMonster || this.wild);
+    if (over.result === 'lose') await this.handleWhiteout();
+    if (over.result === 'ran' && !this.lastBatchHadText) {
+      await this.msg.type('¡Has escapado por los pelos!', { confirm: true });
+    }
+    if (over.result === 'win' || over.result === 'caught') await this.handleEvolutions();
+    this.closeBattle();
+  }
+
+  async handleCaught(mon) {
+    this.markSeen(mon.species);
+    this.markCaught(mon.species);
+    const name = monName(mon, this.pokedex);
+    await this.msg.type(`Los datos de ${name} se han registrado en la POKéDEX.`, { confirm: true });
+    if (this.save.party.length < 6) {
+      this.save.party.push(mon);
+      await this.msg.type(`¡${name} se une a tu equipo!`, { confirm: true });
+    } else {
+      await this.msg.type(`Tu equipo está completo. ${name} ha sido liberado... ¡Hasta otra, majo!`, { confirm: true });
+    }
+  }
+
+  async handleWhiteout() {
+    const lost = Math.floor((this.save.player.money || 0) / 2);
+    this.save.player.money -= lost;
+    await this.msg.type('¡No te quedan Pokémon en condiciones de luchar!', { confirm: true });
+    if (lost > 0) await this.msg.type(`Con las prisas has perdido ${lost}₧ por el camino...`, { confirm: true });
+    await this.msg.type('Todo se ha vuelto negro...', { confirm: true });
+    this.registry.set('whiteout', true);
+  }
+
+  // Evoluciona a los miembros del equipo que han subido de nivel en este
+  // combate y cumplen el nivel de evolución de su especie.
+  async handleEvolutions() {
+    for (const mon of this.save.party) {
+      if (mon) await this.maybeEvolve(mon);
+    }
+  }
+
+  async maybeEvolve(mon) {
+    const species = this.pokedex[mon.species - 1];
+    const { evolution } = species;
+    if (!evolution || mon.level < evolution.level) return;
+    await this.ensureFrontLoaded([mon.species, evolution.to]);
+    const oldName = monName(mon, this.pokedex);
+    const stage = fx.createEvolutionStage(this, `pkmn_front_${mon.species}`, `pkmn_front_${evolution.to}`);
+    await this.msg.type(`¿Eh? ¡Anda! ¡${oldName} está evolucionando!`, { confirm: true });
+    await stage.morph();
+    evolve(mon);
+    this.markSeen(mon.species);
+    this.markCaught(mon.species);
+    const newName = this.pokedex[mon.species - 1].name.toUpperCase();
+    await this.msg.type(`¡Enhorabuena! ¡Tu ${oldName} ha evolucionado en ${newName}!`, { confirm: true });
+    stage.destroy();
+  }
+
+  // Carga en caliente (create-time) de fronts que falten: load.image + load.start.
+  ensureFrontLoaded(ids) {
+    const missing = ids.filter((id) => !this.textures.exists(`pkmn_front_${id}`));
+    if (!missing.length) return Promise.resolve();
+    return new Promise((resolve) => {
+      missing.forEach((id) => this.load.image(`pkmn_front_${id}`, `assets/sprites/pokemon/front/${id}.png`));
+      this.load.once('complete', resolve);
+      this.load.start();
+    });
+  }
+
+  // ── Registro y salida ───────────────────────────────────────────────────
+
+  markSeen(id) {
+    const { seen } = this.save.pokedex;
+    if (!seen.includes(id)) seen.push(id);
+  }
+
+  markCaught(id) {
+    const { caught } = this.save.pokedex;
+    if (!caught.includes(id)) caught.push(id);
+  }
+
+  closeBattle() {
+    if (this.closing) return;
+    this.closing = true;
+    this.registry.set('save', this.save);
+    this.cameras.main.fadeOut(250, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.scene.wake('World');
+      this.scene.stop();
+    });
+  }
+}

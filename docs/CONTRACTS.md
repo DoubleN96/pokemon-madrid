@@ -87,7 +87,7 @@ IA enemiga: pondera daño estimado, 20% aleatorio. Estados: par (25% no actúa, 
 ## Módulo B — WorldScene — `src/scenes/WorldScene.js` + `src/world/engine/`
 
 - Consume mapas del formato del Módulo E vía `import { MAPS } from '../world/maps.js'`.
-- Render: 3 capas tile (ground, deco, overhead) con `this.make.tilemap({data, ...})` o `putTileAt`; overhead con depth > jugador. Tileset = spritesheet key `tiles` (frames 16×16, índice = fila*127+col, la imagen es 2036×1010 → **127 columnas × 63 filas**).
+- Render: 3 capas tile (ground, deco, overhead) con `this.make.tilemap({data, ...})` o `putTileAt`; overhead con depth > jugador. Tileset = spritesheet key `tiles` (frames 16×16, índice = fila*127+col, la imagen reempaquetada es 2032×800 → **127 columnas × 50 filas** (el original de gracidea traía margin/spacing y se reempaquetó)).
 - Jugador: sprite atlas `chars` frames `may_<dir>_<0|1|2>`, anims `may_walk_<dir>` (ya creadas en Boot). Movimiento por grid (tile a tile, WALK_MS de config, correr con B = ×0.6). Colisión contra `collision[y][x]`, NPCs y bordes.
 - Hierba alta (`tallGrass[y][x]`): cada paso tira `ENCOUNTER_RATE`; si toca → elegir especie por pesos de `encounters` → `this.scene.sleep('World'); this.scene.launch('Battle', {wild: inst, ...})`.
 - Warps: al pisar → transición fade → cambia de mapa/posición.

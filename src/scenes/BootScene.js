@@ -13,9 +13,8 @@ export default class BootScene extends Phaser.Scene {
     bar.x = 60;
     this.load.on('progress', (v) => { bar.width = 120 * v; });
 
-    // Tileset overworld Gen 3 (16x16)
+    // Tileset overworld Gen 3 (16x16, reempaquetado a 127 columnas sin margen)
     this.load.spritesheet('tiles', 'assets/tilesets/rse-tileset.png', { frameWidth: 16, frameHeight: 16 });
-    this.load.image('tilesetimg', 'assets/tilesets/rse-tileset.png');
     // Atlas de personajes (jugador + NPCs, formato TexturePacker)
     this.load.atlas('chars', 'assets/sprites/chars/npcs.webp', 'assets/sprites/chars/npcs.json');
   }
@@ -27,21 +26,18 @@ export default class BootScene extends Phaser.Scene {
 
     // Animaciones de andar del jugador y NPCs usados (3 frames por dirección, ping-pong)
     const walkChars = ['may', 'mom', 'youngster', 'lass', 'shopkeeper_m', 'scientist', 'aroma', 'gentleman', 'generic_m1', 'generic_f1', 'elder_m', 'fisher'];
+    const tex = this.textures.get('chars');
     for (const c of walkChars) {
       for (const dir of ['down', 'up', 'left', 'right']) {
         const key = `${c}_walk_${dir}`;
         if (this.anims.exists(key)) continue;
-        this.anims.create({
-          key,
-          frames: [
-            { key: 'chars', frame: `${c}_${dir}_1` },
-            { key: 'chars', frame: `${c}_${dir}_0` },
-            { key: 'chars', frame: `${c}_${dir}_2` },
-            { key: 'chars', frame: `${c}_${dir}_0` },
-          ],
-          frameRate: 8,
-          repeat: -1,
-        });
+        // Solo frames que existan en el atlas (algunos personajes son solo-idle)
+        const frames = [1, 0, 2, 0]
+          .map((n) => ({ key: 'chars', frame: `${c}_${dir}_${n}` }))
+          .filter((f) => tex.has(f.frame));
+        if (frames.length > 1) {
+          this.anims.create({ key, frames, frameRate: 8, repeat: -1 });
+        }
       }
     }
 

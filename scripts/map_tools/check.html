@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pokémon Madrid — verificación visual de mapas</title>
+<style>
+  body { background: #181820; color: #eee; font-family: monospace; padding: 16px; }
+  canvas { image-rendering: pixelated; border: 1px solid #444; display: block; margin: 8px 0 24px; }
+  h2 { color: #ffcb05; }
+</style>
+</head>
+<body>
+<h1>Módulo E — mapas compuestos desde src/world/maps.js</h1>
+<p>Servir desde la raíz del proyecto: <code>python3 -m http.server</code> →
+<code>http://localhost:8000/scripts/map_tools/check.html</code></p>
+<div id="maps"></div>
+<script type="module">
+  // maps.js no tiene imports → se puede cargar como ESM plano sin Vite.
+  import { MAPS } from '/src/world/maps.js';
+
+  const TILE = 16, COLS = 127;
+  const img = new Image();
+  img.src = '/public/assets/tilesets/rse-tileset.png'; // ruta para python3 -m http.server
+  await new Promise((ok, ko) => { img.onload = ok; img.onerror = ko; });
+
+  function drawMap(map, scale = 2) {
+    const cv = document.createElement('canvas');
+    cv.width = map.width * TILE * scale;
+    cv.height = map.height * TILE * scale;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    for (const layer of ['ground', 'deco', 'overhead']) {
+      const grid = map.layers[layer];
+      for (let y = 0; y < map.height; y++) for (let x = 0; x < map.width; x++) {
+        const f = grid[y][x];
+        if (f < 0) continue;
+        ctx.drawImage(img, (f % COLS) * TILE, Math.floor(f / COLS) * TILE, TILE, TILE,
+          x * TILE * scale, y * TILE * scale, TILE * scale, TILE * scale);
+      }
+    }
+    const dot = (x, y, color) => {
+      ctx.fillStyle = color;
+      ctx.fillRect((x * TILE + 5) * scale, (y * TILE + 5) * scale, 6 * scale, 6 * scale);
+    };
+    dot(map.playerSpawn.x, map.playerSpawn.y, '#ffdc00');
+    for (const w of map.warps) dot(w.x, w.y, '#ff00ff');
+    for (const n of map.npcs) dot(n.x, n.y, '#00dcff');
+    return cv;
+  }
+
+  const root = document.getElementById('maps');
+  for (const [id, map] of Object.entries(MAPS)) {
+    const h = document.createElement('h2');
+    h.textContent = `${id} — ${map.name} (${map.width}×${map.height})`;
+    root.append(h, drawMap(map));
+  }
+</script>
+</body>
+</html>

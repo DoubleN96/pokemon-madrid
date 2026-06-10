@@ -1,0 +1,197 @@
+[
+  {
+    "mod": "A-core",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/core/typechart.js",
+      "/home/n8nstratoma/pokemon-madrid/src/core/formulas.js",
+      "/home/n8nstratoma/pokemon-madrid/src/core/monster.js",
+      "/home/n8nstratoma/pokemon-madrid/src/core/battle.js",
+      "/home/n8nstratoma/pokemon-madrid/tests/core.test.mjs"
+    ],
+    "tests": "66/66 pasados con `node tests/core.test.mjs` (el script `npm run test:core` ya apuntaba ahí). Cobertura: tabla de tipos (16 casos incl. acero-resiste-fantasma/siniestro Gen 3), calcStats con valores exactos, las 6 curvas de exp (incl. erratic/fluctuating con valores oficiales nv100), daño determinista con rng inyectado (tiradas 85/100, STAB+eficacia, crítico ×2, quemadura ×0.5, inmunidad), captura Gen 3 en límites (4 sacudidas, 0 sacudidas, parcial, a≥255 garantizada), level-ups encadenados + aprender movimientos + reemplazo del más antiguo + evolución, y combates completos paso a paso: salvaje (win), huida, entrenador (huida/ball bloqueadas), captura, poción/antídoto, somnífero/veneno+residual, stat stages con tope -6, prioridad (Ataque Rápido), Forcejeo con retroceso, cambio forzado tras debilitamiento, entrenador 2v1 con exp doble, evolución a nv16 al terminar, y derrota. Verificado además que el core compila con el Vite 8 real del proyecto (build lib temporal en /tmp, ya borrado) y que el bundle ejecuta un combate entero → los import attributes JSON funcionan en ambos entornos.",
+    "desviaciones": [
+      "expGain acepta un 4º parámetro opcional isTrainer=false (×1.5); la firma de 3 args del contrato sigue funcionando igual.",
+      "createMonster acepta un 4º parámetro opcional rng; damage(), captureChance() y createBattle() aceptan rng inyectable (requisito de tests deterministas; todo retrocompatible con el contrato).",
+      "monster.js importa pokedex.json y moves.json directamente (con `with { type: 'json' }`) porque las firmas del contrato (gainExp/evolve/healFull) no llevan parámetro de datos; verificado en Node 22 y build Vite 8.",
+      "Confusión y ailments volátiles (leech-seed, trap, etc.) NO implementados: el contrato del Módulo A solo exige par/psn/brn/slp/frz; los ailments desconocidos se ignoran (movimiento de estado sin efecto → '¡Pero ha fallado!').",
+      "Críticos fijos a 1/16: moves.json no trae ratio de crítico, así que no hay high-crit (Cuchillada etc. van a 1/16).",
+      "Quemadura residual 1/16 y veneno 1/8 según el contrato (línea 85), aunque el Gen 3 oficial usa 1/8 para quemadura.",
+      "Huida: éxito automático si la velocidad efectiva del jugador ≥ la del salvaje (mandato explícito de la tarea); si no, fórmula Gen 3 F=⌊spe·128/speEnemigo⌋+30·intentos.",
+      "Evolución automática al final del combate (win/caught), sin diálogo de cancelación (MVP); reemplazo de movimientos automático del más antiguo al aprender con 4 (MVP según contrato).",
+      "KO simultáneo de ambos bandos (retroceso/residual) resuelve como 'lose' si no quedan pokémon sanos."
+    ],
+    "dudas": [
+      "Evento extra {t:'evolve', side:'player', index, fromName, toName} emitido antes de {t:'end'} — no estaba en la lista de eventos del contrato; el Módulo C (BattleScene) debe animarlo (va acompañado de eventos {t:'text'} con los mensajes clásicos).",
+      "battle.act() con acción inválida devuelve { events, over:false, invalid:true } SIN consumir turno (p.ej. huir contra entrenador, ball contra entrenador, poción a tope de vida); la UI debe comprobar `invalid` y volver al menú.",
+      "state().phase ∈ {'choice','switch','over'}: cuando phase==='switch' (activo debilitado con banquillo sano) la UI solo debe ofrecer cambio; battle.act solo acepta {type:'switch'} en esa fase y NO hay ataque gratis del enemigo.",
+      "Poción usada en un pokémon del banquillo (target ≠ activo) no emite evento {t:'hp'} (solo texto), porque el side del evento hp refiere a las barras en pantalla.",
+      "IA enemiga: ponderación de daño + 20% aleatorio aplicada también a salvajes (así lo dice el contrato A); el SPEC §4.3 dice 'salvajes aleatorio' — seguí el contrato. Si el integrador prefiere el spec, es un cambio de 2 líneas en aiChooseMove.",
+      "El core no añade el pokémon capturado al equipo ni toca registry.save/pokedex seen-caught: over devuelve {result:'caught', caughtMonster} y es BattleScene quien decide (equipo <6 o descarte), según contrato del Módulo C.",
+      "monster.js y tests usan `import ... with { type: 'json' }` mientras BootScene usa import JSON sin atributos: ambos estilos conviven sin problema en Vite 8 (verificado), pero si alguien degrada Vite a <5.1 el atributo podría fallar."
+    ]
+  },
+  {
+    "mod": "B-world",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/scenes/WorldScene.js",
+      "/home/n8nstratoma/pokemon-madrid/src/world/engine/GridMover.js",
+      "/home/n8nstratoma/pokemon-madrid/src/world/engine/Npc.js",
+      "/home/n8nstratoma/pokemon-madrid/src/world/engine/mapRenderer.js",
+      "/home/n8nstratoma/pokemon-madrid/src/world/engine/encounters.js"
+    ],
+    "tests": "Chequeo de sintaxis ESM con `node --check` sobre los 5 archivos: todos OK. No se pudo ejecutar `vite build` ni la escena en vivo porque los módulos paralelos (maps.js, core/monster.js, ui/shop.js, DialogScene, MenuScene, BattleScene) aún no existen. Verificación manual de APIs contractuales y de los frames reales del atlas chars (npcs.json: may_* 14×20 px, confirma el ancla bottom-center).",
+    "desviaciones": [
+      "El contrato dice `this.events.on('resume')` para la vuelta de Battle, pero Battle hace sleep/wake según Módulo C; escucho AMBOS eventos ('wake' con lógica completa, 'resume' solo desbloquea input — 'resume' también lo dispara un posible pause desde Menu).",
+      "Añadí `ensureSave()`: si no hay save en registry (desarrollo en paralelo, World arrancada sola) creo un SaveState mínimo con la forma del contrato. Title/Intro siguen siendo los dueños de crear el save real.",
+      "Si el equipo está vacío no se tiran encuentros (no se puede lanzar Battle sin party); guarda defensiva, no está en el contrato.",
+      "Red de seguridad de derrota: además de leer save.player ya recolocado por Battle, si al despertar todo el equipo está a 0 PS (o llega `{defeat|result:'lose'}` en el wake data), World cura y recoloca en healSpawn de tetuan — cubre el reparto ambiguo de responsabilidades B/C sin romper si Battle ya lo hizo."
+    ],
+    "dudas": [
+      "API de la tienda NO está fijada en el contrato: asumí `import { openShop } from '../ui/shop.js'` con firma `openShop(scene, { onClose })`. El dueño del Módulo D debe exportar eso o el integrador ajustar la llamada en WorldScene.shopInteraction().",
+      "Cierre de Menu: asumo que MenuScene se cierra con scene.stop() o scene.sleep() (escucho sus eventos 'shutdown' y 'sleep' para desbloquear input). Si Menu pausa World y la resume, también está cubierto vía 'resume'.",
+      "Derrota: World detecta la recolocación comparando registry.save.player con la posición actual al despertar. Battle (Módulo C) debería actualizar save.player a healSpawn de tetuan al perder; si solo cura sin tocar posición ni HP a 0, el jugador se quedaría donde estaba (gap del contrato entre B y C).",
+      "Encadenado de diálogos (heal: diálogo → cura → segundo diálogo) usa delayedCall(60ms) para dejar que DialogScene se detenga antes de relanzarse; si DialogScene llama onClose ANTES de stop(), podría necesitar ajuste fino.",
+      "Entrenadores de Ruta 2 (criterio de aceptación #2 del SPEC) no están en el esquema npcs del contrato (no hay campo trainer); el Módulo B implementa solo dialog/heal/shop según contrato. Habrá que extender el contrato para combates de entrenador desde World.",
+      "Interiores: si algún mapa fuera más pequeño que 240×160 px, los bounds de cámara lo anclan arriba-izquierda en vez de centrarlo (los 3 mapas del MVP son grandes, no afecta)."
+    ]
+  },
+  {
+    "mod": "C-battle",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/scenes/BattleScene.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/battle/typewriter.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/battle/databoxes.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/battle/menus.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/battle/animations.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/battle/keys.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/battle/names.js"
+    ],
+    "tests": "Sintaxis validada con esbuild (transform ESM por archivo, sin bundling porque los módulos paralelos A/B aún no existen): los 7 archivos compilan sin errores. Revisión manual de imports/firmas contra CONTRACTS.md y contra src/ui/theme.js ya escrito por el Módulo D (drawBox/textStyle/typewriterText/hpColor/TYPE_NAMES/ITEM_NAMES/STATUS_LABELS verificados línea a línea). Sin console.log. No hay test runner en el proyecto ni se puede arrancar el juego completo hasta que existan los módulos A/B/E.",
+    "desviaciones": [
+      "Orden de cierre: uso this.scene.wake('World') ANTES de this.scene.stop() (el contrato lo escribe al revés); mismo resultado pero evita operar sobre el ScenePlugin de una escena ya parada.",
+      "Evolución: el contrato no define un evento de evolución en la cola del motor, así que la detecto yo al acabar el combate: miembros que subieron de nivel (eventos levelup) y cumplen species.evolution.level → animación + llamada a evolve(inst) de core/monster.js.",
+      "La mitad del dinero al perder la descuenta BattleScene (save.player.money) y dejo solo recolocación+curación al World vía registry flag 'whiteout', según mi brief; el contrato era ambiguo sobre el dueño de ese descuento.",
+      "El menú principal no se puede cancelar con B (fiel a FRLG); en submenús B vuelve atrás."
+    ],
+    "dudas": [
+      "CONTRATO evolve(inst): lo invoco con un solo argumento tal y como dicta el contrato; si el Módulo A lo implementa como evolve(pokedex, inst) (necesita la pokédex para conocer el objetivo) habrá que alinear. Integrador: verificar firma en src/core/monster.js.",
+      "Asumo que el motor (Módulo A) MUTA las mismas instancias que le paso (save.party y save.bag van por referencia a createBattle); si el motor clona, la party/bag del registry no se actualizarían y this.save.party.indexOf(ev.monster) en el evento switch fallaría (tengo fallback que conserva el índice anterior).",
+      "Posible doble narración: yo genero textos para eventos tipados (eff, crit, miss, faint, ball, status, stat, exp). Si el Módulo A además emite {t:'text'} con esas mismas frases, se verán duplicadas — fácil de podar en integración.",
+      "Caso sin PP en los 4 movimientos: el submenú deshabilita movimientos con PP 0 y no envío nada al motor (no hay Combate/Struggle en el contrato); si el motor lo soporta, conviene exponerlo.",
+      "World debe escuchar el evento 'wake' (uso scene.sleep/wake según contrato), aunque la sección B menciona events.on('resume'); además debe leer y limpiar el registry flag 'whiteout' al despertar.",
+      "Asumo que tras un faint del jugador con equipo vivo el motor devuelve over:false y acepta act({type:'switch'}) como acción siguiente (hago bucle de cambio forzoso); verificar fase en core/battle.js."
+    ]
+  },
+  {
+    "mod": "D-ui",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/ui/theme.js",
+      "/home/n8nstratoma/pokemon-madrid/src/ui/shop.js",
+      "/home/n8nstratoma/pokemon-madrid/src/scenes/DialogScene.js",
+      "/home/n8nstratoma/pokemon-madrid/src/scenes/MenuScene.js"
+    ],
+    "tests": "node --check (ESM) OK en los 4 archivos. Verificado contra el código de Phaser 3.90 instalado que Container.setScrollFactor(0) fija los hijos a cámara (ContainerWebGLRenderer multiplica scrollFactors). Verificado que src/services/saves.js (Módulo F) ya exporta saveGame async — mi llamada lo maneja. Build completo no ejecutable aún: src/core/ (Módulo A) no existe todavía, así que el import de calcStats solo resolverá en integración.",
+    "desviaciones": [
+      "Tecla Enter: el contrato dice 'en menús = confirmar' pero la tarea dice 'Enter cierra'. Implementado híbrido: Enter en el menú raíz cierra (toggle estilo Start de GBA), en submenús confirma.",
+      "Vista detalle del Pokémon añade ↑/↓ para cambiar entre miembros del equipo (extra pequeño no pedido).",
+      "Reordenar el equipo (mencionado en SPEC §4.6) no implementado — la tarea del Módulo D no lo incluía en su lista.",
+      "Lista de mochila sin scroll, capada a 8 tipos de objeto (el MVP tiene ≤5).",
+      "shop.js exporta también SHOP_PRICES (constante con los precios del contrato) como ayuda para otros módulos — aditivo, no rompe nada."
+    ],
+    "dudas": [
+      "DialogScene y la tienda NO pausan la escena que las lanza: World/Battle deben ignorar su propio input mientras scene.isActive('Dialog') o la tienda esté abierta (documentado en cabeceras de ambos archivos). MenuScene sí reanuda/despierta 'World' al cerrarse.",
+      "MenuScene al cerrar hace resume si World está paused o wake si está sleeping; si World abre el menú con Enter sin consumir el keydown, podría reabrirse con la misma pulsación — World debería usar JustDown/guard.",
+      "API del prompt de DialogScene fijada como prompt: { options: [...], defaultIndex, onSelect(index, label) } (el contrato dejaba la forma abierta); B cancela eligiendo defaultIndex (por defecto la última opción). Módulos B/G deben usar esa forma.",
+      "Asumo que calcStats(species, inst) del Módulo A devuelve {hp, atk, def, spa, spd, spe} (PS máx. sacado de .hp para barras y poción).",
+      "Asumo saveGame devuelve {ok, where} con where==='local' para el fallback localStorage; si el Módulo F usa otro literal, el mensaje degrada a '¡Partida guardada!' sin romper.",
+      "Iconos 40×30 de PokémonDB escalados a 0.6/0.7 (escalado no entero de pixel-art; leve suavizado visual, aceptable en MVP)."
+    ]
+  },
+  {
+    "mod": "E-maps",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/world/maps.js",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/palette.mjs",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/mine.mjs",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/png.mjs",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/repack_tileset.mjs",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/render_check.mjs",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/validate.mjs",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/check.html",
+      "/home/n8nstratoma/pokemon-madrid/public/assets/tilesets/rse-tileset.png",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/out/map-tetuan.png",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/out/map-ruta2.png",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/out/map-chamberi.png",
+      "/home/n8nstratoma/pokemon-madrid/scripts/map_tools/out/palette.png"
+    ],
+    "tests": "node scripts/map_tools/validate.mjs → ✓ verde (dimensiones consistentes entre capas, spawns caminables, warps bidireccionales con origen/destino válidos y caminables, NPCs sin solapes ni hierba, BFS desde playerSpawn alcanza toda la hierba alta + warps + healSpawn + adyacencia de carteles y NPCs, encuentros con especies/niveles/pesos válidos). Verificación visual: renders PNG de la paleta y de los 3 mapas completos generados con render_check.mjs (Node puro + zlib) e inspeccionados — edificios, árboles, caminos, agua, hierba alta y marcadores de spawn/warp/NPC correctos. node parsea todos los .mjs y maps.js sin errores.",
+    "desviaciones": [
+      "REEMPAQUETÉ public/assets/tilesets/rse-tileset.png: el original de gracidea tiene margin=2/spacing=2 y 113 columnas (tileset.tsx), incompatible con el spritesheet 16×16 contiguo de 127 col que carga BootScene — habría renderizado basura en TODOS los módulos. El nuevo PNG (2032×800, 127 col × 50 filas) hace que frame Phaser == GID del TMX − 1, preservando exactamente la fórmula del contrato y BootScene sin tocar. Original intacto en resources-inbox/gracidea/copyrighted/textures/rse/tileset.png.",
+      "Sin mapas de interior (HOME_INTERIOR/CENTER_INTERIOR): el tileset RSE overworld no trae tiles de interior; aplicado el fallback autorizado — madre (heal), enfermeras (heal) y Don Paco (shop) están en la puerta de sus edificios; las puertas colisionan.",
+      "Los 5 entrenadores de la Ruta 2 son NPCs de diálogo con sus líneas literales del SPEC, sin combate: el formato npc del contrato no modela entrenadores y el combate vs entrenador figura como 'futuro' en el Módulo C.",
+      "Encuentros de Ruta 2 según SPEC-MVP §2.4 (Rattata 45/Pidgey 40/Growlithe 14/Abra 1), no según la nota suelta del contrato ('añadir Caterpie/Weedle/Oddish') — el SPEC es la fuente de contenido y sus % son literales del GDD.",
+      "Campo extra opcional `signs: [{x,y,lines}]` por mapa para carteles interactivos (el contrato no los modela); ignorarlo no rompe nada y el texto del cartel del Parque Móvil también lo da un NPC vigilante.",
+      "Placeholders [NOMBRE] eliminados de los diálogos literales (no hay mecanismo de sustitución en el contrato).",
+      "Objetos en el suelo de la Ruta 2 (poción/pokéballs/antídoto del SPEC) omitidos: el formato de mapa del contrato no los soporta.",
+      "render_check.mjs en Node puro SÍ fue viable (códec PNG propio sobre zlib built-in), así que la verificación visual se hizo con PNGs reales inspeccionados, además de entregar check.html para humanos."
+    ],
+    "dudas": [
+      "public/assets/tilesets/rse-tileset.png ha CAMBIADO de 2036×1010 a 2032×800: si algún módulo asumió las dimensiones en píxeles del PNG (en vez de índices de frame), debe revisarse. BootScene funciona sin cambios.",
+      "El NPC punk_dani usa sprite 'guitarist': existe en el atlas chars pero BootScene NO crea sus anims de andar (es estático, dir 'up'; WorldScene debe usar el frame 'guitarist_up_0'). El resto de sprites usados (mom, aroma, shopkeeper_m, elder_m, generic_f1, generic_m1, youngster, lass, gentleman, fisher) están en la lista walkChars de Boot.",
+      "Los NPCs de curación/tienda están sobre casillas de camino delante de las puertas y bloquean 1 de las 2 columnas del ramal (la otra queda libre — validado por BFS). Si WorldScene hace roam de NPCs, que los roam:true no pisen warps/puertas.",
+      "tallGrass dibuja su propio tile (frame 94) en la capa deco: WorldScene no debe pintar hierba adicional, solo leer tallGrass[y][x] para encuentros.",
+      "Para la fase post-MVP harán falta extensiones de formato: npc.trainer {party} para los combates de la Ruta 2 e items [{x,y,item}] para objetos en el suelo — propuestas en los comentarios.",
+      "La fila superior de cada edificio va en la capa overhead pero COLISIONA (decisión para evitar bugs de profundidad); el efecto 'caminar por detrás del tejado' no existe en MVP.",
+      "Validador reutilizable: node scripts/map_tools/validate.mjs debería entrar en CI; los renders se regeneran con node scripts/map_tools/render_check.mjs map <tetuan|ruta2|chamberi>."
+    ]
+  },
+  {
+    "mod": "F-services",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/services/supabase.js",
+      "/home/n8nstratoma/pokemon-madrid/src/services/auth.js",
+      "/home/n8nstratoma/pokemon-madrid/src/services/saves.js",
+      "/home/n8nstratoma/pokemon-madrid/tests/services.test.mjs",
+      "/home/n8nstratoma/pokemon-madrid/tests/vite-env-shim.mjs"
+    ],
+    "tests": "VERDE — `NODE_TLS_REJECT_UNAUTHORIZED=0 node --test tests/services.test.mjs` → 10/10 pass, 0 fail (~0.9s) contra el Supabase REAL: signUp qa+<timestamp>@stratomai.com (autoconfirm), signIn, getSession, error en español con contraseña mala, saveGame→{ok,where:'supabase'}, loadGame con deepEqual del estado, descarte de save con versión vieja, deleteSave, signOut→sesión null, y saveGame/loadGame sin sesión en Node degradan a {ok:false,where:'local'} sin lanzar.",
+    "desviaciones": [
+      "Archivo extra tests/vite-env-shim.mjs (no listado en el contrato): hook de node:module que sustituye import.meta.env (cosa de Vite) en src/config.js para poder importarlo desde Node en los tests. Solo afecta a tests; el juego no lo usa y config.js no se tocó.",
+      "La copia local del usuario logueado usa la clave pm_save_<user_id> (el contrato solo fija pm_save_guest para invitados; la clave con sesión no estaba especificada).",
+      "saveGame con sesión: si la nube falla pero la copia local se escribió, devuelve {ok:true, where:'local', error:<aviso>} — el campo error se usa como aviso no fatal, siguiendo el mandato de 'fallback localStorage SIEMPRE'.",
+      "supabase.js exporta el cliente como named export `supabase` Y como default, para cubrir ambos estilos de import de los módulos paralelos."
+    ],
+    "dudas": [
+      "El stack Supabase de Coolify (supabase-openclaw-proyectos, uuid wckks4gsg8owkososoo8sosg) estaba CAÍDO (503 'no available server' de Traefik); lo arranqué vía Coolify MCP y quedó sirviendo. Vigilar que no vuelva a caerse — si está caído, el juego degradará a localStorage en todo.",
+      "Quedan usuarios de prueba qa+<timestamp>@stratomai.com en auth.users (sin service key no puedo borrarlos desde el test); limpiar si molestan.",
+      "loadGame trata CUALQUIER error de PostgREST como fallo de red y cae a la copia local — si algún día cambia la RLS y deniega, el juego no lo distinguirá de estar offline.",
+      "Los módulos G/D que consuman esto deben importar con: import { signUp, signIn, signOut, getSession, onAuthChange } from '../services/auth.js' y import { saveGame, loadGame, deleteSave } from '../services/saves.js'. onAuthChange devuelve la función de unsubscribe.",
+      "loadGame para usuario logueado SIN partida devuelve {ok:false, where:'supabase', error:'No hay ninguna partida guardada.'} — TitleScene debe interpretar ok:false como 'ir a Intro', no como fallo."
+    ]
+  },
+  {
+    "mod": "G-title",
+    "archivos": [
+      "/home/n8nstratoma/pokemon-madrid/src/ui/authForm.js",
+      "/home/n8nstratoma/pokemon-madrid/src/scenes/TitleScene.js",
+      "/home/n8nstratoma/pokemon-madrid/src/scenes/IntroScene.js"
+    ],
+    "tests": "Sintaxis ESM verificada con `node --input-type=module --check` en los 3 archivos (checker validado contra código inválido). Verificado contra los módulos ya escritos: auth.js exporta signIn/signUp con la firma del contrato; saves.js exporta loadGame/saveGame devolviendo {ok, where, state}; frame 'scientist_down_0' existe en el atlas chars (14x20); front sprites 1/4/7 existen (64x64); config.js exporta GAME_W/GAME_H/STARTERS/MONEY_START/SAVE_VERSION. No se pudo ejecutar el juego completo porque los módulos A (core/monster.js), D (ui/theme.js) y E (world/maps.js) aún no existen (se escriben en paralelo).",
+    "desviaciones": [
+      "Etiquetas de botones del panel: ENTRAR / CREAR CUENTA / SIN CUENTA (según mi brief de módulo) en vez de INICIAR SESIÓN / REGISTRARSE / JUGAR SIN CUENTA que dice CONTRACTS.md §G — el brief específico prevalece.",
+      "El menú CONTINUAR/NUEVA PARTIDA es menú Phaser propio (opción permitida por el brief) en vez de DialogScene prompt, porque la API de prompt de DialogScene no está completamente especificada en el contrato.",
+      "NUEVA PARTIDA no llama a deleteSave(): la partida vieja solo se sobreescribe cuando IntroScene guarda al final (comportamiento FRLG, menos destructivo).",
+      "authForm.js exporta además helpers de estilo DOM (el, ROOT_CSS, PANEL_CSS...) reutilizados por el prompt de nombre de IntroScene — ambos archivos son del módulo G, evita duplicación.",
+      "La intro omite selección de género y los cameos animados (Snorlax/Gengar/Oddish/Meowth) del SPEC §3.1: el contrato del módulo G solo pide nombre + elección de inicial; los cameos se mencionan en una línea de diálogo.",
+      "Si signUp con autoconfirm no devuelve sesión, se intenta signIn automático con las mismas credenciales (fallback de robustez)."
+    ],
+    "dudas": [
+      "Dependo de drawBox(scene,x,y,w,h) de src/ui/theme.js (módulo D) como export nombrado — si módulo D lo exporta con otro nombre o como default, ajustar los imports en TitleScene.js e IntroScene.js. Asumo que drawBox devuelve un objeto destruible (guardo con guard .destroy?.()); si añade los gráficos sueltos a la escena sin devolver nada, el cancelar la confirmación SÍ/NO en IntroScene dejaría la caja pintada (revisar closeConfirm).",
+      "Dependo de createMonster(pokedex, speciesId, level) de src/core/monster.js (módulo A) con esa firma exacta.",
+      "Dependo de MAPS.tetuan.playerSpawn de src/world/maps.js (módulo E); hay fallback {x:14,y:20} (el del ejemplo del contrato) si tetuan no existiera aún en runtime.",
+      "DialogScene (módulo D): uso scene.launch('Dialog', { lines, onClose }) — verificar que onClose se invoca exactamente una vez al cerrar y que DialogScene se detiene a sí misma; encadeno varios say() seguidos.",
+      "Caso borde de sesión persistente: si el usuario pulsa SIN CUENTA pero supabase aún tiene sesión en localStorage, registry 'session' será null pero loadGame() (que llama a getSession() internamente) cargará la partida de la nube. Inofensivo pero puede sorprender; si molesta, SIN CUENTA debería llamar a signOut() primero (decisión de integración).",
+      "El flujo entero (Title→auth→loadGame→Intro→World) no se ha podido probar end-to-end hasta que existan los módulos A/D/E; recomiendo smoke test con vite dev cuando estén."
+    ]
+  }
+]
