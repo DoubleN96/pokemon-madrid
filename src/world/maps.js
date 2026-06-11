@@ -478,10 +478,10 @@ function buildRuta2() {
 
 function ruta2Data(m) {
   m.encounters = [
-    { species: 19, min: 3, max: 5, weight: 45 },  // Rattata
-    { species: 16, min: 3, max: 5, weight: 40 },  // Pidgey
-    { species: 58, min: 4, max: 6, weight: 14 },  // Growlithe
-    { species: 63, min: 5, max: 7, weight: 1 },   // Abra (raro)
+    { species: 19, min: 6, max: 10, weight: 44 }, // Rattata
+    { species: 16, min: 6, max: 10, weight: 40 }, // Pidgey
+    { species: 58, min: 7, max: 11, weight: 14 }, // Growlithe
+    { species: 63, min: 8, max: 11, weight: 2 },  // Abra (raro)
   ];
   m.warps = [
     { x: 9, y: 0, toMap: 'tetuan', toX: 17, toY: 34, dir: 'up' },
@@ -630,11 +630,12 @@ function buildChamberi() {
 
 function chamberiData(m) {
   m.encounters = [
-    { species: 43, min: 6, max: 9, weight: 30 },  // Oddish
-    { species: 16, min: 5, max: 8, weight: 30 },  // Pidgey
-    { species: 63, min: 6, max: 9, weight: 20 },  // Abra
-    { species: 58, min: 5, max: 8, weight: 15 },  // Growlithe
-    { species: 52, min: 7, max: 10, weight: 5 },  // Meowth
+    { species: 43, min: 12, max: 16, weight: 28 }, // Oddish (jardines de Olavide)
+    { species: 16, min: 12, max: 16, weight: 26 }, // Pidgey
+    { species: 63, min: 13, max: 17, weight: 18 }, // Abra (raro, místico)
+    { species: 58, min: 13, max: 17, weight: 16 }, // Growlithe
+    { species: 52, min: 14, max: 18, weight: 8 },  // Meowth
+    { species: 44, min: 16, max: 19, weight: 4 },  // Gloom (el premio raro de la plaza)
   ];
   m.warps = [
     { x: 14, y: 0, toMap: 'ruta2', toX: 9, toY: 38, dir: 'up' },
