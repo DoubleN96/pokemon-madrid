@@ -18,21 +18,21 @@
     "name": "Iván \"FinTips\"",
     "role": "lider-gimnasio",
     "anime": "portraits/anime/ivan_fintips.png",
-    "bytes": 759490
+    "bytes": 1014695
   },
   {
     "id": "mariel",
     "name": "Mariel",
     "role": "lider-gimnasio",
     "anime": "portraits/anime/mariel.png",
-    "bytes": 721308
+    "bytes": 1011792
   },
   {
     "id": "alex_digital",
     "name": "Alex",
     "role": "amigo",
     "anime": "portraits/anime/alex_digital.png",
-    "bytes": 845215
+    "bytes": 915281
   },
   {
     "id": "jesus_la_rata",
@@ -53,14 +53,14 @@
     "name": "Eduardo",
     "role": "lider-gimnasio",
     "anime": "portraits/anime/eduardo.png",
-    "bytes": 843902
+    "bytes": 405074
   },
   {
     "id": "blanca_notarias",
     "name": "Blanca",
     "role": "aliada",
     "anime": "portraits/anime/blanca_notarias.png",
-    "bytes": 858890
+    "bytes": 818857
   },
   {
     "id": "jose_antonio_casero",
@@ -81,6 +81,6 @@
     "name": "Adrián Barrera",
     "role": "villano",
     "anime": "portraits/anime/adrian_schizo.png",
-    "bytes": 827466
+    "bytes": 854071
   }
 ]
