@@ -147,6 +147,26 @@ tests/e2e/     piso.mjs (jugabilidad), world.mjs, capturas
 docs/          GDD, specs, planes de mejora, research de assets, lore
 ```
 
+## 🤝 Cómo replicarlo con tus amigos (el workflow colaborativo)
+
+La forma recomendada de hacer un juego así **no es un único prompt mágico**, sino un
+**bucle colaborativo** donde tus amigos aportan contexto y la IA construye:
+
+1. **Crea una sesión de Claude Code** en una carpeta dedicada (p. ej. `juego-pokemon`),
+   con el **canal de Telegram activado** (`--channels plugin:telegram@…`).
+2. **Crea un bot con BotFather** y da acceso a todos tus amigos en su `access.json`.
+3. **Tus amigos suben al chat** fotos, vídeos, audios y anécdotas — todo el contexto que
+   quieran. La terminal lo **lee y transcribe los audios automáticamente**, alimentando cada
+   vez más contexto al juego.
+4. La IA **propone el elenco de personajes, la historia y las rutas** a partir de ese contexto
+   (y de tu WhatsApp, si le das acceso). **Tú lo apruebas** o lo corriges.
+5. La IA **desarrolla el juego paso a paso**, guiándote: implementa, despliega y te enseña
+   **capturas** para que valides, con los assets y repos de referencia.
+
+Resultado: el contexto —y el juego— crece de forma casi **infinita**, porque cada foto, audio
+o anécdota nueva lo enriquece. Así se construyó este: con el grupo de amigos mandando material
+por Telegram y el agente integrándolo en tiempo real.
+
 ## 8. Nota legal
 
 Proyecto **fan-game privado y NO comercial**. Los assets de estilo FRLG (tilesets, sprites,
