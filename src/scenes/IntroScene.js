@@ -7,7 +7,7 @@
 // la API de la escena y el flujo a 'World' son idénticos al original.
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, STARTERS, MONEY_START, SAVE_VERSION } from '../config.js';
-import { drawBox } from '../ui/theme.js';
+import { drawBox, GAME_FONT } from '../ui/theme.js';
 import { createMonster } from '../core/monster.js';
 import { saveGame } from '../services/saves.js';
 import { MAPS } from '../world/maps.js';
@@ -142,17 +142,17 @@ export default class IntroScene extends Phaser.Scene {
     this.setPhase('select');
     this.prof.setVisible(false);
     const pokedex = this.registry.get('pokedex');
-    const white = { fontFamily: 'monospace', fontSize: '8px', color: '#f8f8f8', resolution: 2 };
+    const white = { fontFamily: GAME_FONT, fontSize: '8px', color: '#f8f8f8', resolution: 2 };
     this.add.text(GAME_W / 2, 10, '¡ELIGE TU COMPAÑERO!',
-      { fontFamily: 'monospace', fontSize: '10px', fontStyle: 'bold', color: '#FFD700', resolution: 2 }).setOrigin(0.5);
+      { fontFamily: GAME_FONT, fontSize: '10px', fontStyle: 'bold', color: '#FFD700', resolution: 2 }).setOrigin(0.5);
     this.starterSprites = STARTERS.map((id, i) => this.add.image(60 + i * 60, 62, `pkmn_front_${id}`));
     this.starterLabels = STARTERS.map((id, i) =>
       this.add.text(60 + i * 60, 96, pokedex[id - 1].name.toUpperCase(), white).setOrigin(0.5));
     this.selCursor = this.add.text(60, 22, '▼',
-      { fontFamily: 'monospace', fontSize: '10px', color: '#FFD700', resolution: 2 }).setOrigin(0.5);
+      { fontFamily: GAME_FONT, fontSize: '10px', color: '#FFD700', resolution: 2 }).setOrigin(0.5);
     drawBox(this, 2, 112, 236, 46);
     this.descText = this.add.text(10, 119, '',
-      { fontFamily: 'monospace', fontSize: '8px', color: '#383838', resolution: 2, wordWrap: { width: 220 } });
+      { fontFamily: GAME_FONT, fontSize: '8px', color: '#383838', resolution: 2, wordWrap: { width: 220 } });
     this.updateSelect();
   }
 
@@ -189,7 +189,7 @@ export default class IntroScene extends Phaser.Scene {
     const name = pokedex[STARTERS[this.selIndex] - 1].name.toUpperCase();
     this.descText.setText(`¿Te quedas con ${name}?`);
     this.confirmBox = drawBox(this, 178, 58, 52, 40);
-    const style = { fontFamily: 'monospace', fontSize: '10px', color: '#383838', resolution: 2 };
+    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#383838', resolution: 2 };
     this.confirmItems = [
       this.add.text(198, 65, 'SÍ', style),
       this.add.text(198, 81, 'NO', style),

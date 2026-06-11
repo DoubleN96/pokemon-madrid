@@ -3,7 +3,7 @@
 // "PULSA A" parpadeante, panel de cuenta (DOM) y menú CONTINUAR/NUEVA PARTIDA.
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
-import { drawBox } from '../ui/theme.js';
+import { drawBox, GAME_FONT } from '../ui/theme.js';
 import { showAuthForm } from '../ui/authForm.js';
 import { loadGame } from '../services/saves.js';
 import { playMusic } from '../audio/AudioManager.js';
@@ -270,7 +270,7 @@ export default class TitleScene extends Phaser.Scene {
   drawLogo() {
     const cx = GAME_W / 2;
     const goldStyle = {
-      fontFamily: 'monospace', fontSize: '30px', fontStyle: 'bold',
+      fontFamily: GAME_FONT, fontSize: '30px', fontStyle: 'bold',
       color: '#FFD23F', resolution: 2,
     };
 
@@ -290,7 +290,7 @@ export default class TitleScene extends Phaser.Scene {
     t2.setStroke('#8a1d10', 3);
 
     const sub = this.add.text(cx, 80, '★ EDICIÓN CASTIZA ★', {
-      fontFamily: 'monospace', fontSize: '10px', fontStyle: 'bold',
+      fontFamily: GAME_FONT, fontSize: '10px', fontStyle: 'bold',
       color: '#ffe9c2', resolution: 2,
     }).setOrigin(0.5);
     sub.setShadow(1, 1, '#7a1010', 0, true, true);
@@ -333,7 +333,7 @@ export default class TitleScene extends Phaser.Scene {
   drawPrompt() {
     const cx = GAME_W / 2;
     this.blink = this.add.text(cx, 138, 'PULSA  A', {
-      fontFamily: 'monospace', fontSize: '11px', fontStyle: 'bold',
+      fontFamily: GAME_FONT, fontSize: '11px', fontStyle: 'bold',
       color: '#ffffff', resolution: 2,
     }).setOrigin(0.5);
     this.blink.setShadow(0, 1, '#000000', 2, false, true);
@@ -341,7 +341,7 @@ export default class TitleScene extends Phaser.Scene {
     this.blink.setAlpha(0);
 
     this.promptSub = this.add.text(cx, 150, 'PRESS  START', {
-      fontFamily: 'monospace', fontSize: '7px', color: '#ffcf8a', resolution: 2,
+      fontFamily: GAME_FONT, fontSize: '7px', color: '#ffcf8a', resolution: 2,
     }).setOrigin(0.5).setAlpha(0);
 
     // Aparecen tras la animación del logo.
@@ -407,7 +407,7 @@ export default class TitleScene extends Phaser.Scene {
     drawBox(this, boxX, boxY, boxW, boxH);
 
     // Entrada del panel con un breve deslizamiento desde abajo.
-    const style = { fontFamily: 'monospace', fontSize: '10px', color: '#383838', resolution: 2 };
+    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#383838', resolution: 2 };
     this.menuItems = [
       this.add.text(boxX + 22, boxY + 11, 'CONTINUAR', style),
       this.add.text(boxX + 22, boxY + 27, 'NUEVA PARTIDA', style),

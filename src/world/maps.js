@@ -276,6 +276,7 @@ const TETUAN_NPCS = [
         '...Vaya. Eso no estaba en la hoja de cálculo. *otra calada, mira el cigarro como si tuviera la culpa*',
         'Lo anoto en el registro de riesgos. La improvisación me ha ganado un asalto. UNO. No te acostumbres.',
         'Disfruta el momento, anda. Yo soy el Campeón de esta Liga y te espero arriba del todo. Y paga tu parte de la luz, que la dejas encendida igual que yo el portátil.',
+        'Me voy en el Maserati a pensar en mi derrota. Sí, tengo un Maserati y comparto piso contigo. No lo entenderías, es una estrategia fiscal.',
       ],
       defeat: [
         'Previsible. Estaba todo en el Excel. *apaga el cigarro en un cenicero que rebosa*',

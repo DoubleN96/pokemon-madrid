@@ -5,6 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#14161c" />
   <title>Pokémon Madrid — Edición Castiza</title>
+
+  <!--
+    FUENTE PÍXEL DEL JUEGO (estilo GBA/Pokémon).
+    Pixelify Sans (SIL Open Font License 1.1) instanciada a peso 400 y servida
+    como woff2 estática (~15 KB). Cubre acentos castellanos (Á É Í Ó Ú ñ ¡ ¿),
+    el símbolo ₧ (pesetas) y €. Se expone bajo el alias 'PixelMadrid' para que
+    src/ui/theme.js la use de forma estable. Su rejilla nativa cae en píxeles
+    enteros a 8px, así que el texto sale CRUJIENTE en la pantalla GBA.
+  -->
+  <link rel="preload" href="./assets/fonts/PixelifySans-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <style>
+    @font-face {
+      font-family: 'PixelMadrid';
+      src: url('./assets/fonts/PixelifySans-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+    /* Anti-aliasing nítido para el texto píxel del juego (canvas Phaser). */
+    #game canvas { image-rendering: pixelated; }
+  </style>
+
   <!--
     La carcasa Game Boy Advance SP (CSS puro) se construye en src/ui/gbaShell.js.
     gbaShell.js crea el <div id="game"> dentro del bisel ANTES de que Phaser
@@ -18,6 +40,33 @@
 </head>
 <body>
   <!-- #game lo inserta gbaShell.js dentro de la pantalla de la consola. -->
-  <script type="module" src="/src/main.js"></script>
+  <!--
+    Phaser dibuja el texto en <canvas>, así que la fuente píxel DEBE estar
+    rasterizada ANTES de que main.js cree el juego (de lo contrario el primer
+    render usaría el fallback monospace borroso y se cachearía). Por eso aquí
+    forzamos la carga de 'PixelMadrid' con document.fonts.load(), esperamos a
+    document.fonts.ready y SOLO entonces importamos dinámicamente main.js.
+    Con esto NO hace falta tocar main.js.
+  -->
+  <script type="module">
+    async function boot() {
+      try {
+        if (document.fonts && document.fonts.load) {
+          // Cargar el tamaño exacto que usa el juego (8px) + uno mayor por si
+          // alguna escena lo escala; ready garantiza que TODAS estén listas.
+          await Promise.all([
+            document.fonts.load('8px "PixelMadrid"'),
+            document.fonts.load('16px "PixelMadrid"'),
+          ]);
+          await document.fonts.ready;
+        }
+      } catch (e) {
+        // Si la API de fuentes falla, arrancamos igualmente (fallback monospace).
+        console.warn('[fuente] no se pudo precargar PixelMadrid:', e);
+      }
+      await import('/src/main.js');
+    }
+    boot();
+  </script>
 </body>
 </html>

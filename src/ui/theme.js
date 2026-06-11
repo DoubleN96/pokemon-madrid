@@ -14,13 +14,21 @@ export const TEXT_COLOR = '#383838';
 export const TEXT_COLOR_LIGHT = '#f8f8f8';
 export const TEXT_COLOR_DIM = '#787878';
 
-// Estilo de texto estándar del juego (monospace nítida, sin fuentes externas en MVP).
+// Fuente píxel del juego (estilo GBA/Pokémon). Se carga vía @font-face en
+// index.html (Pixelify Sans, licencia OFL) bajo el alias 'PixelMadrid'. El
+// fallback a 'monospace' cubre los pocos glifos que la fuente píxel no trae
+// (cursores geométricos ▶ ▼ y flechas ↑ ↓), que usan otras escenas.
+export const GAME_FONT = '"PixelMadrid", monospace';
+
+// Estilo de texto estándar del juego: fuente píxel nítida a 8px (su rejilla
+// nativa cae en píxeles enteros) con resolution alta para que el texto se vea
+// CRUJIENTE al escalar la pantalla GBA en móvil (FIT sube 240px ~4×).
 export function textStyle(overrides = {}) {
   return {
-    fontFamily: 'monospace',
+    fontFamily: GAME_FONT,
     fontSize: '8px',
     color: TEXT_COLOR,
-    resolution: 2,
+    resolution: 4,
     ...overrides,
   };
 }

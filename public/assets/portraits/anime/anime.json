@@ -1,0 +1,30 @@
+[
+  {
+    "id": "marcelino",
+    "name": "Marcelino",
+    "role": "protagonista",
+    "anime": "portraits/anime/marcelino.png",
+    "bytes": 419414
+  },
+  {
+    "id": "alvaro_rival",
+    "name": "Álvaro Alonso",
+    "role": "rival",
+    "anime": "portraits/anime/alvaro_rival.png",
+    "bytes": 917357
+  },
+  {
+    "id": "ivan_fintips",
+    "name": "Iván \"FinTips\"",
+    "role": "lider-gimnasio",
+    "anime": "portraits/anime/ivan_fintips.png",
+    "bytes": 1033379
+  },
+  {
+    "id": "mariel",
+    "name": "Mariel",
+    "role": "lider-gimnasio",
+    "anime": "portraits/anime/mariel.png",
+    "bytes": 886279
+  }
+]
