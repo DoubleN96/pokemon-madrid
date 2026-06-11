@@ -14,6 +14,8 @@ import { playGrassRustle } from '../world/grassRustle.js';
 const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
 const BIKE_FACTOR = 0.35;   // moto = WALK_MS × 0.35 (mucho más rápido)
 const TURN_DELAY_MS = 90;   // toque corto = girarse sin andar (estilo GBA)
+const PLAYER_FOOT = 'marcelino'; // sprite del jugador a pie
+const PLAYER_BIKE = 'bike';      // sprite del jugador en moto/bici (red_bike pret)
 
 export default class WorldScene extends Phaser.Scene {
   constructor() { super('World'); }
@@ -35,6 +37,7 @@ export default class WorldScene extends Phaser.Scene {
 
     this.layers = createMapLayers(this, this.mapData);
     this.createPlayer(pos);
+    this.syncPlayerMount();
     this.npcs = (this.mapData.npcs || []).map((def) => new Npc(this, def));
     this.setupCamera();
     this.setupInput();
@@ -63,7 +66,19 @@ export default class WorldScene extends Phaser.Scene {
     const sprite = this.add
       .sprite(tileToX(x), tileToY(y), 'chars', 'marcelino_down_0')
       .setOrigin(0.5, 1);
-    this.player = new GridMover(this, sprite, 'marcelino', x, y, pos.dir || 'down');
+    this.player = new GridMover(this, sprite, PLAYER_FOOT, x, y, pos.dir || 'down');
+  }
+
+  // Refleja en el sprite del jugador si va montado en moto/bici (save.flags.riding):
+  // montado → frames `bike_*`, a pie → `marcelino_*`. Idempotente y seguro: si el
+  // atlas no tuviera los frames de bici, GridMover.setCharKey ignora el cambio y el
+  // jugador sigue jugable a pie. Se llama al crear la escena y al volver de overlays
+  // (menú) o de combate, para que el estado se vea reflejado al instante.
+  syncPlayerMount() {
+    if (!this.player) return;
+    const save = this.registry.get('save');
+    const riding = !!(save && save.flags && save.flags.riding);
+    this.player.setCharKey(riding ? PLAYER_BIKE : PLAYER_FOOT);
   }
 
   setupCamera() {
@@ -303,6 +318,9 @@ export default class WorldScene extends Phaser.Scene {
       menu.events.off('shutdown', unlock);
       menu.events.off('sleep', unlock);
       this.inputLocked = false;
+      // El menú pudo alternar la moto (toggleMoto → save.flags.riding): refleja el
+      // estado montado/a pie en el sprite del jugador al cerrar el menú.
+      this.syncPlayerMount();
     };
     menu.events.once('shutdown', unlock);
     menu.events.once('sleep', unlock);
@@ -314,6 +332,7 @@ export default class WorldScene extends Phaser.Scene {
     this.registry.set('whiteout', false);
     this.transitioning = false;
     this.inputLocked = false;
+    this.syncPlayerMount();
     this.player.idle();
     // Reanuda NPCs que quedaron pausados al iniciar un combate de entrenador.
     (this.npcs || []).forEach((n) => { n.paused = false; });
@@ -326,6 +345,9 @@ export default class WorldScene extends Phaser.Scene {
 
   onResume() {
     this.inputLocked = false;
+    // El menú (overlay que pausa World) puede haber alternado la moto: refleja el
+    // estado montado/a pie en el sprite del jugador al volver al mundo.
+    this.syncPlayerMount();
   }
 
   // Derrota total: curar y recolocar en el healSpawn de Tetuán (red de seguridad

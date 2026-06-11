@@ -40,6 +40,18 @@ export default class GridMover {
     }
   }
 
+  // Cambia el sprite base usado por este mover (p.ej. jugador a pie ↔ en bici).
+  // Solo aplica si el atlas tiene los frames del nuevo charKey, para no romper el
+  // sprite si faltara el asset. Detiene cualquier animación en curso y refresca el
+  // frame idle de la dirección actual de inmediato.
+  setCharKey(charKey) {
+    if (!charKey || charKey === this.charKey) return;
+    if (!this.sprite.texture.has(`${charKey}_${this.dir}_0`)) return;
+    this.charKey = charKey;
+    if (this.sprite.anims.isPlaying) this.sprite.anims.stop();
+    this.setIdleFrame();
+  }
+
   faceDir(dir) {
     this.dir = dir;
     if (!this.moving) this.idle();
