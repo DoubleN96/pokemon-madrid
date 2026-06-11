@@ -236,12 +236,13 @@ function buildRuta3() {
 
 function ruta3Data(m) {
   // Encuentros urbanos: fauna de calle de Madrid, niveles 8-12 (post-Chamberí).
+  // Curva: Gran Vía es zona MEDIA-TARDÍA (tras gimnasios 1-4 ~L30, gimnasios 5/8 aquí L32-48).
   m.encounters = [
-    { species: 19, min: 8, max: 11, weight: 30 },  // Rattata (la rata de Gran Vía)
-    { species: 16, min: 8, max: 11, weight: 28 },  // Pidgey (palomas de Callao)
-    { species: 52, min: 9, max: 12, weight: 22 },  // Meowth (gato callejero ladrón)
-    { species: 21, min: 8, max: 11, weight: 15 },  // Spearow (gorriones bordes)
-    { species: 109, min: 9, max: 12, weight: 5 },  // Koffing (humo de la avenida)
+    { species: 20, min: 22, max: 26, weight: 30 },  // Raticate (la rata de Gran Vía, ya crecidita)
+    { species: 17, min: 22, max: 26, weight: 28 },  // Pidgeotto (palomas de Callao)
+    { species: 53, min: 24, max: 28, weight: 22 },  // Persian (gato callejero ladrón)
+    { species: 22, min: 22, max: 26, weight: 15 },  // Fearow (gorriones bordes)
+    { species: 110, min: 24, max: 28, weight: 5 },  // Weezing (humo de la avenida)
   ];
   // Warps: NORTE → Chamberí (su hueco sur), SUR → Parque del Retiro.
   // NOTA: el toX/toY del lado de Chamberí los rellena el orquestador al enganchar
@@ -396,13 +397,14 @@ function buildRetiro() {
 
 function retiroData(m) {
   // Encuentros de parque: fauna verde de nivel medio (10-15), zona post-Chamberí.
+  // Curva: el Retiro es zona TARDÍA (gimnasios 7-8 aquí L44-48); fauna de nivel alto.
   m.encounters = [
-    { species: 16, min: 10, max: 13, weight: 25 },  // Pidgey
-    { species: 43, min: 11, max: 14, weight: 24 },  // Oddish (jardín)
-    { species: 48, min: 11, max: 14, weight: 18 },  // Venonat (bicho de parque)
-    { species: 69, min: 11, max: 14, weight: 16 },  // Bellsprout (entre setos)
-    { species: 63, min: 12, max: 15, weight: 12 },  // Abra (raro, místico)
-    { species: 123, min: 13, max: 15, weight: 5 },  // Scyther (muy raro, el "premio")
+    { species: 17, min: 28, max: 32, weight: 25 },  // Pidgeotto
+    { species: 44, min: 28, max: 32, weight: 24 },  // Gloom (jardín)
+    { species: 49, min: 30, max: 34, weight: 18 },  // Venomoth (bicho de parque)
+    { species: 70, min: 30, max: 34, weight: 16 },  // Weepinbell (entre setos)
+    { species: 64, min: 32, max: 36, weight: 12 },  // Kadabra (raro, místico)
+    { species: 123, min: 34, max: 38, weight: 5 },  // Scyther (muy raro, el "premio")
   ];
   // Warps: NORTE → Ruta 3. (Sur queda para una fase futura: Las Ventas / Salamanca.)
   m.warps = [
