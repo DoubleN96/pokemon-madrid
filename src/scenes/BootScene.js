@@ -21,9 +21,14 @@ export default class BootScene extends Phaser.Scene {
     this.load.atlas('chars', 'assets/sprites/chars/npcs.webp', 'assets/sprites/chars/npcs.json');
 
     // Retratos de los personajes de Pokémon Piso (IA, fondo transparente), para diálogos/combates.
+    // Hay 2 estilos: pixel (base) y ANIME (alta calidad, prioritario si existe). Los misses
+    // de carga son inofensivos (loaderror silencioso); se prefiere anime en runtime si cargó.
+    this.load.on('loaderror', () => {}); // silencia retratos anime aún no generados
     for (const id of PORTRAIT_IDS) {
-      this.load.image(`portrait_${id}`, `assets/portraits/${id}.png`);          // cuerpo entero
-      this.load.image(`portrait_${id}_bust`, `assets/portraits/${id}_bust.png`); // cara+pecho
+      this.load.image(`portrait_${id}`, `assets/portraits/${id}.png`);          // cuerpo entero pixel
+      this.load.image(`portrait_${id}_bust`, `assets/portraits/${id}_bust.png`); // cara+pecho pixel
+      this.load.image(`portrait_${id}_anime`, `assets/portraits/anime/${id}.png`);          // anime cuerpo
+      this.load.image(`portrait_${id}_anime_bust`, `assets/portraits/anime/${id}_bust.png`); // anime busto
     }
 
     // Audio (música chiptune CC0 + SFX) — carga todo desde el manifest.

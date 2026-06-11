@@ -61,10 +61,10 @@ export default class DialogScene extends Phaser.Scene {
 
   // Retrato del personaje que habla, plano americano (cara+pecho), sobre el cuadro.
   drawPortrait(id) {
-    // Prefiere el bust recortado si existe; si no, recorta a mano el centro-superior.
-    const bustKey = `portrait_${id}_bust`;
-    const key = this.textures.exists(bustKey) ? bustKey : `portrait_${id}`;
-    if (!this.textures.exists(key)) return;
+    // Prioridad: anime busto > pixel busto > anime entero > pixel entero. Recorta solo si NO es busto.
+    const candidates = [`portrait_${id}_anime_bust`, `portrait_${id}_bust`, `portrait_${id}_anime`, `portrait_${id}`];
+    const key = candidates.find((k) => this.textures.exists(k));
+    if (!key) return;
     const src = this.textures.get(key).getSourceImage();
     if (!src || !src.width) return;
     const W = src.width, H = src.height;

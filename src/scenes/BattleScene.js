@@ -202,8 +202,10 @@ export default class BattleScene extends Phaser.Scene {
   async trainerIntro() {
     // Retrato del entrenador (si lo tiene), presentación tipo "VS".
     let portraitImg = null;
-    const pkey = this.trainerPortrait ? `portrait_${this.trainerPortrait}` : null;
-    if (pkey && this.textures.exists(pkey)) {
+    const pcands = this.trainerPortrait
+      ? [`portrait_${this.trainerPortrait}_anime`, `portrait_${this.trainerPortrait}`] : [];
+    const pkey = pcands.find((k) => this.textures.exists(k));
+    if (pkey) {
       const src = this.textures.get(pkey).getSourceImage();
       const cam = this.cameras.main;
       portraitImg = this.add.image(cam.centerX, cam.centerY - 12, pkey).setDepth(60).setAlpha(0);

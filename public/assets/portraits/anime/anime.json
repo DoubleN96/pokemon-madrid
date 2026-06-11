@@ -18,13 +18,69 @@
     "name": "Iván \"FinTips\"",
     "role": "lider-gimnasio",
     "anime": "portraits/anime/ivan_fintips.png",
-    "bytes": 1033379
+    "bytes": 759490
   },
   {
     "id": "mariel",
     "name": "Mariel",
     "role": "lider-gimnasio",
     "anime": "portraits/anime/mariel.png",
-    "bytes": 886279
+    "bytes": 721308
+  },
+  {
+    "id": "alex_digital",
+    "name": "Alex",
+    "role": "amigo",
+    "anime": "portraits/anime/alex_digital.png",
+    "bytes": 845215
+  },
+  {
+    "id": "jesus_la_rata",
+    "name": "Jesús \"la Rata\"",
+    "role": "lider-gimnasio",
+    "anime": "portraits/anime/jesus_la_rata.png",
+    "bytes": 706454
+  },
+  {
+    "id": "sergio_guillen",
+    "name": "Sergio Guillén",
+    "role": "lider-gimnasio",
+    "anime": "portraits/anime/sergio_guillen.png",
+    "bytes": 423963
+  },
+  {
+    "id": "eduardo",
+    "name": "Eduardo",
+    "role": "lider-gimnasio",
+    "anime": "portraits/anime/eduardo.png",
+    "bytes": 843902
+  },
+  {
+    "id": "blanca_notarias",
+    "name": "Blanca",
+    "role": "aliada",
+    "anime": "portraits/anime/blanca_notarias.png",
+    "bytes": 858890
+  },
+  {
+    "id": "jose_antonio_casero",
+    "name": "José Antonio el Casero",
+    "role": "npc",
+    "anime": "portraits/anime/jose_antonio_casero.png",
+    "bytes": 416471
+  },
+  {
+    "id": "angel_perfeccionista",
+    "name": "Ángel",
+    "role": "aliado",
+    "anime": "portraits/anime/angel_perfeccionista.png",
+    "bytes": 388255
+  },
+  {
+    "id": "adrian_schizo",
+    "name": "Adrián Barrera",
+    "role": "villano",
+    "anime": "portraits/anime/adrian_schizo.png",
+    "bytes": 827466
   }
 ]
