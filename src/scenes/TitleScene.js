@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
 import { drawBox, bmText, GAME_FONT } from '../ui/theme.js';
 import { showAuthForm } from '../ui/authForm.js';
+import { getSession } from '../services/auth.js';
 import { loadGame } from '../services/saves.js';
 import { playMusic } from '../audio/AudioManager.js';
 
@@ -377,12 +378,17 @@ export default class TitleScene extends Phaser.Scene {
     else if (this.phase === 'menu') this.menuKey(event.keyCode);
   }
 
-  openAuth() {
+  async openAuth() {
     this.setPhase('auth');
     this.blink.setVisible(false);
     if (this.promptSub) this.promptSub.setVisible(false);
     this.input.keyboard.enabled = false;
     this.input.keyboard.disableGlobalCapture();
+    // Sesión RECORDADA: si ya hay una sesión válida persistida, entra directo sin
+    // volver a pedir login (Marcelino: "que las sesiones se guarden"). Supabase
+    // refresca el token solo; si caducó del todo, getSession da null y se pide login.
+    const existing = await getSession();
+    if (existing) { this.onAuthDone(existing); return; }
     showAuthForm((session) => this.onAuthDone(session));
   }
 
