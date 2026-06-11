@@ -39,8 +39,8 @@ Dos caminos: un **VPS** (recomendado, para tenerlo online 24/7) o **en local** (
 
 ### Opción A — VPS en Hetzner (online, recomendado)
 
-1. **Crea tu cuenta de Hetzner Cloud con este enlace de referido** (te llevas crédito de regalo):
-   **👉 `[TU_ENLACE_DE_REFERIDO_DE_HETZNER]`**
+1. **Crea tu cuenta de Hetzner Cloud con este enlace de referido** (te llevas **€20 de crédito** gratis):
+   **👉 https://console.hetzner.com/refer?pk_content=lbEMCsnlJ2EP**
 2. Crea un servidor (un CX22/CPX11 vale de sobra para empezar; Ubuntu 24.04).
 3. Instala **[Coolify](https://coolify.io)** (PaaS self-hosted, un solo comando):
    ```bash
