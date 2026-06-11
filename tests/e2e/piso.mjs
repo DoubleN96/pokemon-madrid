@@ -30,7 +30,7 @@ await press('z', 1, 800);
 await page.locator('button', { hasText: 'SIN CUENTA' }).click();
 await sleep(1500);
 // avanzar intro hasta el panel de nombre
-for (let i = 0; i < 30; i++) { if (await page.locator('input').count() > 0) break; await press('z', 1, 420); }
+for (let i = 0; i < 70; i++) { if (await page.locator('input').count() > 0) break; await press('z', 1, 200); }
 if (await page.locator('input').count() === 0) await fail('no llegó al nombre');
 await shot('01-nombre');
 const defName = await page.locator('input').inputValue();
