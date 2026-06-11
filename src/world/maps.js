@@ -333,7 +333,7 @@ const TETUAN_NPCS = [
         '...Vaya. Eso no estaba en la hoja de cálculo. *otra calada, mira el cigarro como si tuviera la culpa*',
         'Lo anoto en el registro de riesgos. La improvisación me ha ganado un asalto. UNO. No te acostumbres.',
         'Disfruta el momento, anda. Yo soy el Campeón de esta Liga y te espero arriba del todo. Y paga tu parte de la luz, que la dejas encendida igual que yo el portátil.',
-        'Me voy en el Maserati a pensar en mi derrota. Sí, tengo un Maserati y comparto piso contigo. No lo entenderías, es una estrategia fiscal.',
+        'Me piro a Salamanca, que me estoy sacando el carnet de conducir de una vez. Y el Maserati es el TUYO, que conste — yo aún ni conduzco. Tú improvisas hasta para tener coche; no lo entenderías, es una estrategia fiscal.',
       ],
       defeat: [
         'Previsible. Estaba todo en el Excel. *apaga el cigarro en un cenicero que rebosa*',
@@ -387,7 +387,7 @@ const TETUAN_NPCS = [
       'Eh, eh, eh. Marcelino. ¿Dónde vas con tanta prisa, majo? Que estamos a día 1, no te hagas el loco.',
       'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa y reluciente como una bola de billar*',
       'Anda, hoy te dejo salir porque vas a hacer cosas de Pokémon y eso da prestigio al edificio. Pero a la vuelta... el recibo, majo. El recibo.',
-      'Y dile a tu compañero Álvaro que el agua no es gratis, que me la negocia cada mes como si fuera la Liga. Maserati sí, pero el recibo del agua lo discute. ¡Lo que hay que ver!',
+      'Y dile a tu compañero Álvaro que el agua no es gratis, que me la negocia cada mes como si fuera la Liga. ¡Y mira que el del Maserati eres TÚ, no él, que ese aún se está sacando el carnet en Salamanca! ¡Lo que hay que ver!',
     ],
   },
   // Alex — el Tentado Digital. Trainer menor (Pikachu/Magnemite). Toca la guitarra → sprite guitarist.
