@@ -7,7 +7,7 @@ import { PORTRAIT_IDS } from '../data/portraits.js';
 // navegador (sobre todo móvil) podría estar sirviendo en versión cacheada vieja:
 // el atlas de personajes `chars` (npcs.webp) y la UI de combate FRLG (databoxes,
 // barras, fondos). Subir este número fuerza una recarga limpia en clientes.
-const ASSET_VER = '3';
+const ASSET_VER = '4';
 const v = (url) => `${url}?v=${ASSET_VER}`;
 
 // Carga global de assets. Los sprites de batalla se cargan bajo demanda en BattleScene
@@ -20,6 +20,13 @@ export default class BootScene extends Phaser.Scene {
     this.add.text(120, 64, 'POKÉMON MADRID', { fontSize: '12px', color: '#ffffff' }).setOrigin(0.5);
     bar.x = 60;
     this.load.on('progress', (v) => { bar.width = 120 * v; });
+
+    // FUENTES BITMAP NÍTIDAS (texto crujiente sin reescalado borroso). Atlas PNG +
+    // descriptor .fnt AngelCode generados con scripts/gen_bitmap_font.py SIN
+    // antialiasing. 'frlg16' (16px) para diálogo/combate; 'frlg10' (10px) para
+    // menús/HUD. Cache-bust ?v= igual que el resto de assets de public/.
+    this.load.bitmapFont('frlg16', v('assets/fonts/frlg16.png'), v('assets/fonts/frlg16.fnt'));
+    this.load.bitmapFont('frlg10', v('assets/fonts/frlg10.png'), v('assets/fonts/frlg10.fnt'));
 
     // Tileset overworld Gen 3 (16x16, reempaquetado a 127 columnas sin margen)
     this.load.spritesheet('tiles', 'assets/tilesets/rse-tileset.png', { frameWidth: 16, frameHeight: 16 });

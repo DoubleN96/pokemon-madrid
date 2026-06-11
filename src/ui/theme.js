@@ -1,4 +1,121 @@
 // Módulo D — Estética compartida estilo GBA FRLG: cajas, texto, barras y constantes de UI.
+import Phaser from 'phaser';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FUENTE BITMAP NÍTIDA (BitmapText)
+// ─────────────────────────────────────────────────────────────────────────────
+// El texto se dibujaba antes con Phaser.GameObjects.Text (fuente web FRLG vía
+// @font-face, rasterizada en el canvas 240×160 y reescalada canvas→carcasa→
+// pantalla de alta DPI): el doble/triple reescalado lo ABLANDABA y se veía
+// borroso en móvil, peor con texto denso (queja nº1 de Marcelino en el Pixel 10 XL).
+//
+// SOLUCIÓN: fuentes BITMAP pre-renderizadas SIN antialiasing (scripts/
+// gen_bitmap_font.py → public/assets/fonts/frlg16.{png,fnt} y frlg10.{png,fnt}).
+// Cada glifo es un trozo de textura colocado pixel-perfect; con pixelArt:true
+// (NEAREST) los bordes quedan DUROS sin halo al escalar. Texto CRUJIENTE de verdad.
+//
+// Dos tamaños nativos (se eligen por legibilidad, NUNCA se reescalan a no-enteros
+// para no emborronar):
+//   - 'frlg16' (16px): superficies de LECTURA con mucho texto → diálogo, mensaje
+//     de combate, intro. Es la prioridad.
+//   - 'frlg10' (10px): etiquetas compactas → menús, databoxes, tienda, plaquita.
+export const BM_FONT = 'frlg16';   // fuente bitmap grande (diálogo/combate)
+export const BM_FONT_SMALL = 'frlg10'; // fuente bitmap compacta (menús/HUD)
+
+// Convierte '#rrggbb' o '#rgb' a entero 0xRRGGBB para BitmapText.setTint().
+function hexToInt(c) {
+  if (typeof c !== 'string') return null;
+  let h = c.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map((x) => x + x).join('');
+  const n = parseInt(h, 16);
+  return Number.isNaN(n) ? null : n;
+}
+
+// Helper central para crear texto BITMAP nítido. Sustituye a scene.add.text(...).
+//   bmText(scene, x, y, 'HOLA')                        // 16px, color oscuro
+//   bmText(scene, x, y, 'PS', { small: true })         // 10px compacto
+//   bmText(scene, x, y, 'X', { color: '#d04040' })     // tinte de color
+//   bmText(scene, x, y, txt, { wrap: 214 })            // word-wrap a 214px
+// Devuelve un Phaser.GameObjects.BitmapText (soporta setText/setOrigin/setDepth/
+// setVisible/setTint igual que el flujo anterior). El typewriter usa setText().
+export function bmText(scene, x, y, str, opts = {}) {
+  const {
+    small = false, size = null, color = null, wrap = null,
+    origin = null, depth = null, lineSpacing = null, letterSpacing = null,
+  } = opts;
+  const fontKey = small ? BM_FONT_SMALL : BM_FONT;
+  const nativeSize = small ? 10 : 16;
+  const t = scene.add.bitmapText(x, y, fontKey, String(str == null ? '' : str), nativeSize);
+  // Tinte: por defecto casi-negro para máximo contraste sobre las cajas claras.
+  const tint = hexToInt(color) != null ? hexToInt(color) : 0x181818;
+  t.setTint(tint);
+  if (size && size !== nativeSize) t.setFontSize(size);
+  if (wrap) t.setMaxWidth(wrap);
+  if (lineSpacing != null) t.setLineSpacing(lineSpacing);
+  if (letterSpacing != null) t.setLetterSpacing(letterSpacing);
+  if (origin != null) {
+    if (Array.isArray(origin)) t.setOrigin(origin[0], origin[1]);
+    else t.setOrigin(origin);
+  }
+  if (depth != null) t.setDepth(depth);
+  return t;
+}
+
+// Devuelve las líneas resultantes de envolver `str` con el ancho máximo actual del
+// BitmapText (BitmapText no tiene getWrappedText como Text). Lo usa la paginación
+// del diálogo/combate para trocear en páginas de 2 renglones.
+export function bmWrap(bitmapText, str) {
+  const s = String(str == null ? '' : str);
+  const prev = bitmapText.text;
+  bitmapText.setText(s);
+  const bounds = bitmapText.getTextBounds(false);
+  // Phaser rellena lines/words en getTextBounds cuando hay maxWidth; reconstruimos
+  // las líneas a partir del texto envuelto que Phaser calcula internamente.
+  let wrapped;
+  const maxW = bitmapText.maxWidth || bitmapText._maxWidth || 0;
+  if (maxW > 0 && typeof bitmapText.getTextBounds === 'function') {
+    // Phaser parte el texto en \n cuando hay maxWidth; getTextBounds no expone las
+    // líneas directamente, así que replicamos su algoritmo de wrap por palabras.
+    wrapped = wrapByWidth(bitmapText, s, maxW);
+  } else {
+    wrapped = s.split('\n');
+  }
+  bitmapText.setText(prev);
+  return wrapped;
+}
+
+// Envuelve por palabras midiendo con el ancho real de cada glifo del BitmapText.
+function wrapByWidth(bitmapText, str, maxWidth) {
+  const lines = [];
+  for (const rawLine of str.split('\n')) {
+    const words = rawLine.split(' ');
+    let cur = '';
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      const width = measureBm(bitmapText, test);
+      if (width > maxWidth && cur) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = test;
+      }
+    }
+    lines.push(cur);
+  }
+  return lines;
+}
+
+// Mide el ancho en px de una cadena con la fuente/escala del BitmapText.
+function measureBm(bitmapText, str) {
+  const prev = bitmapText.text;
+  const hadMax = bitmapText.maxWidth;
+  bitmapText.setMaxWidth(0);
+  bitmapText.setText(str);
+  const w = bitmapText.width;
+  bitmapText.setText(prev);
+  bitmapText.setMaxWidth(hadMax || 0);
+  return w;
+}
 
 export const BOX_COLORS = {
   fill: 0xf8f8f8,        // fondo de caja FRLG

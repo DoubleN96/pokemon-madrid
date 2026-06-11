@@ -1,11 +1,11 @@
 // Módulo C — menús de combate navegables con flechas + A/B:
 // principal 2×2 (LUCHA/MOCHILA/POKéMON/HUIR), movimientos, mochila y equipo.
 // Todos devuelven una promesa que resuelve la selección (o null si se cancela con B).
-import { drawBox, textStyle, TYPE_NAMES } from '../theme.js';
+import { drawBox, bmText, TYPE_NAMES } from '../theme.js';
 import { buttonFromEvent } from './keys.js';
 
 function cursorText(scene) {
-  return scene.add.text(0, 0, '▶', textStyle({ color: '#d04040' })).setDepth(11);
+  return bmText(scene, 0, 0, '▶', { small: true, color: '#d04040', depth: 11 });
 }
 
 function moveIndex(index, button, cols, total) {
@@ -68,7 +68,7 @@ export function mainMenu(scene) {
     ['HUIR', 'run', 188, 138],
   ];
   const entries = defs.map(([label, value, x, y]) => {
-    cleanup.push(scene.add.text(x, y, label, textStyle()).setDepth(11));
+    cleanup.push(bmText(scene, x, y, label, { small: true, depth: 11 }));
     return { value, x, y };
   });
   return runMenu(scene, { entries, cols: 2, canCancel: false, cleanup });
@@ -78,14 +78,14 @@ export function mainMenu(scene) {
 export function fightMenu(scene, moves, movesData) {
   const frame = drawBox(scene, 2, 112, 160, 46, { depth: 10 });
   const info = drawBox(scene, 164, 112, 74, 46, { depth: 10 });
-  const ppText = scene.add.text(170, 120, '', textStyle()).setDepth(11);
-  const typeText = scene.add.text(170, 138, '', textStyle()).setDepth(11);
+  const ppText = bmText(scene, 170, 120, '', { small: true, depth: 11 });
+  const typeText = bmText(scene, 170, 138, '', { small: true, depth: 11 });
   const cleanup = [frame, info, ppText, typeText];
   const positions = [[16, 120], [90, 120], [16, 138], [90, 138]];
   const entries = moves.map((move, i) => {
     const data = movesData[move.id] || { name: move.id, type: 'normal' };
     const label = data.name.toUpperCase().slice(0, 12);
-    cleanup.push(scene.add.text(positions[i][0], positions[i][1], label, textStyle()).setDepth(11));
+    cleanup.push(bmText(scene, positions[i][0], positions[i][1], label, { small: true, depth: 11 }));
     return { value: i, x: positions[i][0], y: positions[i][1], disabled: move.pp <= 0, move, data };
   });
   const onMove = (entry) => {
@@ -107,7 +107,7 @@ export function bagMenu(scene, items) {
   const entries = all.map((it, i) => {
     const y = y0 + 7 + i * 14;
     const label = it.qty === null ? it.label : `${it.label.padEnd(10)}×${it.qty}`;
-    cleanup.push(scene.add.text(132, y, label, textStyle()).setDepth(11));
+    cleanup.push(bmText(scene, 132, y, label, { small: true, depth: 11 }));
     return { value: it.item, x: 132, y };
   });
   return runMenu(scene, { entries, cols: 1, canCancel: true, cleanup });
@@ -118,11 +118,12 @@ export function bagMenu(scene, items) {
 export function partyMenu(scene, rows, { forced = false } = {}) {
   const frame = drawBox(scene, 10, 8, 220, 100, { depth: 10 });
   const title = forced ? '¿A quién vas a sacar?' : 'ELIGE UN POKéMON';
-  const cleanup = [frame, scene.add.text(20, 14, title, textStyle()).setDepth(11)];
+  const cleanup = [frame, bmText(scene, 20, 14, title, { small: true, depth: 11 })];
   const entries = rows.map((row, i) => {
     const y = 28 + i * 13;
-    const style = textStyle(row.disabled ? { color: '#909090' } : {});
-    cleanup.push(scene.add.text(28, y, row.label, style).setDepth(11));
+    const opts = { small: true, depth: 11 };
+    if (row.disabled) opts.color = '#909090';
+    cleanup.push(bmText(scene, 28, y, row.label, opts));
     return { value: row.index, x: 28, y, disabled: row.disabled };
   });
   return runMenu(scene, { entries, cols: 1, canCancel: !forced, cleanup });

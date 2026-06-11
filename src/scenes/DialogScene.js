@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
-import { drawBox, textStyle, typewriterText } from '../ui/theme.js';
+import { drawBox, bmText, bmWrap, typewriterText } from '../ui/theme.js';
 import { nameForPortrait } from '../data/portraits.js';
 
 const BOX_W = 236;
@@ -54,17 +54,18 @@ export default class DialogScene extends Phaser.Scene {
 
   buildBox() {
     drawBox(this, BOX_X, BOX_Y, BOX_W, BOX_H);
-    // El diálogo es la superficie de texto principal. Marcelino pidió la fuente
-    // MÁS GRANDE ("+4px si hace falta"): 14px. La caja de 48px de alto encuadra
-    // 2 renglones de 14px centrados (top 8 + 2×~18 ≈ 44 < 48). Las frases largas
-    // se paginan solas (buildPages trocea en páginas de 2 líneas), así que nunca
-    // se corta texto: simplemente hay más páginas.
-    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 9, '', textStyle({
-      fontSize: '16px',
-      wordWrap: { width: WRAP_W },
-      lineSpacing: 4,
-    }));
-    this.arrow = this.add.text(BOX_X + BOX_W - 13, BOX_Y + BOX_H - 13, '▼', textStyle()).setVisible(false);
+    // El diálogo es la superficie de texto principal y la de MÁS texto: ahora con
+    // FUENTE BITMAP nítida (frlg16, 16px nativo SIN antialiasing) para que se lea
+    // crujiente en el Pixel 10 XL sin el reescalado borroso del Text de canvas.
+    // La caja de 54px encuadra 2 renglones (lineHeight 20 + 2px de aire). Las
+    // frases largas se paginan (buildPages trocea en páginas de 2 líneas), así que
+    // nunca se corta texto: simplemente hay más páginas.
+    this.textObj = bmText(this, BOX_X + 8, BOX_Y + 8, '', {
+      wrap: WRAP_W,
+      lineSpacing: 2,
+    });
+    this.arrow = bmText(this, BOX_X + BOX_W - 11, BOX_Y + BOX_H - 12, '▼', { small: true })
+      .setVisible(false);
     this.time.addEvent({
       delay: 400,
       loop: true,
@@ -108,14 +109,14 @@ export default class DialogScene extends Phaser.Scene {
     const x = hasPortrait ? BOX_X + 66 + 3 : BOX_X + 2;
     const y = BOX_Y - h + 1; // se solapa 1px con el borde superior → aspecto de pestaña
     drawBox(this, x, y, w, h, { depth: 50 });
-    this.add.text(x + padX, y + 3, name, textStyle()).setDepth(51);
+    bmText(this, x + padX, y + 3, name, { small: true, depth: 51 });
   }
 
   // Trocea cada línea en páginas de máximo 2 renglones envueltos.
   buildPages() {
     const pages = [];
     for (const line of this.lines) {
-      const wrapped = this.textObj.getWrappedText(String(line));
+      const wrapped = bmWrap(this.textObj, String(line));
       for (let i = 0; i < wrapped.length; i += 2) {
         pages.push(wrapped.slice(i, i + 2).join('\n'));
       }
@@ -184,8 +185,8 @@ export default class DialogScene extends Phaser.Scene {
     const x = GAME_W - w - 4;
     const y = BOX_Y - h - 2;
     drawBox(this, x, y, w, h);
-    this.optionTexts = options.map((o, i) => this.add.text(x + 15, y + 7 + i * 12, String(o), textStyle()));
-    this.cursor = this.add.text(x + 7, y + 7, '▶', textStyle());
+    this.optionTexts = options.map((o, i) => bmText(this, x + 15, y + 7 + i * 12, String(o), { small: true }));
+    this.cursor = bmText(this, x + 7, y + 7, '▶', { small: true });
   }
 
   moveCursor(d) {

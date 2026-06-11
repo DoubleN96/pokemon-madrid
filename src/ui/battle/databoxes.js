@@ -9,9 +9,9 @@
 // (hpbar_green/yellow/red 48x8) recortado por ratio. El nombre/Nv/PS/HP siguen
 // como texto con la fuente del juego. La API pública (setMonster/tweenHp/
 // tweenExp/setStatus/setLevel/setExp/updateHp) NO cambia.
-import { textStyle, STATUS_LABELS } from '../theme.js';
+import { bmText, STATUS_LABELS } from '../theme.js';
 
-const STATUS_BG = { par: '#b8a038', psn: '#a040a0', brn: '#f08030', slp: '#705898', frz: '#68a8d8' };
+const STATUS_BG = { par: 0xb8a038, psn: 0xa040a0, brn: 0xf08030, slp: 0x705898, frz: 0x68a8d8 };
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
 // Anchura real (en px) de la barra de PS de color dentro del PNG (48x8).
@@ -67,17 +67,13 @@ export class DataBox {
     if (this.scene.textures.exists(cfg.boxKey)) {
       this.panel = this.scene.add.image(this.x, this.y, cfg.boxKey).setOrigin(0, 0).setDepth(5);
     }
-    this.nameText = this.scene.add
-      .text(this.x + cfg.nameX, this.y + cfg.nameY, '', textStyle()).setDepth(7);
-    this.lvText = this.scene.add
-      .text(this.x + cfg.lvRightX, this.y + cfg.lvY, '', textStyle())
-      .setOrigin(1, 0).setDepth(7);
-    this.psLabel = this.scene.add
-      .text(this.x + cfg.psLabelX, cfg.barY + this.y - 1, 'PS', textStyle({ fontSize: '7px', color: '#f8c838' }))
-      .setOrigin(0, 0).setDepth(7);
-    this.statusText = this.scene.add
-      .text(this.x + cfg.statusX, this.y + cfg.statusY, '', textStyle({ fontSize: '7px', color: '#f8f8f8' }))
-      .setDepth(8);
+    this.nameText = bmText(this.scene, this.x + cfg.nameX, this.y + cfg.nameY, '', { small: true, depth: 7 });
+    this.lvText = bmText(this.scene, this.x + cfg.lvRightX, this.y + cfg.lvY, '', { small: true, origin: [1, 0], depth: 7 });
+    this.psLabel = bmText(this.scene, this.x + cfg.psLabelX, cfg.barY + this.y - 1, 'PS', { small: true, color: '#f8c838', depth: 7 });
+    // Badge de estado: fondo de color (graphics) + texto bitmap encima (BitmapText
+    // no tiene setBackgroundColor). El graphics se redimensiona en setStatus.
+    this.statusBg = this.scene.add.graphics().setDepth(7);
+    this.statusText = bmText(this.scene, this.x + cfg.statusX, this.y + cfg.statusY, '', { small: true, color: '#f8f8f8', depth: 8 });
     // Barra de PS: sprite de color recortado por ratio. setCrop(0,0,w*ratio,h).
     this.hpBar = this.scene.add
       .image(this.x + cfg.barX, this.y + cfg.barY, hpBarTexture(1)).setOrigin(0, 0).setDepth(6);
@@ -102,12 +98,17 @@ export class DataBox {
   }
 
   setStatus(status) {
+    this.statusBg.clear();
     if (!status) {
-      this.statusText.setText('').setBackgroundColor(null);
+      this.statusText.setText('');
       return;
     }
     this.statusText.setText(STATUS_LABELS[status] || status.toUpperCase());
-    this.statusText.setBackgroundColor(STATUS_BG[status] || '#606060');
+    // Fondo de color del badge, ajustado al tamaño del texto bitmap.
+    const tw = this.statusText.width;
+    const th = this.statusText.height;
+    this.statusBg.fillStyle(STATUS_BG[status] != null ? STATUS_BG[status] : 0x606060, 1);
+    this.statusBg.fillRect(this.statusText.x - 1, this.statusText.y - 1, tw + 2, th + 2);
   }
 
   updateHp(cur, max) {

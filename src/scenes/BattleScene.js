@@ -5,7 +5,7 @@ import Phaser from 'phaser';
 import { createBattle } from '../core/battle.js';
 import { calcStats, expForLevel } from '../core/formulas.js';
 import { evolve, createMonster } from '../core/monster.js';
-import { drawBox, textStyle, ITEM_NAMES } from '../ui/theme.js';
+import { drawBox, bmText, ITEM_NAMES } from '../ui/theme.js';
 import { MessageBox } from '../ui/battle/typewriter.js';
 import { DataBox } from '../ui/battle/databoxes.js';
 import { mainMenu, fightMenu, bagMenu, partyMenu } from '../ui/battle/menus.js';
@@ -446,9 +446,8 @@ export default class BattleScene extends Phaser.Scene {
       ['PS', stats.hp], ['ATAQUE', stats.atk], ['DEFENSA', stats.def],
       ['AT. ESP.', stats.spa], ['DEF. ESP.', stats.spd], ['VELOCIDAD', stats.spe],
     ];
-    const texts = rows.map(([label, value], i) => this.add
-      .text(154, 32 + i * 12, `${label.padEnd(10)}${String(value).padStart(3)}`, textStyle())
-      .setDepth(11));
+    const texts = rows.map(([label, value], i) =>
+      bmText(this, 154, 32 + i * 12, `${label.padEnd(10)}${String(value).padStart(3)}`, { small: true, depth: 11 }));
     await waitForButton(this, ['a', 'b']);
     texts.forEach((t) => t.destroy());
     frame.destroy();

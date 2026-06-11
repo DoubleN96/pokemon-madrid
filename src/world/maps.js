@@ -310,7 +310,7 @@ const TETUAN_NPCS = [
   // (Mamá, la enfermera y Eduardo se han trasladado a sus INTERIORES:
   //  Mamá cura en la casa de Marcelino, la enfermera en el Centro Pokémon y
   //  Eduardo cobra en Ultramarinos. Sus tiles de puerta quedan libres como warp.)
-  // Álvaro Alonso — RIVAL. Te reta nada más empezar. flag alvaro_rival_1.
+  // Álvarín — RIVAL. Te reta nada más empezar. flag alvaro_rival_1.
   // BALANCE: primer combate del rival = UN solo Pokémon de nivel ~5-6, ganable
   // con el inicial L5 por un jugador novato cuidadoso (objetivo compartido con
   // el agente de combate). Su equipo grande llega más adelante (es el Campeón).
@@ -387,7 +387,7 @@ const TETUAN_NPCS = [
       'Eh, eh, eh. Marcelino. ¿Dónde vas con tanta prisa, majo? Que estamos a día 1, no te hagas el loco.',
       'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa y reluciente como una bola de billar*',
       'Anda, hoy te dejo salir porque vas a hacer cosas de Pokémon y eso da prestigio al edificio. Pero a la vuelta... el recibo, majo. El recibo.',
-      'Y dile a tu compañero Álvaro que el agua no es gratis, que me la negocia cada mes como si fuera la Liga. ¡Y mira que el del Maserati eres TÚ, no él, que ese aún se está sacando el carnet en Salamanca! ¡Lo que hay que ver!',
+      'Y dile a tu compañero Álvarín que el agua no es gratis, que me la negocia cada mes como si fuera la Liga. ¡Y mira que el del Maserati eres TÚ, no él, que ese aún se está sacando el carnet en Salamanca! ¡Lo que hay que ver!',
     ],
   },
   // Alex — el Tentado Digital. Trainer menor (Pikachu/Magnemite). Toca la guitarra → sprite guitarist.
@@ -421,7 +421,7 @@ const TETUAN_NPCS = [
   {
     id: 'vecino_bar', sprite: 'generic_m1', x: 13, y: 9, dir: 'right', roam: false,
     dialog: [
-      'Vengo todos los días a tomar el sol a la puerta del bar. Es mi oficina, como el portal era la de Álvaro.',
+      'Vengo todos los días a tomar el sol a la puerta del bar. Es mi oficina, como el portal era la de Álvarín.',
       'Tú eres el del 37, ¿no? El que se va a la Liga a "poner orden". Suerte, chaval, que orden en Madrid hay poco y caro.',
       'Si entras al bar, pídete las bravas. Y dile a Manoli la peluquera que ya me toca corte, que parezco un Pidgey despeinado.',
     ],
@@ -471,7 +471,7 @@ function buildRuta2() {
   sprinkle(m, FLOWER_Y, [[3, 19], [11, 32], [17, 35], [2, 27]]);
   sprinkle(m, BUSH, [[2, 12], [17, 10], [3, 35]]);
   addSign(m, 11, 3, 'RUTA 2 — Bravo Murillo abajo, dirección CHAMBERÍ. "Tramo con entrenadores. Camina con el equipo a tono."');
-  addSign(m, 16, 16, 'QUIOSCO. Prensa, cromos y pipas. "Ya están los cromos de la Liga Chamberí. El de Álvaro fumando es el raro."');
+  addSign(m, 16, 16, 'QUIOSCO. Prensa, cromos y pipas. "Ya están los cromos de la Liga Chamberí. El de Álvarín fumando es el raro."');
   ruta2Data(m);
   return m;
 }
@@ -556,7 +556,7 @@ const RUTA2_NPCS = [
     id: 'nina_lucia', sprite: 'lass', x: 3, y: 14, dir: 'down', roam: false,
     dialog: [
       '¿Tú también vas a la Liga Chamberí? ¡Yo empecé ayer y ya me ha mordido un Rattata!',
-      'Dicen que el Campeón es un tal Álvaro que combate fumando y mirando un Excel. A mí me da más miedo el Excel, la verdad.',
+      'Dicen que el Campeón es un tal Álvarín que combate fumando y mirando un Excel. A mí me da más miedo el Excel, la verdad.',
       'Cuidado con la hierba alta de aquí, que está hasta arriba de bichos. ¡Lleva pociones de sobra!',
     ],
   },
@@ -654,7 +654,7 @@ function chamberiData(m) {
 const CHAMBERI_NPCS = [
   // (La enfermera de Chamberí se ha trasladado a su INTERIOR: cura dentro del
   //  Centro Pokémon. Su tile de puerta queda libre como warp de entrada.)
-  // Blanca — novia de Álvaro, estudia notarías. Gardevoir en el lore.
+  // Blanca — novia de Álvarín, estudia notarías. Gardevoir en el lore.
   // BALANCE: 3.ª ciudad; equipo Nv.8-9, ajustado a un inicial recién crecido.
   {
     id: 'blanca_notarias', sprite: 'blanca_notarias', x: 10, y: 11, dir: 'down', roam: false,
@@ -667,12 +667,12 @@ const CHAMBERI_NPCS = [
       ],
       intro: [
         'Hola, Marcelino. Antes de nada, el papeleo: para batirte en la Liga necesito que me firmes este consentimiento. Aquí, aquí y... aquí.',
-        'Sí, soy la novia de Álvaro. Alguien tiene que ser el único punto de cordura en todo este caos de pisos, Tinder y vapeo, ¿no crees?',
+        'Sí, soy la novia de Álvarín. Alguien tiene que ser el único punto de cordura en todo este caos de pisos, Tinder y vapeo, ¿no crees?',
         'Te voy a ganar con cariño y jurisprudencia, sin acritud. ¿Me firmas también el consentimiento para perder? Es por dejarlo todo en regla.',
       ],
       win: [
         'Vaya, impecable. Queda debidamente registrado en acta: has ganado en buena lid y sin un solo vicio de forma.',
-        'Aquí tienes tu premio, con su factura y todo en regla. Y por favor, dile a Álvaro que se duche más de tres minutos. A ti te hará más caso que a mí.',
+        'Aquí tienes tu premio, con su factura y todo en regla. Y por favor, dile a Álvarín que se duche más de tres minutos. A ti te hará más caso que a mí.',
       ],
       defeat: [
         'Caso cerrado. Sin rencor, ¿eh, cielo? La burocracia siempre gana, es ley de vida.',

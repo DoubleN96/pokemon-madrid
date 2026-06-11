@@ -6,7 +6,7 @@
 // La escena que la abre debe ignorar su propio input mientras la tienda esté abierta.
 import { GAME_W, GAME_H } from '../config.js';
 import {
-  drawBox, textStyle, typewriterText, formatMoney, ITEM_NAMES, ITEM_DESCS,
+  drawBox, bmText, typewriterText, formatMoney, ITEM_NAMES, ITEM_DESCS,
 } from './theme.js';
 
 // Precios de compra (en pesetas). Coherentes con la economía estilo FRLG.
@@ -136,10 +136,10 @@ class ShopUI {
     this.menuBox.add(drawBox(this.scene, LIST_X, 4, LIST_W, 3 * ROW_H + 16));
     this.menuOptions = ['COMPRAR', 'VENDER', 'SALIR'];
     this.menuOptions.forEach((label, i) => {
-      const t = this.scene.add.text(ROW_TEXT_X, LIST_TOP + i * ROW_H, label, textStyle());
+      const t = bmText(this.scene, ROW_TEXT_X, LIST_TOP + i * ROW_H, label, { small: true });
       this.menuBox.add(t);
     });
-    this.menuCursor = this.scene.add.text(CURSOR_X, LIST_TOP, '▶', textStyle());
+    this.menuCursor = bmText(this.scene, CURSOR_X, LIST_TOP, '▶', { small: true });
     this.menuBox.add(this.menuCursor);
     this.root.add(this.menuBox);
   }
@@ -152,19 +152,19 @@ class ShopUI {
     this.listBox.add(this.listBg);
     for (let i = 0; i < VISIBLE_ROWS; i += 1) {
       const y = LIST_TOP + i * ROW_H;
-      const name = this.scene.add.text(ROW_TEXT_X, y, '', textStyle());
-      const price = this.scene.add.text(ROW_PRICE_X, y, '', textStyle()).setOrigin(1, 0);
+      const name = bmText(this.scene, ROW_TEXT_X, y, '', { small: true });
+      const price = bmText(this.scene, ROW_PRICE_X, y, '', { small: true, origin: [1, 0] });
       this.listBox.add(name);
       this.listBox.add(price);
       this.rowTexts.push({ name, price });
     }
-    this.listCursor = this.scene.add.text(CURSOR_X, LIST_TOP, '▶', textStyle());
+    this.listCursor = bmText(this.scene, CURSOR_X, LIST_TOP, '▶', { small: true });
     this.listBox.add(this.listCursor);
     // Flechas de scroll (se muestran solo cuando hace falta).
-    this.arrowUp = this.scene.add.text(ROW_PRICE_X, 6, '▲', textStyle({ color: '#787878' }))
-      .setOrigin(1, 0).setVisible(false);
-    this.arrowDown = this.scene.add.text(ROW_PRICE_X, 4 + h - 10, '▼', textStyle({ color: '#787878' }))
-      .setOrigin(1, 0).setVisible(false);
+    this.arrowUp = bmText(this.scene, ROW_PRICE_X, 6, '▲', { small: true, color: '#787878', origin: [1, 0] })
+      .setVisible(false);
+    this.arrowDown = bmText(this.scene, ROW_PRICE_X, 4 + h - 10, '▼', { small: true, color: '#787878', origin: [1, 0] })
+      .setVisible(false);
     this.listBox.add(this.arrowUp);
     this.listBox.add(this.arrowDown);
     this.root.add(this.listBox);
@@ -173,8 +173,8 @@ class ShopUI {
   buildQtyBox() {
     this.qtyBox = this.scene.add.container(0, 0).setVisible(false);
     this.qtyBox.add(drawBox(this.scene, 4, 100, 98, 30));
-    this.qtyText = this.scene.add.text(10, 105, '', textStyle());
-    this.qtyHint = this.scene.add.text(10, 115, '↑↓ ±1 · ←→ ±10', textStyle({ color: '#787878' }));
+    this.qtyText = bmText(this.scene, 10, 105, '', { small: true });
+    this.qtyHint = bmText(this.scene, 10, 115, '↑↓ ±1 · ←→ ±10', { small: true, color: '#787878' });
     this.qtyBox.add(this.qtyText);
     this.qtyBox.add(this.qtyHint);
     this.root.add(this.qtyBox);
@@ -184,9 +184,9 @@ class ShopUI {
   buildConfirmBox() {
     this.confirmBox = this.scene.add.container(0, 0).setVisible(false);
     this.confirmBox.add(drawBox(this.scene, 188, 96, 48, 34));
-    this.confirmYes = this.scene.add.text(206, 102, 'SÍ', textStyle());
-    this.confirmNo = this.scene.add.text(206, 114, 'NO', textStyle());
-    this.confirmCursor = this.scene.add.text(196, 102, '▶', textStyle());
+    this.confirmYes = bmText(this.scene, 206, 102, 'SÍ', { small: true });
+    this.confirmNo = bmText(this.scene, 206, 114, 'NO', { small: true });
+    this.confirmCursor = bmText(this.scene, 196, 102, '▶', { small: true });
     this.confirmBox.add(this.confirmYes);
     this.confirmBox.add(this.confirmNo);
     this.confirmBox.add(this.confirmCursor);
@@ -196,12 +196,12 @@ class ShopUI {
 
   buildMsgBox() {
     this.root.add(drawBox(this.scene, 2, 134, 236, 24));
-    this.msgText = this.scene.add.text(10, 141, '', textStyle({ wordWrap: { width: 220 } }));
+    this.msgText = bmText(this.scene, 10, 141, '', { small: true, wrap: 220 });
     this.root.add(this.msgText);
   }
 
   text(x, y, str, st = {}) {
-    const t = this.scene.add.text(x, y, str, textStyle(st));
+    const t = bmText(this.scene, x, y, str, { small: true, ...st });
     this.root.add(t);
     return t;
   }

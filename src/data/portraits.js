@@ -22,7 +22,7 @@ const SET = new Set(PORTRAIT_IDS);
 // (Marcelino pidió que aparezca el nombre del que habla encima de su foto.)
 export const PORTRAIT_NAMES = {
   marcelino: 'Marcelino',
-  alvaro_rival: 'Álvaro',
+  alvaro_rival: 'Álvarín',
   alex_digital: 'Alex',
   ivan_fintips: 'Iván',
   jesus_la_rata: 'Jesús',

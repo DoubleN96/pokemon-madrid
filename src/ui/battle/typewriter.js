@@ -1,20 +1,17 @@
 // Módulo C — caja de mensajes de combate con texto letra a letra (estilo FRLG).
-import { drawBox, textStyle, typewriterText } from '../theme.js';
+import { drawBox, bmText, bmWrap, typewriterText } from '../theme.js';
 import { buttonFromEvent, waitForButton, delay } from './keys.js';
 
 export class MessageBox {
   constructor(scene) {
     this.scene = scene;
-    // Texto a 14px (Marcelino pidió fuentes más grandes y nítidas). Caja al fondo
-    // (y=110, justo bajo el databox del jugador para no solaparse) de 48px. El texto
-    // se PAGINA a 2 renglones (ver reveal) para que nunca se corte una 3ª línea.
+    // Segunda superficie de MÁS texto del juego: ahora con FUENTE BITMAP nítida
+    // (frlg16, 16px nativo SIN antialiasing) para texto crujiente en móvil. Caja al
+    // fondo (y=110, justo bajo el databox del jugador) de 48px. El texto se PAGINA a
+    // 2 renglones (ver reveal) para que nunca se corte una 3ª línea.
     this.frame = drawBox(scene, 2, 110, 236, 48, { depth: 8 });
-    this.text = scene.add
-      .text(10, 117, '', textStyle({ fontSize: '14px', wordWrap: { width: 214 }, lineSpacing: 2 }))
-      .setDepth(9);
-    this.cursor = scene.add
-      .text(225, 145, '▼', textStyle({ fontSize: '14px', color: '#d04040' }))
-      .setDepth(9)
+    this.text = bmText(scene, 10, 116, '', { wrap: 214, lineSpacing: 2, depth: 9 });
+    this.cursor = bmText(scene, 224, 142, '▼', { small: true, color: '#d04040', depth: 9 })
       .setVisible(false);
   }
 
@@ -43,7 +40,7 @@ export class MessageBox {
   reveal(content) {
     return new Promise((resolve) => {
       this.cursor.setVisible(false);
-      const wrapped = this.text.getWrappedText(String(content == null ? '' : content));
+      const wrapped = bmWrap(this.text, String(content == null ? '' : content));
       const pages = [];
       for (let i = 0; i < wrapped.length; i += 2) pages.push(wrapped.slice(i, i + 2).join('\n'));
       if (!pages.length) pages.push('');

@@ -7,7 +7,7 @@
 // la API de la escena y el flujo a 'World' son idénticos al original.
 import Phaser from 'phaser';
 import { GAME_W, GAME_H, STARTERS, MONEY_START, SAVE_VERSION } from '../config.js';
-import { drawBox, GAME_FONT } from '../ui/theme.js';
+import { drawBox, bmText } from '../ui/theme.js';
 import { createMonster } from '../core/monster.js';
 import { saveGame } from '../services/saves.js';
 import { MAPS } from '../world/maps.js';
@@ -22,7 +22,7 @@ const LINES_BIENVENIDA = [
   '...y otros echan la siesta en una terraza al sol. Cada bicho es una posición. Y toda posición tiene su ROI.',
   'Yo lo analizo todo desde la barrera, buscando rentabilidad. Para eso me pagan... bueno, me pagaría yo.',
   'Y tú, majo... tú vives en un piso de Bravo Murillo, en Tetuán, ahogado entre Excels y desorden vital.',
-  'Tu compañero de piso es Álvaro Alonso, "el Vicepresidente del Humo". Se cree el Campeón porque lo tiene TODO optimizado: lógica pura, cero improvisación.',
+  'Tu compañero de piso es Álvarín, "el Vicepresidente del Humo". Se cree el Campeón porque lo tiene TODO optimizado: lógica pura, cero improvisación.',
   'Pues ha llegado la hora de bajarle los humos. Vas a poner orden en este caos a tu manera y a demostrarle que la improvisación le gana a la lógica.',
   'Pero antes de meter capital... cuéntame, ¿cómo te llamas? Que lo apunto en el Excel.',
 ];
@@ -47,9 +47,9 @@ function linesTrasNombre(name) {
 function linesFinal(name, pkmn) {
   return [
     `¡Así que abres posición con ${pkmn}! Buena entrada, bro. El mercado te lo va a premiar.`,
-    `Cuídalo bien, ${name}. Un activo bien gestionado vale más que mil Excels de Álvaro.`,
+    `Cuídalo bien, ${name}. Un activo bien gestionado vale más que mil Excels de Álvarín.`,
     `Ahora sí, ${name}... sal de ese piso de Bravo Murillo y pon orden en el caos de Madrid.`,
-    'Demuéstrale a Álvaro Alonso que la improvisación le gana a la lógica. ¡Y hazte con todos, que diversificar es la clave!',
+    'Demuéstrale a Álvarín que la improvisación le gana a la lógica. ¡Y hazte con todos, que diversificar es la clave!',
   ];
 }
 
@@ -142,22 +142,16 @@ export default class IntroScene extends Phaser.Scene {
     this.setPhase('select');
     this.prof.setVisible(false);
     const pokedex = this.registry.get('pokedex');
-    // Etiquetas de los iniciales: blanco nítido (res4) y un poco más grandes.
-    const white = { fontFamily: GAME_FONT, fontSize: '9px', color: '#f8f8f8', resolution: 4 };
-    this.add.text(GAME_W / 2, 9, '¡ELIGE TU COMPAÑERO!',
-      { fontFamily: GAME_FONT, fontSize: '11px', fontStyle: 'bold', color: '#FFD700', resolution: 4,
-        shadow: { offsetX: 0, offsetY: 1, color: '#7a4a00', blur: 0, fill: true } }).setOrigin(0.5);
+    // Título y etiquetas con FUENTE BITMAP nítida (frlg10 compacta).
+    bmText(this, GAME_W / 2, 8, '¡ELIGE TU COMPAÑERO!', { small: true, color: '#FFD700', origin: 0.5 });
     this.starterSprites = STARTERS.map((id, i) => this.add.image(60 + i * 60, 62, `pkmn_front_${id}`));
     this.starterLabels = STARTERS.map((id, i) =>
-      this.add.text(60 + i * 60, 96, pokedex[id - 1].name.toUpperCase(), white).setOrigin(0.5));
-    this.selCursor = this.add.text(60, 22, '▼',
-      { fontFamily: GAME_FONT, fontSize: '11px', color: '#FFD700', resolution: 4 }).setOrigin(0.5);
-    // Caja de descripción: fuente FRLG a 9px (cabe el texto largo del inicial en
-    // la caja de 46px de alto) bien oscura y nítida para que se lea claro.
+      bmText(this, 60 + i * 60, 96, pokedex[id - 1].name.toUpperCase(), { small: true, color: '#f8f8f8', origin: 0.5 }));
+    this.selCursor = bmText(this, 60, 22, '▼', { small: true, color: '#FFD700', origin: 0.5 });
+    // Caja de descripción: texto bitmap compacto (frlg10) — cabe el texto largo del
+    // inicial en la caja de 46px de alto y se lee claro/nítido.
     drawBox(this, 2, 112, 236, 46);
-    this.descText = this.add.text(9, 118, '',
-      { fontFamily: GAME_FONT, fontSize: '9px', color: '#181818', resolution: 4, lineSpacing: 2,
-        shadow: { offsetX: 0, offsetY: 1, color: '#c8c8c8', blur: 0, fill: true }, wordWrap: { width: 222 } });
+    this.descText = bmText(this, 9, 117, '', { small: true, lineSpacing: 2, wrap: 222 });
     this.updateSelect();
   }
 
@@ -167,7 +161,8 @@ export default class IntroScene extends Phaser.Scene {
       this.starterSprites[i].setScale(active ? 1 : 0.8);
       if (active) this.starterSprites[i].clearTint();
       else this.starterSprites[i].setTint(0x707080);
-      this.starterLabels[i].setColor(active ? '#FFD700' : '#b0b0c0');
+      // BitmapText: el color es tinte (setTint), no setColor.
+      this.starterLabels[i].setTint(active ? 0xffd700 : 0xb0b0c0);
     }
     this.selCursor.x = 60 + this.selIndex * 60;
     this.descText.setText(STARTER_DESC[STARTERS[this.selIndex]]);
@@ -194,12 +189,11 @@ export default class IntroScene extends Phaser.Scene {
     const name = pokedex[STARTERS[this.selIndex] - 1].name.toUpperCase();
     this.descText.setText(`¿Te quedas con ${name}?`);
     this.confirmBox = drawBox(this, 178, 58, 52, 40);
-    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#181818', resolution: 4 };
     this.confirmItems = [
-      this.add.text(198, 64, 'SÍ', style),
-      this.add.text(198, 80, 'NO', style),
+      bmText(this, 198, 64, 'SÍ', { small: true }),
+      bmText(this, 198, 80, 'NO', { small: true }),
     ];
-    this.confirmCursor = this.add.text(186, 64, '▶', style);
+    this.confirmCursor = bmText(this, 186, 64, '▶', { small: true });
   }
 
   closeConfirm() {

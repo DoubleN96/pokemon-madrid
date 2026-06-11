@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
 import { sfx } from '../audio/AudioManager.js';
 import {
-  drawBox, textStyle, drawHpBar, formatMoney, BOX_COLORS,
+  drawBox, bmText, drawHpBar, formatMoney, BOX_COLORS,
   TEXT_COLOR_LIGHT, TEXT_COLOR_DIM, TYPE_NAMES, TYPE_COLORS,
   STATUS_LABELS, ITEM_NAMES, ITEM_DESCS,
 } from '../ui/theme.js';
@@ -97,8 +97,13 @@ export default class MenuScene extends Phaser.Scene {
     return this.view;
   }
 
+  // Texto bitmap nítido (frlg10, compacto) para el menú. Mapea las opciones estilo
+  // textStyle ({ color, wordWrap }) a las de bmText para no tocar cada llamada.
   addText(c, x, y, str, st = {}) {
-    const t = this.add.text(x, y, str, textStyle(st));
+    const opts = { small: true };
+    if (st.color) opts.color = st.color;
+    if (st.wordWrap && st.wordWrap.width) opts.wrap = st.wordWrap.width;
+    const t = bmText(this, x, y, str, opts);
     c.add(t);
     return t;
   }

@@ -3,7 +3,7 @@
 // "PULSA A" parpadeante, panel de cuenta (DOM) y menú CONTINUAR/NUEVA PARTIDA.
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
-import { drawBox, GAME_FONT } from '../ui/theme.js';
+import { drawBox, bmText, GAME_FONT } from '../ui/theme.js';
 import { showAuthForm } from '../ui/authForm.js';
 import { loadGame } from '../services/saves.js';
 import { playMusic } from '../audio/AudioManager.js';
@@ -406,13 +406,12 @@ export default class TitleScene extends Phaser.Scene {
     const boxH = 48;
     drawBox(this, boxX, boxY, boxW, boxH);
 
-    // Entrada del panel con un breve deslizamiento desde abajo.
-    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#181818', resolution: 4 };
+    // Entrada del panel con un breve deslizamiento desde abajo. Texto bitmap nítido.
     this.menuItems = [
-      this.add.text(boxX + 22, boxY + 10, 'CONTINUAR', style),
-      this.add.text(boxX + 22, boxY + 26, 'NUEVA PARTIDA', style),
+      bmText(this, boxX + 22, boxY + 10, 'CONTINUAR', { small: true }),
+      bmText(this, boxX + 22, boxY + 26, 'NUEVA PARTIDA', { small: true }),
     ];
-    this.cursor = this.add.text(boxX + 10, boxY + 10, '▶', { ...style, color: '#c03028' });
+    this.cursor = bmText(this, boxX + 10, boxY + 10, '▶', { small: true, color: '#c03028' });
 
     // Animación de entrada del menú (fade + ligero ascenso).
     const items = [...this.menuItems, this.cursor];
