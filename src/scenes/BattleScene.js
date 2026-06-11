@@ -137,9 +137,12 @@ export default class BattleScene extends Phaser.Scene {
   buildBoxes() {
     // Caja enemiga arriba-izda (104x32 con cola), jugador abajo-dcha (112x32).
     // El jugador se ancla en x=126 para que el ancho 112 (con cola) quede dentro
-    // del lienzo de 240px (126+112=238).
+    // del lienzo de 240px (126+112=238). En Y se ancla en y=78 para que su borde
+    // inferior (78+32=110) quede JUSTO sobre el borde superior del bocadillo de
+    // mensaje (drawBox en y=110), como en FRLG: caja de PS y bocadillo cohesionados
+    // sin el hueco antiestético de ~8px que dejaba el valor anterior (y=70 → 102).
     this.enemyBox = new DataBox(this, { x: 4, y: 6, isPlayer: false });
-    this.playerBox = new DataBox(this, { x: 126, y: 70, isPlayer: true });
+    this.playerBox = new DataBox(this, { x: 126, y: 78, isPlayer: true });
     this.msg = new MessageBox(this);
     this.refreshBox('enemy');
     this.refreshBox('player');

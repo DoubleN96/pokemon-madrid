@@ -14,8 +14,8 @@ import { bmText, STATUS_LABELS } from '../theme.js';
 const STATUS_BG = { par: 0xb8a038, psn: 0xa040a0, brn: 0xf08030, slp: 0x705898, frz: 0x68a8d8 };
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
-// Anchura real (en px) de la barra de PS de color dentro del PNG (48x8).
-const HP_BAR_W = 48;
+// Anchura de la TEXTURA de la barra de PS de color (el PNG hpbar_* es 48x8).
+const HP_BAR_TEX_W = 48;
 const HP_BAR_H = 8;
 
 // Texturas de barra de PS por umbral de color FRLG (>0.5 verde, >0.2 amarillo, resto rojo).
@@ -29,19 +29,24 @@ function hpBarTexture(ratio) {
 // marcos FRLG: enemigo 104x32 (cream x4..89, y5..24); jugador 112x32 (cream
 // x12..97, y5..24 + pista EXP horneada abajo). barX/barY sitúan la barra de PS de
 // color sobre la zona cream; expX/expW caen sobre la pista de puntos horneada.
+// `barW` = anchura REAL del riel de PS horneado en el PNG (medida pixel-perfect
+// sobre los marcos: el riel del enemigo va de x28 al borde oscuro en x91 → 63px;
+// el del jugador de x34 al borde en x99 → 65px). La barra de color (textura 48px)
+// se ESCALA a `barW` para que a PS lleno llene el riel hasta el borde, en vez de
+// quedarse corta a 48px (lo que dejaba un hueco antes del final del riel).
 const LAYOUT = {
   enemy: {
     boxKey: 'battle_box_enemy',
     nameX: 8, nameY: 6,
     lvRightX: 90, lvY: 6,        // "NvNN" alineado a la derecha de la zona cream
-    psLabelX: 10, barX: 28, barY: 17, // "PS" + barra de color
+    psLabelX: 10, barX: 28, barY: 17, barW: 63, // "PS" + barra de color (riel 63px)
     statusX: 8, statusY: 17,
   },
   player: {
     boxKey: 'battle_box_player',
     nameX: 16, nameY: 3,
     lvRightX: 95, lvY: 3,
-    psLabelX: 18, barX: 34, barY: 15,
+    psLabelX: 18, barX: 34, barY: 15, barW: 65, // barra de color (riel 65px)
     statusX: 16, statusY: 15,
     expX: 31, expY: 27, expW: 73, // relleno EXP sobre la pista de puntos horneada
   },
@@ -74,9 +79,15 @@ export class DataBox {
     // no tiene setBackgroundColor). El graphics se redimensiona en setStatus.
     this.statusBg = this.scene.add.graphics().setDepth(7);
     this.statusText = bmText(this.scene, this.x + cfg.statusX, this.y + cfg.statusY, '', { small: true, color: '#f8f8f8', depth: 8 });
-    // Barra de PS: sprite de color recortado por ratio. setCrop(0,0,w*ratio,h).
+    // Barra de PS: sprite de color recortado por ratio. La textura mide 48px pero
+    // el riel horneado en el marco mide `cfg.barW` (63/65px), así que escalamos en
+    // X para que a PS lleno la barra llegue al borde del riel sin quedarse corta.
+    this.hpBarScaleX = (cfg.barW || HP_BAR_TEX_W) / HP_BAR_TEX_W;
     this.hpBar = this.scene.add
-      .image(this.x + cfg.barX, this.y + cfg.barY, hpBarTexture(1)).setOrigin(0, 0).setDepth(6);
+      .image(this.x + cfg.barX, this.y + cfg.barY, hpBarTexture(1))
+      .setOrigin(0, 0)
+      .setScale(this.hpBarScaleX, 1)
+      .setDepth(6);
     if (!this.isPlayer) return;
     // El databox FRLG de 32px con la pista EXP horneada no deja sitio limpio para
     // el número de PS; la barra de color (verde/amarillo/rojo) ya indica el PS de
@@ -116,12 +127,15 @@ export class DataBox {
     this.maxHp = max;
     const ratio = max > 0 ? clamp01(cur / max) : 0;
     // Cambia la textura según el umbral de color y recorta el sprite por ratio.
+    // El recorte es en espacio de TEXTURA (48px); el escalado en X del sprite
+    // proyecta ese recorte sobre el ancho real del riel. A PS lleno (ratio=1) el
+    // recorte abarca toda la textura → la barra llena el riel completo.
     this.hpBar.setTexture(hpBarTexture(ratio));
-    const w = Math.max(0, Math.round(HP_BAR_W * ratio));
-    if (w <= 0) {
+    const texW = Math.max(0, Math.round(HP_BAR_TEX_W * ratio));
+    if (texW <= 0) {
       this.hpBar.setVisible(false);
     } else {
-      this.hpBar.setVisible(true).setCrop(0, 0, w, HP_BAR_H);
+      this.hpBar.setVisible(true).setCrop(0, 0, texW, HP_BAR_H);
     }
   }
 

@@ -15,7 +15,16 @@ const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
 const BIKE_FACTOR = 0.35;   // moto = WALK_MS × 0.35 (mucho más rápido)
 const TURN_DELAY_MS = 90;   // toque corto = girarse sin andar (estilo GBA)
 const PLAYER_FOOT = 'marcelino'; // sprite del jugador a pie
-const PLAYER_BIKE = 'bike';      // sprite del jugador en moto/bici (red_bike pret)
+// Sprite del jugador montado en moto/bici. Los frames `bike_*` del atlas están
+// rotos (son el sprite genérico de "Red" — no Marcelino — y además vienen mal
+// recortados: cada frame captura solo MEDIA moto, de ahí el efecto "media moto"
+// cortada). En vez de mostrar un sprite genérico y partido, mantenemos el sprite
+// PROPIO de Marcelino al ir montado: bien recortado, centrado, mirando a las 4
+// direcciones y sin cortes. La sensación de "ir en moto" se da por la velocidad
+// (BIKE_FACTOR, mucho más rápido), no por un sprite roto. Robusto: si algún día
+// se rehace el atlas de la bici con Marcelino bien recortado, basta apuntar esta
+// constante a 'bike' de nuevo.
+const PLAYER_BIKE = 'marcelino';
 
 export default class WorldScene extends Phaser.Scene {
   constructor() { super('World'); }
