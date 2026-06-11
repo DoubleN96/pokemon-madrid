@@ -76,7 +76,7 @@ const state = {
   currentMusic: null, // instancia Phaser.Sound actual
   currentMusicKey: null, // string key del manifest
   muted: readBool(LS_MUTE, false),
-  masterVolume: readFloat(LS_VOL, 0.6), // volumen maestro 0..1
+  masterVolume: readFloat(LS_VOL, 0.95), // volumen maestro 0..1
   _manifestPromise: null, // promesa de fetch en curso (evita fetches duplicados)
 };
 
@@ -210,7 +210,7 @@ export function preloadAudio(scene) {
  * @returns {Phaser.Sound.BaseSound|null}
  */
 export function playMusic(scene, key, opts = {}) {
-  const { loop = true, volume = 0.5, fade = DEFAULT_FADE_MS } = opts;
+  const { loop = true, volume = 0.9, fade = DEFAULT_FADE_MS } = opts;
 
   // No reiniciar si ya suena la misma pista.
   if (

@@ -59,18 +59,29 @@ export default class DialogScene extends Phaser.Scene {
     });
   }
 
-  // Retrato del personaje que habla, en un marco sobre la esquina superior-izq del cuadro.
+  // Retrato del personaje que habla, plano americano (cara+pecho), sobre el cuadro.
   drawPortrait(id) {
-    const key = `portrait_${id}`;
+    // Prefiere el bust recortado si existe; si no, recorta a mano el centro-superior.
+    const bustKey = `portrait_${id}_bust`;
+    const key = this.textures.exists(bustKey) ? bustKey : `portrait_${id}`;
     if (!this.textures.exists(key)) return;
     const src = this.textures.get(key).getSourceImage();
     if (!src || !src.width) return;
-    const PW = 48, PH = 52;
-    const px = BOX_X, py = BOX_Y - PH - 2;
-    drawBox(this, px, py, PW, PH);
-    const img = this.add.image(px + PW / 2, py + PH / 2, key).setOrigin(0.5);
-    const s = Math.min((PW - 6) / src.width, (PH - 6) / src.height);
+    const W = src.width, H = src.height;
+    const PW = 66, PH = 66;
+    const cxc = BOX_X + PW / 2, cyc = BOX_Y - PH / 2 - 2;
+    drawBox(this, BOX_X, BOX_Y - PH - 2, PW, PH);
+    // Si es el sprite completo (no _bust), recorta a cara+pecho (centro-superior).
+    const full = key.endsWith('_bust') ? null : { x: W * 0.30, y: H * 0.06, w: W * 0.40, h: H * 0.46 };
+    const cw = full ? full.w : W, ch = full ? full.h : H;
+    const cx0 = full ? full.x : 0, cy0 = full ? full.y : 0;
+    const img = this.add.image(0, 0, key).setOrigin(0.5);
+    const s = Math.min((PW - 4) / cw, (PH - 4) / ch);
     img.setScale(s);
+    if (full) img.setCrop(cx0, cy0, cw, ch);
+    // Centra la región recortada dentro del marco.
+    img.x = cxc - (cx0 + cw / 2 - W / 2) * s;
+    img.y = cyc - (cy0 + ch / 2 - H / 2) * s;
   }
 
   // Trocea cada línea en páginas de máximo 2 renglones envueltos.

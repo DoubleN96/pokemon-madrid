@@ -12,6 +12,7 @@ import { rollEncounter } from '../world/engine/encounters.js';
 import { playGrassRustle } from '../world/grassRustle.js';
 
 const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
+const BIKE_FACTOR = 0.35;   // moto = WALK_MS × 0.35 (mucho más rápido)
 const TURN_DELAY_MS = 90;   // toque corto = girarse sin andar (estilo GBA)
 
 export default class WorldScene extends Phaser.Scene {
@@ -119,7 +120,10 @@ export default class WorldScene extends Phaser.Scene {
     const nx = this.player.tileX + d.dx;
     const ny = this.player.tileY + d.dy;
     if (this.isBlocked(nx, ny, this.player)) { this.player.idle(); return; }
-    const duration = this.isRunHeld() ? WALK_MS * RUN_FACTOR : WALK_MS;
+    const save = this.registry.get('save');
+    const riding = !!(save && save.flags && save.flags.riding);
+    const factor = riding ? BIKE_FACTOR : (this.isRunHeld() ? RUN_FACTOR : 1);
+    const duration = WALK_MS * factor;
     this.player.step(dir, duration, () => this.onStepDone());
   }
 

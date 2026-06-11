@@ -11,6 +11,7 @@ import { saveGame } from '../services/saves.js';
 const OPTIONS = [
   { id: 'team', label: 'EQUIPO' },
   { id: 'bag', label: 'MOCHILA' },
+  { id: 'moto', label: 'MOTO' },
   { id: 'dex', label: 'POKÉDEX' },
   { id: 'save', label: 'GUARDAR' },
   { id: 'exit', label: 'SALIR' },
@@ -154,9 +155,17 @@ export default class MenuScene extends Phaser.Scene {
     const id = OPTIONS[this.rootIdx].id;
     if (id === 'team') this.showTeam();
     else if (id === 'bag') this.showBag();
+    else if (id === 'moto') this.toggleMoto();
     else if (id === 'dex') this.showDex();
     else if (id === 'save') this.doSave();
     else this.closeMenu();
+  }
+
+  // Sube/baja de la moto: movimiento mucho más rápido por el overworld.
+  toggleMoto() {
+    if (!this.save.flags) this.save.flags = {};
+    this.save.flags.riding = !this.save.flags.riding;
+    this.closeMenu();
   }
 
   // ---------- Equipo ----------

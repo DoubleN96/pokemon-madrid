@@ -1,6 +1,8 @@
-// Carcasa Game Boy Advance SP: construye el chasis (CSS en gbaShell.css),
-// reubica el #game (canvas Phaser) dentro del bisel de pantalla y convierte
-// los botones físicos de la carcasa en los controles del juego.
+// Carcasa Game Boy Advance SP a PANTALLA COMPLETA: construye el chasis
+// (CSS en gbaShell.css) ocupando todo el viewport del móvil (full-bleed),
+// con la PANTALLA DEL JUEGO arriba (#game, canvas Phaser, sin marco grueso) y
+// el CUERPO verde con los controles físicos abajo (D-pad, A/B, START/SELECT,
+// L/R, altavoz). Convierte esos botones físicos en los controles del juego.
 //
 // Los botones inyectan los MISMOS KeyboardEvent que el juego ya consume en
 // todas las escenas (flechas/Z/X/Enter/Shift), por lo que NO se toca ninguna
@@ -86,37 +88,59 @@ function el(tag, className, html) {
   return node;
 }
 
-// Construye el árbol DOM de la carcasa y devuelve { sp, screenFrame, gameSlot }.
+// Construye el árbol DOM de la carcasa full-bleed y devuelve { sp, gameSlot }.
+//
+// Layout (de arriba a abajo):
+//   #gba-sp (100vw × 100dvh, columna)
+//   ├── .gba-screen-half   (mitad superior ~55%) -> pantalla negra + #game
+//   ├── .gba-hinge         (banda de bisagra con L/R en los extremos)
+//   └── .gba-body-half     (mitad inferior ~45%) -> cuerpo verde con controles
 function buildShell() {
-  const stage = el('div');
-  stage.id = 'gba-stage';
-
   const sp = el('div');
   sp.id = 'gba-sp';
 
-  const lid = el('div', 'gba-lid');
-  const base = el('div', 'gba-base');
+  /* ----- MITAD SUPERIOR: la pantalla del juego ----- */
+  const screenHalf = el('div', 'gba-screen-half');
 
-  // Hombros L / R sobre la bisagra.
-  const lShoulder = el('div', 'gba-btn gba-shoulder gba-shoulder-l', 'L');
-  lShoulder.dataset.btn = 'l';
-  const rShoulder = el('div', 'gba-btn gba-shoulder gba-shoulder-r', 'R');
-  rShoulder.dataset.btn = 'r';
-
-  // Bisel de pantalla: aquí va el #game (canvas Phaser).
+  // Borde negro fino de la pantalla (NO un bisel grueso). Dentro va el #game.
   const screenFrame = el('div', 'gba-screen-frame');
+  // Etiquetas serigrafiadas tipo "POWER ON / BATTERY FULL".
   screenFrame.appendChild(el('div', 'gba-screen-led'));
+  screenFrame.appendChild(el('div', 'gba-screen-tag gba-tag-power', 'POWER ON'));
+  screenFrame.appendChild(el('div', 'gba-screen-tag gba-tag-batt', 'BATTERY FULL'));
+
+  // El slot donde Phaser monta el canvas (parent:'game'). Ocupa la pantalla.
   const gameSlot = el('div');
   gameSlot.id = 'game';
   screenFrame.appendChild(gameSlot);
 
-  // Bisagra clamshell.
+  // Marca serigrafiada bajo la pantalla.
+  screenFrame.appendChild(el('div', 'gba-brand',
+    '<span class="gba-brand-gb">GAME&nbsp;BOY</span>' +
+    '<span class="gba-brand-adv">ADVANCE</span>' +
+    '<span class="gba-brand-sp">SP</span>'));
+
+  screenHalf.appendChild(screenFrame);
+
+  /* ----- BISAGRA (clamshell) con hombros L / R en los extremos ----- */
   const hinge = el('div', 'gba-hinge');
   hinge.appendChild(el('div', 'gba-hinge-bar'));
-  hinge.appendChild(el('div', 'gba-hinge-knuckle left'));
-  hinge.appendChild(el('div', 'gba-hinge-knuckle right'));
+  hinge.appendChild(el('div', 'gba-hinge-seam gba-hinge-seam-l'));
+  hinge.appendChild(el('div', 'gba-hinge-seam gba-hinge-seam-r'));
 
-  // Cruceta (D-pad).
+  const lShoulder = el('div', 'gba-btn gba-shoulder gba-shoulder-l', 'L');
+  lShoulder.dataset.btn = 'l';
+  const rShoulder = el('div', 'gba-btn gba-shoulder gba-shoulder-r', 'R');
+  rShoulder.dataset.btn = 'r';
+  hinge.append(lShoulder, rShoulder);
+
+  /* ----- MITAD INFERIOR: cuerpo verde con los controles ----- */
+  const bodyHalf = el('div', 'gba-body-half');
+
+  // LED de encendido (decorativo) sobre el dpad, centrado arriba.
+  const powerLed = el('div', 'gba-power-led', '<span class="dot"></span>');
+
+  // Cruceta (D-pad) — izquierda.
   const dpad = el('div', 'gba-dpad');
   dpad.appendChild(el('div', 'gba-dpad-cross'));
   dpad.appendChild(el('div', 'gba-dpad-hub'));
@@ -126,16 +150,18 @@ function buildShell() {
     dpad.appendChild(seg);
   }
 
-  // Botones A / B.
+  // Botones A / B — derecha, en diagonal (B abajo-izquierda, A arriba-derecha).
   const ab = el('div', 'gba-ab');
-  const btnA = el('div', 'gba-btn gba-btn-round gba-btn-a', 'A');
-  btnA.dataset.btn = 'a';
   const btnB = el('div', 'gba-btn gba-btn-round gba-btn-b', 'B');
   btnB.dataset.btn = 'b';
-  ab.appendChild(btnA);
-  ab.appendChild(btnB);
+  const btnA = el('div', 'gba-btn gba-btn-round gba-btn-a', 'A');
+  btnA.dataset.btn = 'a';
+  ab.append(btnB, btnA);
 
-  // START / SELECT.
+  // Altavoz (rejilla de puntos) — centro.
+  const speaker = el('div', 'gba-speaker');
+
+  // START / SELECT — dos botones redondos en la parte baja, centrados.
   const select = el('div', 'gba-btn gba-pill gba-select',
     '<span class="gba-pill-label">SELECT</span>');
   select.dataset.btn = 'select';
@@ -143,35 +169,26 @@ function buildShell() {
     '<span class="gba-pill-label">START</span>');
   start.dataset.btn = 'start';
 
-  // LED de encendido y altavoz (decorativos).
-  const powerLed = el('div', 'gba-power-led', '<span class="dot"></span>POWER');
-  const speaker = el('div', 'gba-speaker');
+  bodyHalf.append(powerLed, dpad, ab, speaker, select, start);
 
-  base.append(dpad, ab, select, start, powerLed, speaker);
-  sp.append(lid, base, lShoulder, rShoulder, screenFrame, hinge);
-  stage.appendChild(sp);
-  document.body.appendChild(stage);
+  sp.append(screenHalf, hinge, bodyHalf);
+  document.body.appendChild(sp);
 
   return { sp, gameSlot };
 }
 
-// Escalado responsive: la consola entera cabe centrada en el viewport con un
-// pequeño margen. Una sola variable CSS (--gba-scale) controla todo.
-function setupResponsiveScale(sp) {
-  const MARGIN = 16; // px de aire a cada lado
-  const baseW = 460;
-  const baseH = 470;
-  const fit = () => {
-    const vw = window.innerWidth - MARGIN * 2;
-    const vh = window.innerHeight - MARGIN * 2;
-    const scale = Math.max(0.35, Math.min(vw / baseW, vh / baseH));
-    sp.style.setProperty('--gba-scale', String(scale));
+// Full-bleed: la carcasa ya ocupa 100vw × 100dvh vía CSS, así que no hay
+// transform-scale. En escritorio (viewport ancho) acotamos el ancho a un
+// aspecto de móvil para que no se estire feo, vía clase en el body.
+function setupResponsiveFrame() {
+  const apply = () => {
+    const portraitLike = window.innerWidth <= window.innerHeight * 0.85;
+    document.body.classList.toggle('gba-desktop', !portraitLike);
   };
-  fit();
-  window.addEventListener('resize', fit, { passive: true });
-  window.addEventListener('orientationchange', fit, { passive: true });
-  // Reajuste tras el primer layout/fuentes.
-  window.requestAnimationFrame(fit);
+  apply();
+  window.addEventListener('resize', apply, { passive: true });
+  window.addEventListener('orientationchange', apply, { passive: true });
+  window.requestAnimationFrame(apply);
 }
 
 // Conecta un nodo-botón "mantenido" (D-pad, A, B): keydown al presionar,
@@ -271,7 +288,7 @@ export function mountGbaShell() {
     if (node) wireTapButton(node, token, keys);
   }
 
-  setupResponsiveScale(sp);
+  setupResponsiveFrame();
   mirrorPhysicalKeyboard(sp);
   setupInputGuard(keys);
   return 'game';
