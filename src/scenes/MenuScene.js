@@ -150,6 +150,7 @@ export default class MenuScene extends Phaser.Scene {
     const n = OPTIONS.length;
     this.rootIdx = (this.rootIdx + d + n) % n;
     this.rootCursor.y = this.rootTexts[this.rootIdx].y;
+    sfx(this, 'select', { volume: 0.35 });
   }
 
   selectRoot() {
