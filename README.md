@@ -1,15 +1,35 @@
 # 🎮 Pokémon Madrid — Edición Castiza
 
 Un **juego completo estilo Pokémon Rojo Fuego (GBA)**, ambientado en Madrid y protagonizado
-por un grupo de amigos reales, **construido casi en su totalidad por IA a partir de un prompt**
-(Claude Code · Opus 4.8 + ultracode, con Gemini para el arte). Dirección humana por Telegram.
+por un grupo de amigos reales, **construido casi en su totalidad por IA a partir de un prompt**.
+Toda la dirección se dio **por Telegram**; el código, el arte, el audio, el despliegue y el
+testing los ejecutó una IA orquestando herramientas.
 
-🕹️ **Juégalo:** https://pokemon-madrid.stratomai.com
+🕹️ **Juégalo ya (sin instalar nada):** https://pokemon-madrid.stratomai.com
 
 ![Pantalla de título — Pokémon Madrid, Edición Castiza](docs/screenshots/01-titulo.jpg)
 
-> Hecho por **Stratoma AI**. Abajo tienes el paso a paso para montar tu propia infraestructura
-> y crear cosas así (incluido un VPS de Hetzner con enlace de referido).
+> Este README **es el tutorial completo**: explica el prompt original, TODAS las herramientas
+> y el proceso para que cualquiera pueda entender (o replicar) cómo se hace un videojuego
+> jugable partiendo de una frase escrita a un modelo de Claude. Hecho por **Stratoma AI**.
+
+---
+
+## 📑 Índice
+
+1. [Qué es](#-qué-es)
+2. [El prompt original (PRD)](#-el-prompt-original-prd--cómo-empezó-todo)
+3. [Capturas](#-capturas)
+4. [Cómo se construyó (en profundidad)](#-cómo-se-construyó-en-profundidad)
+5. [Generación de arte GRATIS con Gemini CLI](#-generación-de-arte-gratis-con-gemini-cli)
+6. [Pipeline de assets](#-pipeline-de-assets-estilo-frlg-auténtico)
+7. [Qué tiene el juego](#-qué-tiene-el-juego)
+8. [Stack técnico](#-stack-técnico)
+9. [Móntalo tú — paso a paso](#-móntalo-tú--paso-a-paso)
+10. [Cómo replicarlo con tus amigos](#-cómo-replicarlo-con-tus-amigos-el-workflow-colaborativo)
+11. [Estructura del repo](#-estructura-del-repo)
+12. [Créditos y fuentes](#-créditos-y-fuentes-de-assets)
+13. [Nota legal](#-nota-legal)
 
 ---
 
@@ -21,15 +41,155 @@ por un grupo de amigos reales, **construido casi en su totalidad por IA a partir
   combate por turnos FRLG (tipos, estados, EXP, evoluciones, captura), diálogos con retrato y
   nombre, tienda, Centro Pokémon, moto, música y efectos.
 - **Cuentas**: registro/login con Supabase (self-hosted), guardado en la nube y modo invitado.
+- **~8.000 líneas** de JavaScript en 7 escenas + 5 módulos de mundo, más datos (pokédex,
+  movimientos, mapas).
+
+---
+
+## 📝 El prompt original (PRD) — cómo empezó todo
+
+Todo arrancó con **un único documento**: un **PRD (Product Requirements Document) completo**
+que Marcelino le pidió a la **app de Claude** ("dame un PRD completo de lo que quiero"). Ese
+documento describe con detalle la visión: estilo GBA/Esmeralda, paleta de colores de Madrid,
+mecánicas, personajes, distritos, tono castizo… y es lo que se le pasó al agente para que
+empezara a construir.
+
+📄 **Consulta el prompt/PRD EXACTO usado para desarrollar el juego:**
+- **Documento original (Google Docs):** <https://docs.google.com/document/d/1AwDFE1IMSjTm5o2NuZNNi3tST9MO7dXfkd1lwQq45xE/edit>
+- **Copia en este repo:** [`docs/PROMPT-PRD.md`](docs/PROMPT-PRD.md)
+
+> 💡 **La clave:** no hace falta saber programar para arrancar algo así. Hace falta saber
+> **describir muy bien lo que quieres** (un buen PRD) y dejar que el agente lo construya,
+> guiándolo e iterando. El PRD lo generó la propia IA (app de Claude) a partir de la idea.
+
+---
 
 ## 📸 Capturas
 
+Corriendo en una carcasa **Game Boy Advance SP** a pantalla completa con controles táctiles
+(capturas reales desde el móvil):
+
 | | |
 |---|---|
-| ![Diálogo con retrato y nombre](docs/screenshots/02-dialogo-alvaro.jpg) | ![Combate de entrenador](docs/screenshots/04-combate.jpg) |
-| *Diálogos con retrato + nombre, texto bitmap nítido* | *Combate por turnos estilo FRLG* |
-| ![Tienda](docs/screenshots/05-tienda.jpg) | ![Quiosco](docs/screenshots/06-quiosco.jpg) |
-| *Tienda con compra, cantidad y dinero* | *NPCs y carteles con personalidad castiza* |
+| ![Diálogo con retrato y nombre](docs/screenshots/02-dialogo-alvaro.jpg) | ![Diálogo de Iván](docs/screenshots/03-dialogo-ivan.jpg) |
+| *Diálogos con retrato + nombre, texto bitmap nítido* | *Cada amigo tiene su ficha y su voz* |
+| ![Combate de entrenador](docs/screenshots/04-combate.jpg) | ![Tienda](docs/screenshots/05-tienda.jpg) |
+| *Combate por turnos estilo FRLG con retrato del rival* | *Tienda con compra, cantidad y dinero* |
+| ![Quiosco](docs/screenshots/06-quiosco.jpg) | |
+| *NPCs y carteles con personalidad castiza* | |
+
+---
+
+## 🧠 Cómo se construyó (en profundidad)
+
+### Dos modelos, dos fases
+
+| Fase | Modelo | Para qué |
+|------|--------|----------|
+| **Prompt inicial** | **Fable 5.0** | El primer prompt que arrancó TODO el desarrollo (esqueleto, primeras escenas). |
+| **Desarrollo continuo** | **Claude Opus 4.8 + ultracode** | Toda la construcción posterior: motor, combate, mapa, arte, audio, gimnasios, despliegue, QA. |
+
+La clave: **no es un único prompt mágico**, sino un **bucle de desarrollo autónomo** donde el
+modelo planifica, implementa, prueba, despliega y reporta — y se auto-corrige.
+
+### 1. Claude Code (el orquestador)
+
+La CLI de agente de Claude. Es quien lee la dirección del humano (por Telegram), planifica,
+escribe el código, ejecuta comandos en la terminal, lanza subagentes y despliega. Corre con
+**Opus 4.8** y **ultracode** (orquestación multi-agente determinista mediante "workflows").
+
+### 2. Bucle de desarrollo autónomo (cron nocturno)
+
+Una tarea programada (cada ~30 min) le dice al agente: *"elige la siguiente mejora pendiente,
+impleméntala, build, prueba E2E, despliega y avisa"*. Así el juego **avanza solo durante horas**
+mientras Marcelino duerme. Filosofía estilo **"Ralph Wiggum"**: itera, prueba y se auto-corrige
+hasta que la verificación (screenshot/log/E2E) pasa.
+
+### 3. Workflows multi-agente (flotas de subagentes)
+
+Para tareas grandes y paralelizables, el orquestador despliega **flotas de subagentes**, cada
+uno en una fuente/categoría distinta, sin pisarse. Ejemplos reales de este proyecto:
+
+- Una flota de **13 agentes** minando recursos gráficos (Graphics Library, pret, Godot, fan-art)
+  → produjo un plan de mejora visual priorizado.
+- Un agente que integró **sprites propios de los 12 personajes** (reskins FRLG en el atlas).
+- Un agente que integró la **UI de combate FRLG** (cajas de vida, fondos).
+- Agentes de **limpieza de retratos** (de-fringe, chroma-key).
+
+### 4. El loop completo de cada mejora
+
+```
+dirección del humano (Telegram: texto / fotos / audios)
+        ↓
+planificar → implementar (código + assets) → npm run build
+        ↓
+E2E Playwright (¿sigue jugable? ¿0 errores?)  ──no──> arreglar y repetir
+        ↓ sí
+commit + push  →  Coolify construye y despliega
+        ↓
+verificar en vivo (hash del bundle + captura)
+        ↓
+reportar al humano por Telegram
+```
+
+---
+
+## 🎨 Generación de arte GRATIS con Gemini CLI
+
+Los **sprites y retratos de los personajes se generan automáticamente** con **Gemini CLI
+conectado en la terminal** (modo *image-to-image*). Como Gemini CLI corre desde la terminal,
+**la generación de todas las imágenes sale GRATIS** — no se paga por imagen.
+
+- Modelo: `gemini-2.5-flash-image`, en modo *image-to-image* a partir de una foto de referencia
+  del grupo (esa foto **no se incluye en el repo por privacidad**).
+- Dos estilos por personaje: **pixel-art** (sprite overworld) y **anime** (retrato de combate).
+- Postprocesado en Python (Pillow): recorte por *aspect-ratio* para descartar resultados malos
+  y **chroma-key por flood-fill** desde los bordes para fondo transparente sin tocar los blancos
+  interiores.
+
+> Resultado: un pipeline de arte de personajes **a coste ~0**, dirigido por prompts desde la
+> misma terminal donde vive el agente.
+
+---
+
+## 🧩 Pipeline de assets (estilo FRLG auténtico)
+
+- **Tilesets** estilo Pokémon Rojo Fuego/Verde Hoja reempaquetados a un atlas 16×16 de 127
+  columnas (`frame = fila*127 + col`).
+- **Sprites overworld** reskineados desde plantillas de [pret/pokefirered](https://github.com/pret/pokefirered),
+  con corte/reempaquetado del orden de frames de pret al grid del motor.
+- **Fuente BITMAP** (`frlg16` / `frlg10`): la tipografía GBA de FRLG rasterizada a 1-bit sin
+  *antialiasing* → texto **pixel-perfect y nítido** en móvil (BitmapText, no canvas Text).
+- **Audio**: pistas chiptune **CC0** (dominio público) cargadas de forma síncrona por un
+  `AudioManager` propio.
+
+---
+
+## 🕹️ Qué tiene el juego
+
+- Mapa de Madrid (Tetuán, Chamberí, Gran Vía, El Retiro…) con interiores entrables.
+- **8 gimnasios** (los amigos como líderes) + sistema de medallas + Liga.
+- Combate por turnos estilo FRLG: tipos, estados, EXP, evoluciones, captura.
+- Diálogos con **retrato + nombre** del personaje que habla, texto paginado y legible.
+- Hierba alta con encuentros, entrenadores con personalidad, tienda, Centro Pokémon, moto.
+- Carcasa **Game Boy Advance SP** a pantalla completa con controles táctiles.
+- Cuentas (registro/login Supabase), **guardado en la nube** y modo invitado.
+- Música y efectos de sonido.
+
+---
+
+## 🛠️ Stack técnico
+
+| Capa | Tecnología |
+|------|------------|
+| **Motor** | [Phaser 3.90](https://phaser.io) (canvas 240×160, `pixelArt`, escala FIT) |
+| **Build** | [Vite](https://vitejs.dev) |
+| **Arte** | Gemini CLI (image-to-image, gratis) + Python/Pillow + tilesets pret |
+| **Audio** | chiptune CC0 + `AudioManager` propio |
+| **Backend** | [Supabase](https://supabase.com) self-hosted (auth + guardado) |
+| **Despliegue** | [Coolify](https://coolify.io) → `Dockerfile` que sirve con `nginx:alpine` |
+| **Testing** | [Playwright](https://playwright.dev) (E2E de jugabilidad + capturas) |
+| **Orquestación** | Claude Code (Opus 4.8 + ultracode) + Gemini CLI, dirigido por Telegram |
 
 ---
 
@@ -71,15 +231,46 @@ node tests/e2e/piso.mjs http://localhost:5173   # prueba de jugabilidad (Playwri
 
 ---
 
-## 🛠️ Cómo se construyó (desde un prompt)
+## 🤝 Cómo replicarlo con tus amigos (el workflow colaborativo)
 
-Todo el desarrollo —código, arte, audio, despliegue, testing— lo llevó a cabo una IA orquestando
-herramientas, con dirección humana por Telegram. El detalle completo (herramientas, flujo,
-flotas multi-agente, generación de arte con Gemini, pipeline de assets, testing E2E) está en
-**[TUTORIAL.md](TUTORIAL.md)** — incluida la sección *"Cómo replicarlo con tus amigos"*.
+La forma recomendada de hacer un juego así **no es un único prompt mágico**, sino un
+**bucle colaborativo** donde tus amigos aportan contexto y la IA construye:
 
-Resumen: primer prompt con **Fable 5.0** (arranque) → desarrollo continuo con **Claude Opus 4.8 +
-ultracode**, despliegue en **Coolify**, verificación con **Playwright**.
+1. **Crea una sesión de Claude Code** en una carpeta dedicada (p. ej. `juego-pokemon`) y
+   láncala con el **canal de Telegram activado** Y en **modo autónomo** (que pueda actuar sin
+   pedirte confirmación a cada paso), dentro de un `tmux` para que sobreviva a desconexiones:
+   ```bash
+   claude --channels plugin:telegram@claude-plugins-official --dangerously-skip-permissions
+   ```
+2. **Crea un bot con BotFather** y da acceso a todos tus amigos en su `access.json`.
+3. **Tus amigos suben al chat** fotos, vídeos, audios y anécdotas — todo el contexto que
+   quieran. La terminal lo **lee y transcribe los audios automáticamente**, alimentando cada
+   vez más contexto al juego.
+4. La IA **propone el elenco de personajes, la historia y las rutas** a partir de ese contexto.
+   **Tú lo apruebas** o lo corriges.
+5. La IA **desarrolla el juego paso a paso**, guiándote: implementa, despliega y te enseña
+   **capturas** para que valides, con los assets y repos de referencia.
+
+Resultado: el contexto —y el juego— crece de forma casi **infinita**, porque cada foto, audio
+o anécdota nueva lo enriquece. Así se construyó este: con el grupo de amigos mandando material
+por Telegram y el agente integrándolo en tiempo real.
+
+---
+
+## 📂 Estructura del repo
+
+```
+src/
+  scenes/      Boot, Title, Intro, World, Battle, Menu, Dialog
+  world/       maps, gyms, interiors, areaExtra, engine/ (renderer, GridMover, Npc…)
+  core/        battle, monster, formulas (motor puro, testeable)
+  ui/          theme (estética GBA), battle/ (databoxes, menús, typewriter), shop
+  audio/       AudioManager
+  data/        pokedex.json, moves.json, portraits.js
+public/assets/ tilesets, sprites/chars (atlas), portraits, audio, ui/battle
+tests/e2e/     piso.mjs (jugabilidad), world.mjs, capturas
+docs/          PROMPT-PRD.md (el prompt original), GDD, specs, planes, research
+```
 
 ---
 
@@ -95,6 +286,7 @@ Este es un **fan-game** y se apoya en recursos de la comunidad. Gracias a:
 | [Maruno17/pokemon-essentials](https://github.com/Maruno17/pokemon-essentials) | Referencia de mecánicas y datos |
 | [Phaser](https://phaser.io) · [Vite](https://vitejs.dev) | Motor de juego y build |
 | [Coolify](https://coolify.io) · [Supabase](https://supabase.com) | Despliegue self-hosted, auth y base de datos |
+| Gemini CLI | Generación de sprites/retratos (image-to-image, gratis desde terminal) |
 
 (Los tilesets, sprites y la fuente estilo FRLG derivan de material de **Nintendo / Game Freak**;
 los personajes y el lore son originales. Ver nota legal.)
@@ -109,5 +301,5 @@ respaldado por Nintendo. No redistribuir con fines comerciales. El audio incluid
 
 ---
 
-*Construido con Claude Code (Opus 4.8 + ultracode), Gemini, Phaser, Vite, Coolify y Playwright.
-— [Stratoma AI](https://stratomai.com)*
+*Construido con Claude Code (Opus 4.8 + ultracode), Gemini CLI, Phaser, Vite, Coolify y Playwright.
+Dirección humana por Telegram. — [Stratoma AI](https://stratomai.com)*

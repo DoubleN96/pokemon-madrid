@@ -11,3 +11,16 @@ __pycache__/
 *.pyc
 .cache/
 tmp/
+
+# === Datos PRIVADOS / personales de terceros — NUNCA publicar ===
+# Conversaciones reales mineadas de WhatsApp y dumps de chat de trabajo
+docs/LORE-FROM-WHATSAPP.md
+docs/GDD2-pokemon-piso-original.txt
+# Foto real del grupo de amigos (usada como referencia de generación)
+docs/refs/team-piso-lore.jpg
+# Scripts de generación que embeben descripciones físicas de personas reales
+scripts/gen_portraits.mjs
+scripts/gen_anime.mjs
+# Working dirs de generación de assets (recortes/fotos raw)
+scripts/ow_raw/
+scripts/char_frames/

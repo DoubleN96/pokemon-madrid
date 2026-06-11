@@ -1,0 +1,59 @@
+{
+  "_comment": "Overworld walking sprites for Team Piso Lore characters, generated with Gemini gemini-2.5-flash-image and post-processed (chroma-key + edge-erode + downscale + 16-color quantize) to 16x24 transparent PNGs. Style target: Pokemon FireRed/LeafGreen GBA overworld NPCs (see public/assets/sprites/chars/npcs.json atlas, ~14x20px). NOT yet integrated into the game. NOT a TexturePacker atlas — these are individual PNG frames named <id>_<dir>_<frame>.png.",
+  "spec": {
+    "frame_size": [16, 24],
+    "directions": ["down", "up", "left", "right"],
+    "frames_per_direction": 3,
+    "frame_order": ["idle", "step_a", "step_b"],
+    "background": "transparent",
+    "naming": "<id>_<direction>_<0|1|2>.png",
+    "model": "gemini-2.5-flash-image",
+    "likeness_source": "public/assets/portraits/<id>_bust.png + docs/refs/team-piso-lore.jpg",
+    "generator": "scripts/gen_ow_sprites.py",
+    "processor": "scripts/process_ow_sprites.py",
+    "raw_outputs": "scripts/ow_raw/<id>_<dir>_<n>_raw.png (896x1152, kept for QA / reprocessing)"
+  },
+  "characters": [
+    {
+      "id": "marcelino",
+      "name": "Marcelino",
+      "desc": "young dark-skinned Black man, large afro, round glasses, grey hoodie, blue jeans",
+      "frames": ["down_0","down_1","down_2","up_0","up_1","up_2","left_0","left_1","left_2","right_0","right_1","right_2"],
+      "complete": true,
+      "quality": "good",
+      "usable_as_map_sprite": true,
+      "notes": "Strong likeness, all 12 frames consistent in size and pose. Softer/more detailed than the crisp hand-pixeled atlas NPCs and ~1 head taller proportionally; would benefit from manual pixel cleanup before sitting next to atlas NPCs."
+    },
+    {
+      "id": "ivan_fintips",
+      "name": "Ivan \"FinTips\"",
+      "desc": "heavyset man, short brown hair, rectangular glasses, green polo, blue jeans",
+      "frames": ["down_0","down_1","down_2","up_0","up_1","up_2","left_0","left_1","left_2","right_0","right_1","right_2"],
+      "complete": true,
+      "quality": "best",
+      "usable_as_map_sprite": true,
+      "notes": "Best of the batch. Distinctive chubby silhouette + green polo + glasses read clearly at 16x24. Most consistent walk cycle and most directly drop-in-usable."
+    },
+    {
+      "id": "alvaro_rival",
+      "name": "Alvaro Alonso",
+      "desc": "young man, swept brown hair, grey blazer over white shirt, red/maroon chinos",
+      "frames": ["down_0","down_1","down_2","up_0","up_1","up_2","left_0","left_1","left_2","right_0","right_1","right_2"],
+      "complete": true,
+      "quality": "ok",
+      "usable_as_map_sprite": true,
+      "notes": "Readable (brown hair / grey blazer / red pants). down_2 is the weakest frame (muddy face). Model occasionally hallucinated glasses he does not have in his portrait — visible in some side frames. Usable with minor cleanup."
+    },
+    {
+      "id": "mariel",
+      "name": "Mariel",
+      "desc": "young blonde woman, high ponytail, light lilac blazer, dark jeans",
+      "frames": ["down_0","down_1","down_2","up_0","up_1","up_2","left_0","left_1","left_2","right_0","right_1","right_2"],
+      "complete": true,
+      "quality": "weak",
+      "usable_as_map_sprite": "marginal",
+      "notes": "Weakest of the batch. The large blonde ponytail dominates the 16x24 frame so face/body detail is mostly lost; up/back frames are a blonde blob. Reads as 'blonde woman with big hair' but not much more. Model also added glasses not in her portrait. Recommend regenerating with a 'smaller/tighter hair, full body in frame, more body less head' prompt, or hand-pixeling."
+    }
+  ],
+  "honest_assessment": "All four characters produced complete, size-consistent 4-direction x 3-frame walk cycles with recognizable likenesses. Compared to the hand-pixeled atlas NPCs (npcs.json, crisp high-contrast GBA tiles, ~2.5 heads tall) these AI sprites are SOFTER, lower-contrast, with thinner/less consistent outlines and slightly taller proportions (~3-3.5 heads). They are usable as map sprites but would look visibly more 'detailed/AI' next to atlas NPCs without manual pixel touch-up. Ranking: ivan_fintips (best) > marcelino (good) > alvaro_rival (ok) > mariel (weak). See /tmp/atlas_compare.png for a side-by-side vs real atlas NPCs."
+}
