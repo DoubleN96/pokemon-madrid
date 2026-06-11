@@ -11,6 +11,7 @@
 
 import { buildInteriors, BUILDING_LINKS } from './interiors.js';
 import { buildGyms, GYM_LINKS } from './gyms.js';
+import { buildLiga, wireLigaDoor } from './liga.js';
 import { EXTRA_MAPS } from './areaExtra.js';
 
 const GRASS = 113;
@@ -745,6 +746,7 @@ export const MAPS = {
   chamberi: buildChamberi(),
   ...buildInteriors(),
   ...buildGyms(),   // gimnasios de la Liga Chamberí (interiores)
+  ...buildLiga(),   // ENDGAME: Liga Chamberí (Alto Mando + Campeón Álvaro)
   ...EXTRA_MAPS,    // zona nueva: Ruta 3 · Gran Vía + Parque del Retiro
 };
 
@@ -752,3 +754,5 @@ export const MAPS = {
 wireBuildingDoors(MAPS);
 // Enlaza las puertas de los gimnasios con sus interiores (warps de ida).
 wireGymDoors(MAPS);
+// Abre la puerta GATED de la Liga (Tetuán, 8 medallas) y la cablea al interior.
+wireLigaDoor(MAPS);
