@@ -55,6 +55,10 @@ export function portraitForNpc(npcDef) {
     const root = npcDef.id.replace(/_\d+$/, '');
     if (SET.has(root)) return root;
   }
+  // Los líderes de gimnasio (id 'gym_leader_ivan'…) tienen su sprite overworld =
+  // id del personaje ('ivan_fintips'). Si el sprite es un personaje conocido,
+  // ese es su retrato → muestran foto+nombre en combate/diálogo igual que el resto.
+  if (npcDef.sprite && SET.has(npcDef.sprite)) return npcDef.sprite;
   return null;
 }
 
