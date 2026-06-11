@@ -6,7 +6,9 @@
     "portrait": "portraits/marcelino.png",
     "overworld": {
       "down": "portraits/marcelino_down.png"
-    }
+    },
+    "bust": "portraits/marcelino_bust.png",
+    "ow": "portraits/marcelino_ow.png"
   },
   {
     "id": "alvaro_rival",
@@ -15,7 +17,9 @@
     "portrait": "portraits/alvaro_rival.png",
     "overworld": {
       "down": "portraits/alvaro_rival_down.png"
-    }
+    },
+    "bust": "portraits/alvaro_rival_bust.png",
+    "ow": "portraits/alvaro_rival_ow.png"
   },
   {
     "id": "alex_digital",
@@ -27,7 +31,9 @@
       "up": "portraits/alex_digital_up.png",
       "left": "portraits/alex_digital_left.png",
       "right": "portraits/alex_digital_right.png"
-    }
+    },
+    "bust": "portraits/alex_digital_bust.png",
+    "ow": "portraits/alex_digital_ow.png"
   },
   {
     "id": "ivan_fintips",
@@ -39,7 +45,9 @@
       "up": "portraits/ivan_fintips_up.png",
       "left": "portraits/ivan_fintips_left.png",
       "right": "portraits/ivan_fintips_right.png"
-    }
+    },
+    "bust": "portraits/ivan_fintips_bust.png",
+    "ow": "portraits/ivan_fintips_ow.png"
   },
   {
     "id": "jesus_la_rata",
@@ -48,7 +56,9 @@
     "portrait": "portraits/jesus_la_rata.png",
     "overworld": {
       "down": "portraits/jesus_la_rata_down.png"
-    }
+    },
+    "bust": "portraits/jesus_la_rata_bust.png",
+    "ow": "portraits/jesus_la_rata_ow.png"
   },
   {
     "id": "sergio_guillen",
@@ -57,7 +67,9 @@
     "portrait": "portraits/sergio_guillen.png",
     "overworld": {
       "down": "portraits/sergio_guillen_down.png"
-    }
+    },
+    "bust": "portraits/sergio_guillen_bust.png",
+    "ow": "portraits/sergio_guillen_ow.png"
   },
   {
     "id": "eduardo",
@@ -66,7 +78,9 @@
     "portrait": "portraits/eduardo.png",
     "overworld": {
       "down": "portraits/eduardo_down.png"
-    }
+    },
+    "bust": "portraits/eduardo_bust.png",
+    "ow": "portraits/eduardo_ow.png"
   },
   {
     "id": "blanca_notarias",
@@ -75,7 +89,9 @@
     "portrait": "portraits/blanca_notarias.png",
     "overworld": {
       "down": "portraits/blanca_notarias_down.png"
-    }
+    },
+    "bust": "portraits/blanca_notarias_bust.png",
+    "ow": "portraits/blanca_notarias_ow.png"
   },
   {
     "id": "jose_antonio_casero",
@@ -84,7 +100,9 @@
     "portrait": "portraits/jose_antonio_casero.png",
     "overworld": {
       "down": "portraits/jose_antonio_casero_down.png"
-    }
+    },
+    "bust": "portraits/jose_antonio_casero_bust.png",
+    "ow": "portraits/jose_antonio_casero_ow.png"
   },
   {
     "id": "angel_perfeccionista",
@@ -93,7 +111,9 @@
     "portrait": "portraits/angel_perfeccionista.png",
     "overworld": {
       "down": "portraits/angel_perfeccionista_down.png"
-    }
+    },
+    "bust": "portraits/angel_perfeccionista_bust.png",
+    "ow": "portraits/angel_perfeccionista_ow.png"
   },
   {
     "id": "adrian_schizo",
@@ -102,7 +122,9 @@
     "portrait": "portraits/adrian_schizo.png",
     "overworld": {
       "down": "portraits/adrian_schizo_down.png"
-    }
+    },
+    "bust": "portraits/adrian_schizo_bust.png",
+    "ow": "portraits/adrian_schizo_ow.png"
   },
   {
     "id": "mariel",
@@ -111,6 +133,8 @@
     "portrait": "portraits/mariel.png",
     "overworld": {
       "down": "portraits/mariel_down.png"
-    }
+    },
+    "bust": "portraits/mariel_bust.png",
+    "ow": "portraits/mariel_ow.png"
   }
 ]

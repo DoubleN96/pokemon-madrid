@@ -1,24 +1,79 @@
-// Módulo D — Tienda (Ultramarinos Don Paco). Solo comprar en el MVP, vender no.
+// Módulo D — Tienda (Ultramarinos Don Paco). Comprar y vender objetos.
 // Uso desde WorldScene (NPC con shop: true):
 //   import { openShop } from '../ui/shop.js';
-//   openShop(this, { onClose: () => {...} });
+//   openShop(this, { onClose: () => {...} });           // catálogo por defecto
+//   openShop(this, { items: ['poke-ball', { id: 'potion', price: 250 }], onClose });
 // La escena que la abre debe ignorar su propio input mientras la tienda esté abierta.
 import { GAME_W, GAME_H } from '../config.js';
 import {
   drawBox, textStyle, typewriterText, formatMoney, ITEM_NAMES, ITEM_DESCS,
 } from './theme.js';
 
-export const SHOP_PRICES = { 'poke-ball': 200, potion: 300, antidote: 100 };
+// Precios de compra (en pesetas). Coherentes con la economía estilo FRLG.
+export const SHOP_PRICES = {
+  'poke-ball': 200,
+  'super-ball': 600,
+  potion: 300,
+  superpotion: 700,
+  antidote: 100,
+  repel: 350,
+  'poke-doll': 1000,
+};
+
+// Catálogo por defecto del tendero (orden de aparición en la lista).
+const DEFAULT_STOCK = ['poke-ball', 'super-ball', 'potion', 'superpotion', 'antidote', 'repel'];
+
+// Nombres locales para objetos que aún no están en theme.js (ITEM_NAMES tiene prioridad).
+const LOCAL_NAMES = {
+  'super-ball': 'SUPER BALL',
+  superpotion: 'SUPERPOCIÓN',
+  repel: 'REPELENTE',
+};
+
+// Descripciones locales (ITEM_DESCS de theme.js tiene prioridad).
+const LOCAL_DESCS = {
+  'super-ball': 'Más eficaz que la Poké Ball para capturar.',
+  superpotion: 'Restaura 50 PS de un Pokémon.',
+  repel: 'Aleja a los Pokémon salvajes un rato.',
+};
 
 const DEPTH = 9000;
+const SELL_RATIO = 0.5;     // precio de venta = mitad del de compra (suelo)
+const VISIBLE_ROWS = 7;     // filas visibles antes de hacer scroll
+
+const ROW_H = 14;
+const LIST_X = 106;
+const LIST_W = 130;
+const LIST_TOP = 12;        // y de la primera fila de la lista
+const ROW_TEXT_X = 124;
+const ROW_PRICE_X = 228;
+const CURSOR_X = 114;
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
+function itemName(id) {
+  return ITEM_NAMES[id] || LOCAL_NAMES[id] || String(id).toUpperCase();
+}
+
+function itemDesc(id) {
+  return ITEM_DESCS[id] || LOCAL_DESCS[id] || '';
+}
+
+function buyPrice(id, fallback) {
+  if (fallback != null) return fallback;
+  return SHOP_PRICES[id] != null ? SHOP_PRICES[id] : 0;
+}
+
+function sellPrice(id, price) {
+  return Math.max(0, Math.floor((price || 0) * SELL_RATIO));
+}
+
+// Normaliza el catálogo de compra: acepta strings o { id, price }.
 function normalizeItems(items) {
-  const list = (items && items.length) ? items : ['poke-ball', 'potion', 'antidote'];
+  const list = (items && items.length) ? items : DEFAULT_STOCK;
   return list.map((it) => (typeof it === 'string'
-    ? { id: it, price: SHOP_PRICES[it] || 0 }
-    : { id: it.id, price: it.price != null ? it.price : (SHOP_PRICES[it.id] || 0) }));
+    ? { id: it, price: buyPrice(it) }
+    : { id: it.id, price: buyPrice(it.id, it.price) }));
 }
 
 export function openShop(scene, opts = {}) {
@@ -35,16 +90,21 @@ class ShopUI {
     this.scene = scene;
     this.save = save;
     this.onClose = opts.onClose || null;
-    this.items = normalizeItems(opts.items);
-    this.state = 'list'; // 'list' | 'qty'
-    this.idx = 0;
+    this.buyItems = normalizeItems(opts.items);
+    this.mode = 'menu';   // 'menu' | 'list' | 'qty' | 'confirm'
+    this.action = null;   // 'buy' | 'sell' (cuando estamos dentro de una lista)
+    this.rows = [];       // filas de la lista actual (objetos)
+    this.idx = 0;         // índice seleccionado dentro de this.rows
+    this.scroll = 0;      // primera fila visible (scroll)
     this.qty = 1;
-    this.sel = null;
+    this.sel = null;      // objeto seleccionado para comprar/vender
     this.writer = null;
     this.listeners = [];
+    this.rowTexts = [];   // controles de texto reutilizados por fila visible
+    if (!this.save.bag) this.save.bag = {};
     this.build();
     this.bindKeys();
-    this.say('¡Hombre! ¿Qué te pongo?');
+    this.enterMenu();
   }
 
   // ---------- Construcción ----------
@@ -57,8 +117,10 @@ class ShopUI {
     dim.fillRect(0, 0, GAME_W, GAME_H);
     this.root.add(dim);
     this.buildMoneyBox();
+    this.buildMenu();
     this.buildList();
     this.buildQtyBox();
+    this.buildConfirmBox();
     this.buildMsgBox();
   }
 
@@ -68,15 +130,44 @@ class ShopUI {
     this.moneyText = this.text(96, 19, formatMoney(this.save.player.money)).setOrigin(1, 0);
   }
 
-  buildList() {
-    const n = this.items.length + 1; // + SALIR
-    this.root.add(drawBox(this.scene, 106, 4, 130, n * 14 + 16));
-    this.items.forEach((it, i) => {
-      this.text(124, 12 + i * 14, ITEM_NAMES[it.id] || it.id.toUpperCase());
-      this.text(228, 12 + i * 14, formatMoney(it.price)).setOrigin(1, 0);
+  // Menú raíz COMPRAR / VENDER / SALIR.
+  buildMenu() {
+    this.menuBox = this.scene.add.container(0, 0);
+    this.menuBox.add(drawBox(this.scene, LIST_X, 4, LIST_W, 3 * ROW_H + 16));
+    this.menuOptions = ['COMPRAR', 'VENDER', 'SALIR'];
+    this.menuOptions.forEach((label, i) => {
+      const t = this.scene.add.text(ROW_TEXT_X, LIST_TOP + i * ROW_H, label, textStyle());
+      this.menuBox.add(t);
     });
-    this.text(124, 12 + this.items.length * 14, 'SALIR');
-    this.cursorTxt = this.text(114, 12, '▶');
+    this.menuCursor = this.scene.add.text(CURSOR_X, LIST_TOP, '▶', textStyle());
+    this.menuBox.add(this.menuCursor);
+    this.root.add(this.menuBox);
+  }
+
+  // Caja de lista de objetos (compra o venta) con soporte de scroll.
+  buildList() {
+    this.listBox = this.scene.add.container(0, 0).setVisible(false);
+    const h = VISIBLE_ROWS * ROW_H + 16;
+    this.listBg = drawBox(this.scene, LIST_X, 4, LIST_W, h);
+    this.listBox.add(this.listBg);
+    for (let i = 0; i < VISIBLE_ROWS; i += 1) {
+      const y = LIST_TOP + i * ROW_H;
+      const name = this.scene.add.text(ROW_TEXT_X, y, '', textStyle());
+      const price = this.scene.add.text(ROW_PRICE_X, y, '', textStyle()).setOrigin(1, 0);
+      this.listBox.add(name);
+      this.listBox.add(price);
+      this.rowTexts.push({ name, price });
+    }
+    this.listCursor = this.scene.add.text(CURSOR_X, LIST_TOP, '▶', textStyle());
+    this.listBox.add(this.listCursor);
+    // Flechas de scroll (se muestran solo cuando hace falta).
+    this.arrowUp = this.scene.add.text(ROW_PRICE_X, 6, '▲', textStyle({ color: '#787878' }))
+      .setOrigin(1, 0).setVisible(false);
+    this.arrowDown = this.scene.add.text(ROW_PRICE_X, 4 + h - 10, '▼', textStyle({ color: '#787878' }))
+      .setOrigin(1, 0).setVisible(false);
+    this.listBox.add(this.arrowUp);
+    this.listBox.add(this.arrowDown);
+    this.root.add(this.listBox);
   }
 
   buildQtyBox() {
@@ -87,6 +178,20 @@ class ShopUI {
     this.qtyBox.add(this.qtyText);
     this.qtyBox.add(this.qtyHint);
     this.root.add(this.qtyBox);
+  }
+
+  // Caja de confirmación SÍ / NO.
+  buildConfirmBox() {
+    this.confirmBox = this.scene.add.container(0, 0).setVisible(false);
+    this.confirmBox.add(drawBox(this.scene, 188, 96, 48, 34));
+    this.confirmYes = this.scene.add.text(206, 102, 'SÍ', textStyle());
+    this.confirmNo = this.scene.add.text(206, 114, 'NO', textStyle());
+    this.confirmCursor = this.scene.add.text(196, 102, '▶', textStyle());
+    this.confirmBox.add(this.confirmYes);
+    this.confirmBox.add(this.confirmNo);
+    this.confirmBox.add(this.confirmCursor);
+    this.confirmIdx = 0; // 0 = SÍ, 1 = NO
+    this.root.add(this.confirmBox);
   }
 
   buildMsgBox() {
@@ -101,6 +206,10 @@ class ShopUI {
     return t;
   }
 
+  refreshMoney() {
+    this.moneyText.setText(formatMoney(this.save.player.money));
+  }
+
   // ---------- Mensajes ----------
 
   say(str) {
@@ -110,7 +219,241 @@ class ShopUI {
 
   hint(str) {
     if (this.writer && !this.writer.done) this.writer.skip();
-    this.msgText.setText(str);
+    this.msgText.setText(str || '');
+  }
+
+  // ---------- Menú raíz ----------
+
+  enterMenu() {
+    this.mode = 'menu';
+    this.action = null;
+    this.sel = null;
+    this.menuIdx = 0;
+    this.menuBox.setVisible(true);
+    this.listBox.setVisible(false);
+    this.qtyBox.setVisible(false);
+    this.confirmBox.setVisible(false);
+    this.menuCursor.y = LIST_TOP;
+    this.say('¡Hombre! ¿Compras o vendes?');
+  }
+
+  moveMenu(d) {
+    const n = this.menuOptions.length;
+    this.menuIdx = (this.menuIdx + d + n) % n;
+    this.menuCursor.y = LIST_TOP + this.menuIdx * ROW_H;
+  }
+
+  chooseMenu() {
+    if (this.menuIdx === 0) this.enterList('buy');
+    else if (this.menuIdx === 1) this.enterList('sell');
+    else this.close();
+  }
+
+  // ---------- Lista (compra/venta) ----------
+
+  buildBuyRows() {
+    return this.buyItems.map((it) => ({
+      id: it.id,
+      price: it.price,
+      name: itemName(it.id),
+      priceText: formatMoney(it.price),
+    }));
+  }
+
+  buildSellRows() {
+    const bag = this.save.bag || {};
+    return Object.keys(bag)
+      .filter((id) => (bag[id] || 0) > 0)
+      .map((id) => {
+        const price = sellPrice(id, buyPrice(id));
+        return {
+          id,
+          price,
+          owned: bag[id],
+          name: itemName(id),
+          priceText: `${formatMoney(price)} ×${bag[id]}`,
+        };
+      });
+  }
+
+  enterList(action) {
+    this.action = action;
+    this.rows = action === 'buy' ? this.buildBuyRows() : this.buildSellRows();
+    if (action === 'sell' && this.rows.length === 0) {
+      this.say('No llevas nada que yo quiera comprar, majo.');
+      return;
+    }
+    this.mode = 'list';
+    this.idx = 0;
+    this.scroll = 0;
+    this.menuBox.setVisible(false);
+    this.listBox.setVisible(true);
+    this.renderList();
+    this.say(action === 'buy' ? '¿Qué te pongo?' : '¿Qué me vendes?');
+    this.describeCurrent();
+  }
+
+  // Filas mostradas = ventana visible + opción SALIR al final.
+  totalListEntries() {
+    return this.rows.length + 1; // + SALIR
+  }
+
+  renderList() {
+    const total = this.totalListEntries();
+    const maxScroll = Math.max(0, total - VISIBLE_ROWS);
+    this.scroll = clamp(this.scroll, 0, maxScroll);
+
+    for (let i = 0; i < VISIBLE_ROWS; i += 1) {
+      const entry = this.scroll + i;
+      const { name, price } = this.rowTexts[i];
+      if (entry >= total) { name.setText(''); price.setText(''); continue; }
+      if (entry === this.rows.length) {
+        name.setText('SALIR');
+        price.setText('');
+      } else {
+        const row = this.rows[entry];
+        name.setText(row.name);
+        price.setText(row.priceText);
+      }
+    }
+    this.listCursor.y = LIST_TOP + (this.idx - this.scroll) * ROW_H;
+    this.arrowUp.setVisible(this.scroll > 0);
+    this.arrowDown.setVisible(this.scroll + VISIBLE_ROWS < total);
+  }
+
+  moveList(d) {
+    const total = this.totalListEntries();
+    this.idx = (this.idx + d + total) % total;
+    // Ajustar scroll para mantener el cursor visible.
+    if (this.idx < this.scroll) this.scroll = this.idx;
+    else if (this.idx >= this.scroll + VISIBLE_ROWS) this.scroll = this.idx - VISIBLE_ROWS + 1;
+    this.renderList();
+    this.describeCurrent();
+  }
+
+  describeCurrent() {
+    if (this.idx >= this.rows.length) {
+      this.hint(this.action === 'buy' ? '¿Eso es todo, majete?' : 'Cuando quieras, lo dejamos.');
+      return;
+    }
+    this.hint(itemDesc(this.rows[this.idx].id));
+  }
+
+  chooseListEntry() {
+    if (this.idx >= this.rows.length) { this.enterMenu(); return; }
+    this.sel = this.rows[this.idx];
+    this.enterQty();
+  }
+
+  // ---------- Cantidad ----------
+
+  enterQty() {
+    this.mode = 'qty';
+    this.qty = 1;
+    this.qtyBox.setVisible(true);
+    this.refreshQty();
+    const verb = this.action === 'buy' ? 'quieres' : 'vendes';
+    this.say(`${this.sel.name}, ¿cuánto ${verb}?`);
+  }
+
+  // Tope de cantidad: 99 al comprar, lo que lleves en la mochila al vender.
+  qtyMax() {
+    if (this.action === 'sell') return Math.max(1, this.sel.owned || 1);
+    return 99;
+  }
+
+  changeQty(n) {
+    this.qty = clamp(this.qty + n, 1, this.qtyMax());
+    this.refreshQty();
+  }
+
+  refreshQty() {
+    const total = this.qty * this.sel.price;
+    this.qtyText.setText(`×${String(this.qty).padStart(2, '0')} = ${formatMoney(total)}`);
+  }
+
+  exitQty() {
+    this.mode = 'list';
+    this.qtyBox.setVisible(false);
+    this.renderList();
+  }
+
+  // ---------- Confirmación ----------
+
+  enterConfirm() {
+    this.mode = 'confirm';
+    this.confirmIdx = 0;
+    this.confirmCursor.y = 102;
+    this.confirmBox.setVisible(true);
+    const total = this.qty * this.sel.price;
+    if (this.action === 'buy') {
+      this.say(`${this.sel.name} ×${this.qty}. Serían ${formatMoney(total)}. ¿De acuerdo?`);
+    } else {
+      this.say(`Te doy ${formatMoney(total)} por ${this.sel.name} ×${this.qty}. ¿Trato?`);
+    }
+  }
+
+  moveConfirm(d) {
+    this.confirmIdx = (this.confirmIdx + d + 2) % 2;
+    this.confirmCursor.y = this.confirmIdx === 0 ? 102 : 114;
+  }
+
+  resolveConfirm() {
+    this.confirmBox.setVisible(false);
+    if (this.confirmIdx === 1) { // NO
+      this.exitQty();
+      this.say(this.action === 'buy' ? '¿Algo más?' : '¿Qué me vendes?');
+      return;
+    }
+    if (this.action === 'buy') this.commitBuy();
+    else this.commitSell();
+  }
+
+  // ---------- Operaciones ----------
+
+  commitBuy() {
+    const cost = this.sel.price * this.qty;
+    const player = this.save.player;
+    if (player.money < cost) {
+      this.exitQty();
+      this.say('¡Que no te llega el parné, chaval!');
+      return;
+    }
+    player.money -= cost;
+    this.save.bag[this.sel.id] = (this.save.bag[this.sel.id] || 0) + this.qty;
+    this.refreshMoney();
+    this.exitQty();
+    this.say('¡Aquí tienes! ¡Gracias, majo!');
+  }
+
+  commitSell() {
+    const bag = this.save.bag || {};
+    const owned = bag[this.sel.id] || 0;
+    const qty = Math.min(this.qty, owned);
+    if (qty <= 0) {
+      this.exitQty();
+      this.say('Si no llevas nada, poco puedo comprarte.');
+      return;
+    }
+    const gain = this.sel.price * qty;
+    bag[this.sel.id] = owned - qty;
+    if (bag[this.sel.id] <= 0) delete bag[this.sel.id];
+    this.save.player.money += gain;
+    this.refreshMoney();
+    // Reconstruir la lista de venta (cambió la mochila) y volver a ella.
+    this.qtyBox.setVisible(false);
+    this.rows = this.buildSellRows();
+    if (this.rows.length === 0) {
+      this.enterMenu();
+      this.say(`¡Toma ${formatMoney(gain)}! Y ya no te queda nada que venderme.`);
+      return;
+    }
+    this.mode = 'list';
+    this.idx = clamp(this.idx, 0, this.rows.length); // permitir caer en SALIR
+    this.scroll = clamp(this.scroll, 0, Math.max(0, this.totalListEntries() - VISIBLE_ROWS));
+    this.renderList();
+    this.describeCurrent();
+    this.say(`¡Aquí tienes ${formatMoney(gain)}! ¿Algo más?`);
   }
 
   // ---------- Input ----------
@@ -120,8 +463,8 @@ class ShopUI {
     const reg = (ev, fn) => { kb.on(ev, fn); this.listeners.push([ev, fn]); };
     reg('keydown-UP', () => this.onDir(-1));
     reg('keydown-DOWN', () => this.onDir(1));
-    reg('keydown-LEFT', (e) => this.onSide(-1, e));
-    reg('keydown-RIGHT', (e) => this.onSide(1, e));
+    reg('keydown-LEFT', () => this.onSide(-1));
+    reg('keydown-RIGHT', () => this.onSide(1));
     reg('keydown-Z', (e) => { if (!(e && e.repeat)) this.onA(); });
     reg('keydown-SPACE', (e) => { if (!(e && e.repeat)) this.onA(); });
     reg('keydown-ENTER', (e) => { if (!(e && e.repeat)) this.onA(); });
@@ -130,73 +473,37 @@ class ShopUI {
   }
 
   onDir(d) {
-    if (this.state === 'qty') { this.changeQty(-d); return; }
-    const n = this.items.length + 1;
-    this.idx = (this.idx + d + n) % n;
-    this.cursorTxt.y = 12 + this.idx * 14;
-    if (this.idx >= this.items.length) this.hint('¿Eso es todo, majete?');
-    else this.hint(ITEM_DESCS[this.items[this.idx].id] || '');
+    if (this.mode === 'qty') { this.changeQty(-d); return; }
+    if (this.mode === 'confirm') { this.moveConfirm(d); return; }
+    if (this.mode === 'list') { this.moveList(d); return; }
+    if (this.mode === 'menu') { this.moveMenu(d); return; }
   }
 
   onSide(d) {
-    if (this.state === 'qty') this.changeQty(d * 10);
+    if (this.mode === 'qty') this.changeQty(d * 10);
   }
 
   onA() {
-    if (this.state === 'qty') { this.confirmBuy(); return; }
-    if (this.idx >= this.items.length) { this.close(); return; }
-    this.enterQty(this.items[this.idx]);
+    if (this.mode === 'menu') { this.chooseMenu(); return; }
+    if (this.mode === 'list') { this.chooseListEntry(); return; }
+    if (this.mode === 'qty') { this.enterConfirm(); return; }
+    if (this.mode === 'confirm') { this.resolveConfirm(); return; }
   }
 
   onB() {
-    if (this.state === 'qty') {
+    if (this.mode === 'confirm') {
+      this.confirmBox.setVisible(false);
       this.exitQty();
-      this.say('¿Qué te pongo?');
+      this.say(this.action === 'buy' ? '¿Algo más?' : '¿Qué me vendes?');
       return;
     }
-    this.close();
-  }
-
-  // ---------- Compra ----------
-
-  enterQty(item) {
-    this.state = 'qty';
-    this.sel = item;
-    this.qty = 1;
-    this.qtyBox.setVisible(true);
-    this.refreshQty();
-    this.say(`${ITEM_NAMES[item.id] || item.id}, ¿qué cantidad quieres?`);
-  }
-
-  changeQty(n) {
-    this.qty = clamp(this.qty + n, 1, 99);
-    this.refreshQty();
-  }
-
-  refreshQty() {
-    const total = this.qty * this.sel.price;
-    this.qtyText.setText(`×${String(this.qty).padStart(2, '0')} = ${formatMoney(total)}`);
-  }
-
-  confirmBuy() {
-    const cost = this.sel.price * this.qty;
-    const player = this.save.player;
-    if (player.money < cost) {
+    if (this.mode === 'qty') {
       this.exitQty();
-      this.say('¡Que no te llega el parné, chaval!');
+      this.say(this.action === 'buy' ? '¿Qué te pongo?' : '¿Qué me vendes?');
       return;
     }
-    player.money -= cost;
-    if (!this.save.bag) this.save.bag = {};
-    this.save.bag[this.sel.id] = (this.save.bag[this.sel.id] || 0) + this.qty;
-    this.moneyText.setText(formatMoney(player.money));
-    this.exitQty();
-    this.say('¡Aquí tienes! ¡Gracias, majo!');
-  }
-
-  exitQty() {
-    this.state = 'list';
-    this.qtyBox.setVisible(false);
+    if (this.mode === 'list') { this.enterMenu(); return; }
+    this.close(); // mode === 'menu'
   }
 
   // ---------- Cierre ----------

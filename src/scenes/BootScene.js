@@ -20,9 +20,10 @@ export default class BootScene extends Phaser.Scene {
     // Atlas de personajes (jugador + NPCs, formato TexturePacker)
     this.load.atlas('chars', 'assets/sprites/chars/npcs.webp', 'assets/sprites/chars/npcs.json');
 
-    // Retratos de los personajes de Pokémon Piso (generados con IA), para diálogos/combates.
+    // Retratos de los personajes de Pokémon Piso (IA, fondo transparente), para diálogos/combates.
     for (const id of PORTRAIT_IDS) {
-      this.load.image(`portrait_${id}`, `assets/portraits/${id}.png`);
+      this.load.image(`portrait_${id}`, `assets/portraits/${id}.png`);          // cuerpo entero
+      this.load.image(`portrait_${id}_bust`, `assets/portraits/${id}_bust.png`); // cara+pecho
     }
 
     // Audio (música chiptune CC0 + SFX) — carga todo desde el manifest.
