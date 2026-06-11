@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
+import { sfx } from '../audio/AudioManager.js';
 import {
   drawBox, textStyle, drawHpBar, formatMoney, BOX_COLORS,
   TEXT_COLOR_LIGHT, TEXT_COLOR_DIM, TYPE_NAMES, TYPE_COLORS,
@@ -152,6 +153,7 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   selectRoot() {
+    sfx(this, 'select', { volume: 0.5 });
     const id = OPTIONS[this.rootIdx].id;
     if (id === 'team') this.showTeam();
     else if (id === 'bag') this.showBag();

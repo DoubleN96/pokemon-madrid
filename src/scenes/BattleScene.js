@@ -354,7 +354,10 @@ export default class BattleScene extends Phaser.Scene {
     const box = ev.side === 'player' ? this.playerBox : this.enemyBox;
     const sprite = ev.side === 'player' ? this.playerSprite : this.enemySprite;
     const anims = [box.tweenHp(ev.from, ev.to, ev.max)];
-    if (ev.to < ev.from) anims.push(fx.damageFlash(this, sprite), fx.shake(this, sprite));
+    if (ev.to < ev.from) {
+      sfx(this, 'hit', { volume: 0.6 });
+      anims.push(fx.damageFlash(this, sprite), fx.shake(this, sprite));
+    }
     await Promise.all(anims);
   }
 
@@ -405,6 +408,7 @@ export default class BattleScene extends Phaser.Scene {
   async onLevelUpEvent(ev) {
     this.leveledIndexes.add(this.activeIndex);
     this.shownLevel = ev.level;
+    sfx(this, 'levelup', { volume: 0.7 });
     this.playerBox.setExp(0);
     this.playerBox.setLevel(ev.level);
     if (ev.newStats) this.playerBox.updateHp(this.playerMon.currentHp, ev.newStats.hp);
