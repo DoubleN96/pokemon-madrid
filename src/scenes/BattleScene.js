@@ -202,8 +202,12 @@ export default class BattleScene extends Phaser.Scene {
   async trainerIntro() {
     // Retrato del entrenador (si lo tiene), presentación tipo "VS".
     let portraitImg = null;
-    const pcands = this.trainerPortrait
-      ? [`portrait_${this.trainerPortrait}_anime`, `portrait_${this.trainerPortrait}`] : [];
+    // Cadena de fallback: anime busto > anime entero > busto pixel > pixel entero.
+    // Así, si un personaje no tiene retrato anime (p. ej. Alex), cae a su busto
+    // pixel LIMPIO en vez de a la textura "missing" (la caja a-cuadros blanca).
+    const p = this.trainerPortrait;
+    const pcands = p
+      ? [`portrait_${p}_anime_bust`, `portrait_${p}_anime`, `portrait_${p}_bust`, `portrait_${p}`] : [];
     const pkey = pcands.find((k) => this.textures.exists(k));
     if (pkey) {
       const src = this.textures.get(pkey).getSourceImage();
