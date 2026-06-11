@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_W, GAME_H } from '../config.js';
 import { drawBox, textStyle, typewriterText } from '../ui/theme.js';
+import { nameForPortrait } from '../data/portraits.js';
 
 const BOX_W = 236;
 const BOX_H = 48;
@@ -27,6 +28,11 @@ export default class DialogScene extends Phaser.Scene {
     this.onClose = data.onClose || null;
     this.speed = data.speed || 28;
     this.portraitId = data.portrait || null;
+    // Nombre del hablante: el explícito tiene prioridad; si no, se deriva del
+    // retrato (cada personaje con foto tiene su nombre en PORTRAIT_NAMES).
+    this.speakerName = (typeof data.name === 'string' && data.name.trim())
+      ? data.name.trim()
+      : nameForPortrait(this.portraitId);
     this.closed = false;
     this.promptOpen = false;
     this.writer = null;
@@ -34,6 +40,7 @@ export default class DialogScene extends Phaser.Scene {
 
     this.buildBox();
     if (this.portraitId) this.drawPortrait(this.portraitId);
+    if (this.speakerName) this.drawNamePlate(this.speakerName, !!this.portraitId);
     this.pages = this.buildPages();
     this.bindKeys();
     if (!this.pages.length) {
@@ -47,14 +54,15 @@ export default class DialogScene extends Phaser.Scene {
 
   buildBox() {
     drawBox(this, BOX_X, BOX_Y, BOX_W, BOX_H);
-    // El diálogo es la superficie de texto principal y su caja (48px de alto)
-    // tiene sito de sobra para 2 renglones GRANDES: subimos a 11px (la fuente
-    // FRLG a 11px se lee CLARÍSIMA en móvil y aún cabe una frase larga en 2
-    // líneas). lineSpacing ajustado para centrar bien los 2 renglones.
-    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 6, '', textStyle({
-      fontSize: '11px',
+    // El diálogo es la superficie de texto principal. Marcelino pidió la fuente
+    // MÁS GRANDE ("+4px si hace falta"): 14px. La caja de 48px de alto encuadra
+    // 2 renglones de 14px centrados (top 8 + 2×~18 ≈ 44 < 48). Las frases largas
+    // se paginan solas (buildPages trocea en páginas de 2 líneas), así que nunca
+    // se corta texto: simplemente hay más páginas.
+    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 8, '', textStyle({
+      fontSize: '14px',
       wordWrap: { width: WRAP_W },
-      lineSpacing: 3,
+      lineSpacing: 4,
     }));
     this.arrow = this.add.text(BOX_X + BOX_W - 13, BOX_Y + BOX_H - 13, '▼', textStyle()).setVisible(false);
     this.time.addEvent({
@@ -87,6 +95,20 @@ export default class DialogScene extends Phaser.Scene {
     // Centra la región recortada dentro del marco.
     img.x = cxc - (cx0 + cw / 2 - W / 2) * s;
     img.y = cyc - (cy0 + ch / 2 - H / 2) * s;
+  }
+
+  // Plaquita con el NOMBRE del que habla, apoyada sobre el borde superior del
+  // cuadro de diálogo. Si hay retrato, va a su derecha; si no, pegada a la
+  // izquierda. Estilo "etiqueta" VN: caja FRLG pequeña con el nombre dentro.
+  drawNamePlate(name, hasPortrait) {
+    const padX = 6;
+    const charW = 6; // ancho aprox por glifo de la fuente FRLG a 10px
+    const w = Math.min(name.length * charW + padX * 2, BOX_W - (hasPortrait ? 70 : 4));
+    const h = 14;
+    const x = hasPortrait ? BOX_X + 66 + 3 : BOX_X + 2;
+    const y = BOX_Y - h + 1; // se solapa 1px con el borde superior → aspecto de pestaña
+    drawBox(this, x, y, w, h, { depth: 50 });
+    this.add.text(x + padX, y + 3, name, textStyle()).setDepth(51);
   }
 
   // Trocea cada línea en páginas de máximo 2 renglones envueltos.

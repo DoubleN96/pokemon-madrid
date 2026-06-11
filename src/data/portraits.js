@@ -18,6 +18,28 @@ export const PORTRAIT_IDS = [
 
 const SET = new Set(PORTRAIT_IDS);
 
+// Nombre visible del personaje, mostrado en la plaquita del bocadillo de diálogo.
+// (Marcelino pidió que aparezca el nombre del que habla encima de su foto.)
+export const PORTRAIT_NAMES = {
+  marcelino: 'Marcelino',
+  alvaro_rival: 'Álvaro',
+  alex_digital: 'Alex',
+  ivan_fintips: 'Iván',
+  jesus_la_rata: 'Jesús',
+  sergio_guillen: 'Sergio',
+  eduardo: 'Eduardo',
+  blanca_notarias: 'Blanca',
+  jose_antonio_casero: 'José Antonio',
+  angel_perfeccionista: 'Ángel',
+  adrian_schizo: 'Adrián',
+  mariel: 'Mariel',
+};
+
+// Nombre visible para un id de retrato (o null si no se conoce).
+export function nameForPortrait(id) {
+  return (id && PORTRAIT_NAMES[id]) || null;
+}
+
 // Clave de textura Phaser para un retrato.
 export function portraitKey(id) {
   return `portrait_${id}`;

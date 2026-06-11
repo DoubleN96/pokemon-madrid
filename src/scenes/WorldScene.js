@@ -194,7 +194,14 @@ export default class WorldScene extends Phaser.Scene {
     const d = DIRS[this.player.dir];
     const tx = this.player.tileX + d.dx;
     const ty = this.player.tileY + d.dy;
-    const npc = this.npcs.find((n) => n.isAt(tx, ty));
+    let npc = this.npcs.find((n) => n.isAt(tx, ty));
+    // Hablar POR ENCIMA de un mostrador/barra: si justo enfrente hay un bloque
+    // sólido (la barra del bar, el mostrador de la tienda) y no hay NPC ahí,
+    // se mira una casilla más allá en la misma dirección. Así el camarero al
+    // otro lado de la barra es alcanzable aunque no haya hueco libre.
+    if (!npc && this.isBlocked(tx, ty)) {
+      npc = this.npcs.find((n) => n.isAt(tx + d.dx, ty + d.dy));
+    }
     if (!npc) {
       const sign = (this.mapData.signs || []).find((g) => g.x === tx && g.y === ty);
       if (!sign) return;
