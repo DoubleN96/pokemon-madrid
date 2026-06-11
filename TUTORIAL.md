@@ -8,6 +8,8 @@
 > que cualquiera pueda entender (o replicar) cómo se hace un videojuego jugable partiendo
 > de una frase escrita a un modelo de Claude.
 
+![Pantalla de título — Pokémon Madrid, Edición Castiza](docs/screenshots/01-titulo.jpg)
+
 ---
 
 ## 1. La idea
@@ -102,6 +104,22 @@ reportar al humano por Telegram
 - Hierba alta con encuentros, entrenadores con personalidad, tienda, Centro Pokémon, moto.
 - Carcasa **Game Boy Advance SP** a pantalla completa con controles táctiles.
 - Música y efectos de sonido.
+
+## 📸 Capturas — cómo se ve
+
+Corriendo en una carcasa **Game Boy Advance SP** a pantalla completa con controles táctiles
+(capturas reales desde el móvil):
+
+| | |
+|---|---|
+| ![Diálogo de Álvaro con retrato y nombre](docs/screenshots/02-dialogo-alvaro.jpg) | ![Diálogo de Iván](docs/screenshots/03-dialogo-ivan.jpg) |
+| *Diálogo con retrato + nombre del personaje, texto legible* | *Cada amigo tiene su ficha y su voz* |
+| ![Combate de entrenador](docs/screenshots/04-combate.jpg) | ![Tienda](docs/screenshots/05-tienda.jpg) |
+| *Combate por turnos estilo FRLG con retrato del rival* | *Tienda con compra, cantidad y dinero* |
+| ![Quiosco](docs/screenshots/06-quiosco.jpg) | |
+| *NPCs y carteles con personalidad castiza* | |
+
+---
 
 ## 6. Cómo ejecutarlo / desarrollarlo
 
