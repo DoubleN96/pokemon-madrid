@@ -5,6 +5,7 @@ import { GAME_W, GAME_H } from '../config.js';
 import { drawBox } from '../ui/theme.js';
 import { showAuthForm } from '../ui/authForm.js';
 import { loadGame } from '../services/saves.js';
+import { playMusic } from '../audio/AudioManager.js';
 
 const K = Phaser.Input.Keyboard.KeyCodes;
 const SKY_TOP = 0x87ceeb;
@@ -39,6 +40,7 @@ export default class TitleScene extends Phaser.Scene {
     this.phaseAt = 0;
     this.menuIndex = 0;
     this.pendingState = null;
+    playMusic(this, 'title');
     this.drawSky();
     this.drawSkyline();
     this.drawLogo();

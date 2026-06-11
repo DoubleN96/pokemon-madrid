@@ -10,6 +10,7 @@ import { MessageBox } from '../ui/battle/typewriter.js';
 import { DataBox } from '../ui/battle/databoxes.js';
 import { mainMenu, fightMenu, bagMenu, partyMenu } from '../ui/battle/menus.js';
 import { STAT_ES, STATUS_MSG_ES, BALL_ESCAPE_ES, monName } from '../ui/battle/names.js';
+import { playMusic, sfx } from '../audio/AudioManager.js';
 import { waitForButton } from '../ui/battle/keys.js';
 import * as fx from '../ui/battle/animations.js';
 
@@ -22,6 +23,7 @@ export default class BattleScene extends Phaser.Scene {
   init(data) {
     this.trainer = data.trainer || null;
     this.isTrainer = !!this.trainer;
+    this.trainerPortrait = data.portrait || null;
     this.leveledIndexes = new Set();
     this.lastBatchHadText = false;
     this.closing = false;
@@ -32,7 +34,12 @@ export default class BattleScene extends Phaser.Scene {
     // Entrenador: instancia cada miembro de `trainer.party` con createMonster.
     if (this.isTrainer) {
       const pokedex = this.registry.get('pokedex');
-      this.enemyParty = (this.trainer.party || []).map((p) => createMonster(pokedex, p.species, p.level));
+      // 'RIVAL_STARTER' se resuelve al inicial que el rival eligió (fuerte vs el del jugador).
+      const rivalAce = (save && save.flags && save.flags.rivalStarter) || 4;
+      this.enemyParty = (this.trainer.party || []).map((p) => {
+        const sp = p.species === 'RIVAL_STARTER' ? rivalAce : p.species;
+        return createMonster(pokedex, sp, p.level);
+      });
     } else {
       this.enemyParty = [data.wild];
     }
@@ -72,6 +79,7 @@ export default class BattleScene extends Phaser.Scene {
     this.movesData = this.registry.get('movesData');
     this.save = this.registry.get('save');
     if (!this.save.flags) this.save.flags = {};
+    playMusic(this, this.isTrainer ? 'battle_trainer' : 'battle_wild');
     this.markSeen(this.enemyMon.species);
     this.activeIndex = Math.max(0, this.save.party.findIndex((m) => m.currentHp > 0));
     this.playerMon = this.save.party[this.activeIndex];
@@ -192,12 +200,29 @@ export default class BattleScene extends Phaser.Scene {
   // Secuencia de apertura de un combate de entrenador: reto, líneas de intro y
   // presentación de su primer Pokémon. El título (si lo trae el NPC) da caché.
   async trainerIntro() {
+    // Retrato del entrenador (si lo tiene), presentación tipo "VS".
+    let portraitImg = null;
+    const pkey = this.trainerPortrait ? `portrait_${this.trainerPortrait}` : null;
+    if (pkey && this.textures.exists(pkey)) {
+      const src = this.textures.get(pkey).getSourceImage();
+      const cam = this.cameras.main;
+      portraitImg = this.add.image(cam.centerX, cam.centerY - 12, pkey).setDepth(60).setAlpha(0);
+      const s = Math.min(96 / src.width, 96 / src.height);
+      portraitImg.setScale(s);
+      this.tweens.add({ targets: portraitImg, alpha: 1, y: cam.centerY - 16, duration: 220 });
+    }
     const reto = this.trainer.title
       ? `¡${this.trainer.name} (${this.trainer.title}) te corta el paso!`
       : `¡${this.trainer.name} te corta el paso!`;
     await this.msg.type(reto, { confirm: true });
     for (const line of this.trainer.intro || []) {
       await this.msg.type(line, { confirm: true });
+    }
+    if (portraitImg) {
+      await new Promise((res) => this.tweens.add({
+        targets: portraitImg, alpha: 0, x: portraitImg.x - 60, duration: 240, onComplete: res,
+      }));
+      portraitImg.destroy();
     }
     await this.msg.type(`¡${this.trainer.name} saca a ${this.enemyName()}!`, { holdMs: 500 });
   }
@@ -490,6 +515,7 @@ export default class BattleScene extends Phaser.Scene {
   // rival, premio en dinero (su "parte"), marca de bandera y, si es líder, medalla.
   async handleTrainerWin() {
     const t = this.trainer;
+    playMusic(this, 'victory', { loop: false });
     await this.msg.type(`¡Le has ganado a ${t.name}!`, { confirm: true });
     for (const line of t.win || []) {
       await this.msg.type(line, { confirm: true });

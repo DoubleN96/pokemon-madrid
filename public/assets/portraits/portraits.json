@@ -5,10 +5,7 @@
     "role": "protagonista",
     "portrait": "portraits/marcelino.png",
     "overworld": {
-      "down": "portraits/marcelino_down.png",
-      "up": "portraits/marcelino_up.png",
-      "left": "portraits/marcelino_left.png",
-      "right": "portraits/marcelino_right.png"
+      "down": "portraits/marcelino_down.png"
     }
   },
   {
@@ -17,10 +14,7 @@
     "role": "rival",
     "portrait": "portraits/alvaro_rival.png",
     "overworld": {
-      "down": "portraits/alvaro_rival_down.png",
-      "up": "portraits/alvaro_rival_up.png",
-      "left": "portraits/alvaro_rival_left.png",
-      "right": "portraits/alvaro_rival_right.png"
+      "down": "portraits/alvaro_rival_down.png"
     }
   },
   {
@@ -45,6 +39,78 @@
       "up": "portraits/ivan_fintips_up.png",
       "left": "portraits/ivan_fintips_left.png",
       "right": "portraits/ivan_fintips_right.png"
+    }
+  },
+  {
+    "id": "jesus_la_rata",
+    "name": "Jesús \"la Rata\"",
+    "role": "lider-gimnasio",
+    "portrait": "portraits/jesus_la_rata.png",
+    "overworld": {
+      "down": "portraits/jesus_la_rata_down.png"
+    }
+  },
+  {
+    "id": "sergio_guillen",
+    "name": "Sergio Guillén",
+    "role": "lider-gimnasio",
+    "portrait": "portraits/sergio_guillen.png",
+    "overworld": {
+      "down": "portraits/sergio_guillen_down.png"
+    }
+  },
+  {
+    "id": "eduardo",
+    "name": "Eduardo",
+    "role": "lider-gimnasio",
+    "portrait": "portraits/eduardo.png",
+    "overworld": {
+      "down": "portraits/eduardo_down.png"
+    }
+  },
+  {
+    "id": "blanca_notarias",
+    "name": "Blanca",
+    "role": "aliada",
+    "portrait": "portraits/blanca_notarias.png",
+    "overworld": {
+      "down": "portraits/blanca_notarias_down.png"
+    }
+  },
+  {
+    "id": "jose_antonio_casero",
+    "name": "José Antonio el Casero",
+    "role": "npc",
+    "portrait": "portraits/jose_antonio_casero.png",
+    "overworld": {
+      "down": "portraits/jose_antonio_casero_down.png"
+    }
+  },
+  {
+    "id": "angel_perfeccionista",
+    "name": "Ángel",
+    "role": "aliado",
+    "portrait": "portraits/angel_perfeccionista.png",
+    "overworld": {
+      "down": "portraits/angel_perfeccionista_down.png"
+    }
+  },
+  {
+    "id": "adrian_schizo",
+    "name": "Adrián Barrera",
+    "role": "villano",
+    "portrait": "portraits/adrian_schizo.png",
+    "overworld": {
+      "down": "portraits/adrian_schizo_down.png"
+    }
+  },
+  {
+    "id": "mariel",
+    "name": "Mariel",
+    "role": "lider-gimnasio",
+    "portrait": "portraits/mariel.png",
+    "overworld": {
+      "down": "portraits/mariel_down.png"
     }
   }
 ]

@@ -263,8 +263,9 @@ const TETUAN_NPCS = [
       name: 'ÁLVARO ALONSO',
       title: 'Rival · Vicepresidente del Humo',
       party: [
-        // Solo Charmander Nv.6: el "burnout" del rival, todavía una chispa.
-        { species: 4, level: 6 },
+        // Inicial del rival = el FUERTE contra el tuyo (mecánica clásica de Pokémon),
+        // a nivel 5 (igual que tú): reñido pero justo elijas lo que elijas. Sin STAB aún.
+        { species: 'RIVAL_STARTER', level: 5 },
       ],
       intro: [
         'Hombre, Marcelino. Te tenía agendado para las 9:14. Llegas con catorce segundos de retraso, lo apunto.',
@@ -292,6 +293,33 @@ const TETUAN_NPCS = [
       'Yo lo observo todo desde la barrera, con mi cartera bien diversificada: cripto, ladrillo, un poco de rent2rent. El caos da ROI si sabes leerlo, te lo digo yo.',
       'Consejo de socio gratis, que para algo soy tu mentor: un equipo Pokémon es una cartera. Diversifica tipos, no te apalanques en un solo bicho. Y nunca, jamás, le pidas un préstamo a Eduardo.',
     ],
+  },
+  // Mariel — amiga venezolana de Iván FinTips. Trader hiperactiva (HFT), ludópata,
+  // baila sevillanas, influencer. No te deja hablar. Entrenadora de eléctricos veloces.
+  {
+    id: 'mariel', sprite: 'lass', x: 11, y: 16, dir: 'left', roam: true,
+    trainer: {
+      name: 'MARIEL',
+      title: 'La Reina del High-Frequency',
+      party: [
+        { species: 100, level: 6 },  // Voltorb (rápido, explosivo)
+        { species: 101, level: 8 },  // Electrode (el más veloz, su "as" HFT)
+      ],
+      intro: [
+        '¡Marceee! ¡Mi amor, qué casualidad, justo estaba rebalanceando el riesgo de mi cartera y ejecutando un arbitraje en tres exchanges a la vez, una locura, mira que el spread estaba divino pero el slippage, ay, el slippage!',
+        '¿Sabes lo que es el high-frequency trading? Te lo explico: microsegundos, algoritmos, latencia, colocación de órdenes... ¡es como bailar sevillanas pero con velas japonesas! Yo voy a clases de sevillanas, ¿te lo había contado? ¡Y al casino, anoche bordé un pleno!',
+        '¡Pero bueno, que me enrollo! Iván dice que soy la única que habla más rápido que sube el Bitcoin. ¡Combáteme, que te enseño lo que es la VELOCIDAD, papá!',
+      ],
+      win: [
+        '¡NOOO, mi liquidez! Vale, vale, has sido más rápido que mi algoritmo. Respeto, respeto.',
+        'Oye, ¿y si montamos un fondo juntos? Tú el caos, yo el HFT, Iván el Excel... ¡nos forramos! Ya hablamos, que me voy a sevillanas. ¡Chaooo!',
+      ],
+      defeat: [
+        '¡JA! ¿Ves? ¡VELOCIDAD! Esto es como el casino, cariño: la banca, o sea YO, siempre gana. Vuelve cuando subas de nivel, ¡un besito!',
+      ],
+      prize: 720,
+      flag: 'mariel_1',
+    },
   },
   // José Antonio — el casero. NPC de bloqueo temático ligero (solo charla). Junto a la salida sur.
   {

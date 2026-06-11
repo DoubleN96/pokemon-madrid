@@ -328,3 +328,7 @@ de Liga en una versión), Torrevieja (costa "turbia" de Levante, origen de Marce
    pide la versión canónica? Afecta enormemente al alcance del mapa.
 7. **Fidelidad de sprites:** el doc incluye descripciones físicas reales de cada amigo — ¿queremos
    retratos/sprites reconocibles de las personas reales o versiones estilizadas?
+
+---
+## Personaje añadido: Mariel (2026-06-10, por Marcelino)
+**Mariel** — amiga de Marcelino, venezolana. Trader (high-frequency trading, algoritmos, rebalanceo de riesgo); habla SIN PARAR de cosas complejas y no te deja meter baza; superinteligente; ludópata de casino; va a clases de sevillanas; influencer; amiga de Iván "FinTips". Físico: rubia, **muy bajita y diminuta**, energía desbordante, siempre animada. Rol en el juego: líder de gimnasio / NPC cerca de Iván FinTips (gimnasio del Trading / Casino). Pokémon temáticos sugeridos: tipo eléctrico/veloz (ej. Electrode, Jolteon) por su energía e hiperactividad.

@@ -1,0 +1,113 @@
+{
+ "_comment": "Manifest de audio de Pokémon Madrid. Todas las pistas son CC0 (dominio público), reutilizables comercialmente SIN atribución obligatoria. Aun así dejamos los créditos por buenas prácticas. NO contiene audio con copyright de Pokémon/Nintendo. Las rutas son relativas a public/ (cárgalas con scene.load.audio usando estos paths).",
+ "music": {
+  "title": "audio/title.mp3",
+  "overworld": "audio/overworld.mp3",
+  "town": "audio/town.mp3",
+  "battle_wild": "audio/battle_wild.mp3",
+  "battle_trainer": "audio/battle_trainer.mp3",
+  "victory": "audio/victory.mp3"
+ },
+ "sfx": {
+  "select": "audio/select.mp3",
+  "cancel": "audio/cancel.mp3",
+  "bump": "audio/bump.mp3",
+  "door": "audio/door.mp3",
+  "heal": "audio/heal.mp3",
+  "levelup": "audio/levelup.mp3",
+  "hit": "audio/hit.mp3"
+ },
+ "credits": [
+  {
+   "file": "audio/title.mp3",
+   "title": "Title Screen (Retro Game Music Pack)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/5-chiptunes-action"
+  },
+  {
+   "file": "audio/overworld.mp3",
+   "title": "Level 1 (Retro Game Music Pack)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/5-chiptunes-action"
+  },
+  {
+   "file": "audio/town.mp3",
+   "title": "Stage 1 (Chiptune Adventures)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/4-chiptunes-adventure"
+  },
+  {
+   "file": "audio/battle_wild.mp3",
+   "title": "Level 2 (Retro Game Music Pack)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/5-chiptunes-action"
+  },
+  {
+   "file": "audio/battle_trainer.mp3",
+   "title": "Boss Fight (Chiptune Adventures)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/4-chiptunes-adventure"
+  },
+  {
+   "file": "audio/victory.mp3",
+   "title": "Stage Select (Chiptune Adventures)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/4-chiptunes-adventure"
+  },
+  {
+   "file": "audio/select.mp3",
+   "title": "sfx_menu_select1 (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  },
+  {
+   "file": "audio/cancel.mp3",
+   "title": "sfx_sounds_error8 (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  },
+  {
+   "file": "audio/bump.mp3",
+   "title": "sfx_sounds_impact9 (trimmed) (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  },
+  {
+   "file": "audio/door.mp3",
+   "title": "sfx_movement_dooropen1 (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  },
+  {
+   "file": "audio/heal.mp3",
+   "title": "sfx_sounds_powerup4 (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  },
+  {
+   "file": "audio/levelup.mp3",
+   "title": "sfx_sounds_fanfare2 (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  },
+  {
+   "file": "audio/hit.mp3",
+   "title": "sfx_damage_hit3 (Essential Retro Video Game SFX Collection)",
+   "author": "Juhani Junkala (SubspaceAudio)",
+   "license": "CC0 1.0 Universal (Public Domain)",
+   "url": "https://opengameart.org/content/512-sound-effects-8-bit-style"
+  }
+ ]
+}

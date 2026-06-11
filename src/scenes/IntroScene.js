@@ -233,13 +233,16 @@ export default class IntroScene extends Phaser.Scene {
 
   buildSaveState(id, starter) {
     const spawn = (MAPS.tetuan && MAPS.tetuan.playerSpawn) || { x: 14, y: 20 };
+    // El rival (Álvaro) recibe el inicial FUERTE contra el del jugador (mecánica clásica
+    // de Pokémon), para que el primer combate sea justo y reñido elijas lo que elijas.
+    const RIVAL_COUNTER = { 1: 4, 4: 7, 7: 1 }; // Bulbasaur→Charmander, Charmander→Squirtle, Squirtle→Bulbasaur
     return {
       version: SAVE_VERSION,
       player: { name: this.playerName, map: 'tetuan', x: spawn.x, y: spawn.y, dir: 'down', money: MONEY_START },
       party: [starter],
       bag: { 'poke-ball': 5, potion: 3, antidote: 1 },
       pokedex: { seen: [id], caught: [id] },
-      flags: { introDone: true },
+      flags: { introDone: true, rivalStarter: RIVAL_COUNTER[id] || 4 },
       playTimeS: 0,
     };
   }

@@ -3,6 +3,8 @@ import { TILE, WALK_MS, ENCOUNTER_RATE, SAVE_VERSION, MONEY_START } from '../con
 import { MAPS } from '../world/maps.js';
 import { createMonster, healFull } from '../core/monster.js';
 import { openShop } from '../ui/shop.js';
+import { portraitForNpc } from '../data/portraits.js';
+import { playMusic, sfx } from '../audio/AudioManager.js';
 import { createMapLayers } from '../world/engine/mapRenderer.js';
 import GridMover, { DIRS, tileToX, tileToY } from '../world/engine/GridMover.js';
 import Npc from '../world/engine/Npc.js';
@@ -24,6 +26,8 @@ export default class WorldScene extends Phaser.Scene {
     const pos = this.startPos || save.player || {};
     this.mapId = MAPS[pos.map] ? pos.map : 'tetuan';
     this.mapData = MAPS[this.mapId];
+    // Música: rutas = overworld; pueblos/interiores = town.
+    playMusic(this, /ruta|route|ruta_/i.test(this.mapId) ? 'overworld' : 'town');
     this.inputLocked = false;
     this.transitioning = false;
     this.turnUntil = 0;
@@ -192,11 +196,12 @@ export default class WorldScene extends Phaser.Scene {
     this.inputLocked = true;
     npc.paused = true;
     npc.facePlayer(this.player.dir);
+    const por = portraitForNpc(npc.def);
     if (npc.def.trainer && !this.isTrainerBeaten(npc.def.trainer)) this.startTrainerBattle(npc);
     else if (npc.def.heal) this.healInteraction(npc);
     else if (npc.def.shop) this.shopInteraction(npc);
-    else if (npc.def.trainer) this.talk(npc.def.trainer.win, () => this.endInteraction(npc));
-    else this.talk(npc.def.dialog, () => this.endInteraction(npc));
+    else if (npc.def.trainer) this.talk(npc.def.trainer.win, () => this.endInteraction(npc), por);
+    else this.talk(npc.def.dialog, () => this.endInteraction(npc), por);
   }
 
   // ¿Ya derrotado este entrenador? (bandera única en save.flags).
@@ -226,20 +231,22 @@ export default class WorldScene extends Phaser.Scene {
     this.persistPlayer();
     const cam = this.cameras.main;
     cam.flash(140, 248, 248, 248);
+    const portrait = (npcOrTrainer && npcOrTrainer.def)
+      ? portraitForNpc(npcOrTrainer.def) : (trainer.portrait || null);
     cam.once('cameraflashcomplete', () => {
       this.scene.sleep('World');
-      this.scene.launch('Battle', { trainer });
+      this.scene.launch('Battle', { trainer, portrait });
     });
   }
 
-  talk(lines, onClose) {
+  talk(lines, onClose, portrait) {
     const text = Array.isArray(lines) && lines.length ? lines : ['...'];
-    this.scene.launch('Dialog', { lines: text, onClose });
+    this.scene.launch('Dialog', { lines: text, onClose, portrait: portrait || null });
   }
 
   // Encadena un segundo diálogo dejando que el anterior termine de cerrarse.
-  chainTalk(lines, onClose) {
-    this.time.delayedCall(60, () => this.talk(lines, onClose));
+  chainTalk(lines, onClose, portrait) {
+    this.time.delayedCall(60, () => this.talk(lines, onClose, portrait));
   }
 
   endInteraction(npc) {
@@ -248,22 +255,25 @@ export default class WorldScene extends Phaser.Scene {
   }
 
   healInteraction(npc) {
+    const por = portraitForNpc(npc.def);
     this.talk(npc.def.dialog, () => {
       const save = this.registry.get('save');
       ((save && save.party) || []).forEach(healFull);
       this.chainTalk(
         ['¡Tus Pokémon están como nuevos!', '¡Que te vaya bien, y mucho ojo por ahí!'],
         () => this.endInteraction(npc),
+        por,
       );
-    });
+    }, por);
   }
 
   shopInteraction(npc) {
+    const por = portraitForNpc(npc.def);
     this.talk(npc.def.dialog, () => {
       this.time.delayedCall(60, () => {
         openShop(this, { onClose: () => this.endInteraction(npc) });
       });
-    });
+    }, por);
   }
 
   openMenu() {

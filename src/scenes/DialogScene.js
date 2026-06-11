@@ -26,12 +26,14 @@ export default class DialogScene extends Phaser.Scene {
     this.prompt = data.prompt || null;
     this.onClose = data.onClose || null;
     this.speed = data.speed || 28;
+    this.portraitId = data.portrait || null;
     this.closed = false;
     this.promptOpen = false;
     this.writer = null;
     this.arrowOn = false;
 
     this.buildBox();
+    if (this.portraitId) this.drawPortrait(this.portraitId);
     this.pages = this.buildPages();
     this.bindKeys();
     if (!this.pages.length) {
@@ -55,6 +57,20 @@ export default class DialogScene extends Phaser.Scene {
       loop: true,
       callback: () => { if (this.arrowOn) this.arrow.setVisible(!this.arrow.visible); },
     });
+  }
+
+  // Retrato del personaje que habla, en un marco sobre la esquina superior-izq del cuadro.
+  drawPortrait(id) {
+    const key = `portrait_${id}`;
+    if (!this.textures.exists(key)) return;
+    const src = this.textures.get(key).getSourceImage();
+    if (!src || !src.width) return;
+    const PW = 48, PH = 52;
+    const px = BOX_X, py = BOX_Y - PH - 2;
+    drawBox(this, px, py, PW, PH);
+    const img = this.add.image(px + PW / 2, py + PH / 2, key).setOrigin(0.5);
+    const s = Math.min((PW - 6) / src.width, (PH - 6) / src.height);
+    img.setScale(s);
   }
 
   // Trocea cada línea en páginas de máximo 2 renglones envueltos.
