@@ -10,6 +10,8 @@
 // la puerta y conecta con el interior; el felpudo del interior devuelve fuera.
 
 import { buildInteriors, BUILDING_LINKS } from './interiors.js';
+import { buildGyms, GYM_LINKS } from './gyms.js';
+import { EXTRA_MAPS } from './areaExtra.js';
 
 const GRASS = 113;
 const TALL = 94;
@@ -59,6 +61,20 @@ const ELEGANT = {
   tiles: [
     [30, 31, 31, 31, 31, 35], [143, 144, 144, 144, 144, 148], [256, 257, 258, 144, 260, 261],
     [369, 370, 371, 372, 373, 374], [482, 483, 484, 485, 486, 487]],
+};
+// Edificio de GIMNASIO (4×4): reusa la fachada cívica del MART para que se lea
+// distinto de las casas vecinas (es un edificio público, no una vivienda). La
+// fila inferior central (idx 2) es la puerta: wireGymDoors la libera como warp.
+const GYM = {
+  w: 4, h: 4, overheadRows: 1,
+  tiles: [[26, 27, 27, 29], [139, 140, 141, 142], [252, 253, 254, 255], [361, 362, 367, 368]],
+};
+// Gimnasio COMPACTO (3×3) para los huecos estrechos del sur de Chamberí: misma
+// fachada cívica que GYM pero más estrecho, para dejar libre el corredor central
+// (x14-15) que baja a Ruta 3 entre dos gimnasios contiguos.
+const GYM3 = {
+  w: 3, h: 3, overheadRows: 1,
+  tiles: [[26, 27, 29], [139, 141, 142], [361, 367, 368]],
 };
 
 // ---------- helpers de construcción ----------
@@ -187,6 +203,43 @@ function wireBuildingDoors(maps) {
   }
 }
 
+// Igual que wireBuildingDoors pero para los GIMNASIOS (GYM_LINKS). El tile
+// `exit` de cada gimnasio en la ciudad ES la puerta: se libera la colisión (para
+// pisarlo y disparar el warp) y se añade el warp de ENTRADA al spawn del interior.
+// El warp de SALIDA (gimnasio → ciudad, a ese mismo tile) ya lo crea gyms.js
+// vía linkExit, así que puerta de entrada y baldosa de reaparición coinciden.
+function wireGymDoors(maps) {
+  for (const link of GYM_LINKS) {
+    const { map, x, y } = link.exit;
+    const m = maps[map];
+    if (!m || !maps[link.gym]) continue;
+    if (m.collision[y]) m.collision[y][x] = 0; // la puerta del gimnasio es pisable
+    if (m.tallGrass && m.tallGrass[y]) m.tallGrass[y][x] = 0; // sin hierba bajo la puerta
+    const dest = maps[link.gym].playerSpawn || { x: 1, y: 1 };
+    if (!(m.warps || []).some((w) => w.x === x && w.y === y)) {
+      m.warps.push({ x, y, toMap: link.gym, toX: dest.x, toY: dest.y, dir: 'up' });
+    }
+  }
+}
+
+// Carva el corredor peatonal del sur de Chamberí: conecta la plaza con las
+// puertas de los gimnasios sur (Camión 11,25 · Fantasma 17,26) y con la salida a
+// Ruta 3 (hueco x14-15, y26-29). Lo ejecuta buildChamberi DESPUÉS de edificios y
+// hierba: pavimenta las baldosas (PATH), las hace pisables y borra la hierba para
+// que el recorrido sea limpio y caminable. No pisa NINGÚN edificio (verificado).
+function southConnect(m) {
+  const corridor = new Set();
+  addRect(corridor, 14, 18, 2, 12);  // autopista central x14-15, y18-29 → salida sur
+  addRect(corridor, 11, 25, 5, 2);   // ramal oeste x11-15, y25-26 → puerta Camión
+  addRect(corridor, 15, 26, 3, 1);   // ramal este x15-17, y26 → puerta Fantasma
+  stampPath(m, corridor, PATH);
+  for (const key of corridor) {
+    const [x, y] = key.split(',').map(Number);
+    m.collision[y][x] = 0;
+    if (m.tallGrass[y]) m.tallGrass[y][x] = 0;
+  }
+}
+
 // ---------- TETUÁN (36×36) ----------
 
 function buildTetuan() {
@@ -211,6 +264,10 @@ function buildTetuan() {
   stampBuilding(m, 8, 23, MART);         // Ultramarinos Don Paco (puerta 9,26)
   stampBuilding(m, 13, 23, HOUSE);       // Farmacia (fachada)
   stampBuilding(m, 3, 23, HOUSE);        // Peluquería "Manoli" (fachada)
+  // GIMNASIO 1 · CASHFLOW (Iván "FinTips") — sobre Bravo Murillo, puerta en (20,9).
+  // El interior se enlaza en wireGymDoors (GYM_LINKS: tetuan 20,9 → gym_cashflow).
+  stampBuilding(m, 19, 5, GYM);          // Gimnasio Cashflow (puerta 20,9)
+  addSign(m, 19, 9, 'GIMNASIO CASHFLOW — Líder: IVÁN "FINTIPS". "Aquí se combate con ROI. El que pierde, invita a las bravas." Medalla: Liquidez.');
   // Parque Móvil del Estado: recinto vallado al noreste
   fenceV(m, 29, 4, 7);
   fenceV(m, 33, 4, 7);
@@ -516,15 +573,19 @@ const RUTA2_NPCS = [
 
 function buildChamberi() {
   const m = makeBase('chamberi', 'CHAMBERÍ', 30, 30);
-  // Bordes con hueco norte (x14-15) hacia la Ruta 2
+  // Bordes con hueco norte (x14-15) hacia la Ruta 2 y hueco SUR (x14-15) hacia
+  // la Ruta 3 · Gran Vía (zona nueva). El muro sur se parte en dos tramos para
+  // dejar pasar el corredor de salida hacia Ruta 3.
   stampTrees(m, 0, 0, 1, 29);
   stampTrees(m, 28, 0, 29, 29);
   stampTrees(m, 2, 0, 13, 2);
   stampTrees(m, 16, 0, 27, 2);
-  stampTrees(m, 2, 27, 27, 29);
-  // Plaza de Olavide: disco aproximado + entrada desde el norte
+  stampTrees(m, 2, 27, 13, 29);   // muro sur (tramo oeste)
+  stampTrees(m, 16, 27, 27, 29);  // muro sur (tramo este) — hueco x14-15 hacia Ruta 3
+  // Plaza de Olavide: disco aproximado + entrada desde el norte + corredor sur.
   const cells = new Set();
   addRect(cells, 14, 0, 2, 12);
+  addRect(cells, 14, 26, 2, 4);   // corredor de salida sur hacia Ruta 3 (x14-15, y26-29)
   for (let y = 10; y <= 21; y++) for (let x = 9; x <= 21; x++) {
     const dx = x - 15, dy = y - 15.5;
     if (dx * dx + dy * dy <= 30) cells.add(`${x},${y}`);
@@ -535,10 +596,26 @@ function buildChamberi() {
   stampBuilding(m, 20, 5, HOUSE_BIG);    // Café del Modernismo (fachada)
   stampBuilding(m, 4, 20, LAB);          // Mercado de Vallehermoso (fachada)
   stampBuilding(m, 19, 21, ELEGANT);     // Estación Fantasma (fachada)
+  // GIMNASIOS de la Liga Chamberí (interiores enlazados en wireGymDoors).
+  // GIM 2 · TRADING/Casino (Mariel) — junto a la plaza, puerta en (14,10).
+  stampBuilding(m, 12, 6, GYM);          // Gimnasio Trading (puerta 14,10)
+  addSign(m, 13, 10, 'GIMNASIO TRADING — Líder: MARIEL. "Microsegundos, sevillanas y velas japonesas. La banca, o sea YO, siempre gana." Medalla: Velocidad.');
+  // GIM 4 · CAMIÓN (Sergio Guillén) — zona sur-oeste donde aparca, puerta (11,25).
+  // Compacto (3×3) para dejar libre el corredor x14-15 que baja a Ruta 3.
+  stampBuilding(m, 11, 22, GYM3);        // Gimnasio Camión (puerta 11,25)
+  addSign(m, 10, 26, 'GIMNASIO CAMIÓN — Líder: SERGIO GUILLÉN. "Este camión es mi casa, mi gimnasio y mi bar. Aparcar = combatir." Medalla: Cerveza.');
+  // GIM 3 · FANTASMA (Jesús "la Rata") — sótano junto a la Estación Fantasma, puerta (17,26).
+  // Compacto (3×3), al este del corredor central (flanquea la salida a Ruta 3).
+  stampBuilding(m, 16, 23, GYM3);        // Gimnasio Fantasma (puerta 17,26)
+  addSign(m, 18, 26, 'GIMNASIO FANTASMA — Líder: JESÚS "LA RATA". "Volví con pelo, con flow y con venganza. Respira hondo... mejor no respires." Medalla: Niebla.');
   // Jardines de Olavide: hierba alta
   stampTallGrass(m, 3, 12, 5, 6);
   stampTallGrass(m, 22, 12, 5, 6);
   stampTallGrass(m, 11, 23, 7, 3);
+  // Corredor sur: conecta la plaza con las puertas de los gimnasios del sur y con
+  // la salida a Ruta 3 (hueco x14-15). Se carva DESPUÉS de edificios y hierba para
+  // garantizar que las baldosas del corredor queden pisables y sin hierba.
+  southConnect(m);
   sprinkle(m, FLOWER, [[10, 9], [20, 9], [9, 21], [21, 19], [12, 11], [18, 20]]);
   sprinkle(m, FLOWER_Y, [[11, 10], [19, 21], [8, 18], [22, 10], [16, 22]]);
   sprinkle(m, BUSH, [[3, 10], [26, 10], [2, 25], [27, 19]]);
@@ -562,6 +639,11 @@ function chamberiData(m) {
   m.warps = [
     { x: 14, y: 0, toMap: 'ruta2', toX: 9, toY: 38, dir: 'up' },
     { x: 15, y: 0, toMap: 'ruta2', toX: 10, toY: 38, dir: 'up' },
+    // Salida SUR → Ruta 3 · Gran Vía (zona nueva). Recíproco de los warps norte
+    // de ruta3 (x10-11, y0 → chamberi 14-15, y26). Entra por la entrada norte de
+    // Ruta 3 (x10-11, y1).
+    { x: 14, y: 29, toMap: 'ruta3', toX: 10, toY: 1, dir: 'down' },
+    { x: 15, y: 29, toMap: 'ruta3', toX: 11, toY: 1, dir: 'down' },
   ];
   m.npcs = CHAMBERI_NPCS;
   m.playerSpawn = { x: 14, y: 2 };
@@ -661,7 +743,11 @@ export const MAPS = {
   ruta2: buildRuta2(),
   chamberi: buildChamberi(),
   ...buildInteriors(),
+  ...buildGyms(),   // gimnasios de la Liga Chamberí (interiores)
+  ...EXTRA_MAPS,    // zona nueva: Ruta 3 · Gran Vía + Parque del Retiro
 };
 
 // Enlaza las puertas del overworld con sus interiores (warps de ida).
 wireBuildingDoors(MAPS);
+// Enlaza las puertas de los gimnasios con sus interiores (warps de ida).
+wireGymDoors(MAPS);
