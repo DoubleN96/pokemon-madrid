@@ -1,10 +1,51 @@
 // Módulo C — cajas de datos de combate (nombre, nivel, PS, EXP) estilo FRLG.
-// La caja enemiga (arriba-izda) no muestra números de PS; la del jugador
-// (abajo-dcha) muestra PS en números y barra de EXP.
-import { drawBox, hpColor, textStyle, STATUS_LABELS } from '../theme.js';
+// La caja enemiga (arriba-izda) muestra nombre/Nv/barra de PS; la del jugador
+// (abajo-dcha) añade además la barra de EXP. El nivel de PS se lee por la barra
+// de color (verde/amarillo/rojo), sin número (el databox de 32px no deja sitio).
+//
+// FASE A3: el MARCO se dibuja con el PNG FRLG con cola (battle_box_player /
+// battle_box_enemy, ya recortados a su tamaño real con el "Lv" y la pista EXP
+// horneados). El relleno de PS pasa de fillRect a un sprite de barra de color
+// (hpbar_green/yellow/red 48x8) recortado por ratio. El nombre/Nv/PS/HP siguen
+// como texto con la fuente del juego. La API pública (setMonster/tweenHp/
+// tweenExp/setStatus/setLevel/setExp/updateHp) NO cambia.
+import { textStyle, STATUS_LABELS } from '../theme.js';
 
 const STATUS_BG = { par: '#b8a038', psn: '#a040a0', brn: '#f08030', slp: '#705898', frz: '#68a8d8' };
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
+
+// Anchura real (en px) de la barra de PS de color dentro del PNG (48x8).
+const HP_BAR_W = 48;
+const HP_BAR_H = 8;
+
+// Texturas de barra de PS por umbral de color FRLG (>0.5 verde, >0.2 amarillo, resto rojo).
+function hpBarTexture(ratio) {
+  if (ratio > 0.5) return 'hpbar_green';
+  if (ratio > 0.2) return 'hpbar_yellow';
+  return 'hpbar_red';
+}
+
+// Layout interno de cada caja, relativo al origen (x,y) del PNG. Medido sobre los
+// marcos FRLG: enemigo 104x32 (cream x4..89, y5..24); jugador 112x32 (cream
+// x12..97, y5..24 + pista EXP horneada abajo). barX/barY sitúan la barra de PS de
+// color sobre la zona cream; expX/expW caen sobre la pista de puntos horneada.
+const LAYOUT = {
+  enemy: {
+    boxKey: 'battle_box_enemy',
+    nameX: 8, nameY: 6,
+    lvRightX: 90, lvY: 6,        // "NvNN" alineado a la derecha de la zona cream
+    psLabelX: 10, barX: 28, barY: 17, // "PS" + barra de color
+    statusX: 8, statusY: 17,
+  },
+  player: {
+    boxKey: 'battle_box_player',
+    nameX: 16, nameY: 3,
+    lvRightX: 95, lvY: 3,
+    psLabelX: 18, barX: 34, barY: 15,
+    statusX: 16, statusY: 15,
+    expX: 31, expY: 27, expW: 73, // relleno EXP sobre la pista de puntos horneada
+  },
+};
 
 export class DataBox {
   constructor(scene, { x, y, isPlayer }) {
@@ -12,11 +53,7 @@ export class DataBox {
     this.x = x;
     this.y = y;
     this.isPlayer = isPlayer;
-    this.w = isPlayer ? 106 : 102;
-    this.h = isPlayer ? 38 : 28;
-    this.barX = x + 38;
-    this.barY = y + 16;
-    this.barW = 48;
+    this.cfg = isPlayer ? LAYOUT.player : LAYOUT.enemy;
     this.curHp = 1;
     this.maxHp = 1;
     this.expShown = 0;
@@ -24,27 +61,31 @@ export class DataBox {
   }
 
   build() {
-    this.panel = drawBox(this.scene, this.x, this.y, this.w, this.h, { fill: 0xf8f0d8, depth: 5 });
-    const barFrame = this.scene.add.graphics().setDepth(6);
-    barFrame.fillStyle(0x504848, 1);
-    barFrame.fillRoundedRect(this.barX - 16, this.barY - 2, this.barW + 18, 8, 3);
-    this.barFrame = barFrame;
-    this.nameText = this.scene.add.text(this.x + 5, this.y + 4, '', textStyle()).setDepth(6);
-    this.lvText = this.scene.add.text(this.x + this.w - 5, this.y + 4, '', textStyle())
-      .setOrigin(1, 0).setDepth(6);
+    const { cfg } = this;
+    // Marco PNG FRLG (cream + borde verde + cola). Fallback defensivo: si la textura
+    // no cargó, no rompemos el combate (la barra/textos siguen visibles encima).
+    if (this.scene.textures.exists(cfg.boxKey)) {
+      this.panel = this.scene.add.image(this.x, this.y, cfg.boxKey).setOrigin(0, 0).setDepth(5);
+    }
+    this.nameText = this.scene.add
+      .text(this.x + cfg.nameX, this.y + cfg.nameY, '', textStyle()).setDepth(7);
+    this.lvText = this.scene.add
+      .text(this.x + cfg.lvRightX, this.y + cfg.lvY, '', textStyle())
+      .setOrigin(1, 0).setDepth(7);
     this.psLabel = this.scene.add
-      .text(this.barX - 13, this.barY - 2, 'PS', textStyle({ fontSize: '7px', color: '#f8c838' }))
-      .setDepth(7);
+      .text(this.x + cfg.psLabelX, cfg.barY + this.y - 1, 'PS', textStyle({ fontSize: '7px', color: '#f8c838' }))
+      .setOrigin(0, 0).setDepth(7);
     this.statusText = this.scene.add
-      .text(this.x + 5, this.barY - 1, '', textStyle({ fontSize: '7px', color: '#f8f8f8' }))
-      .setDepth(7);
-    this.hpGfx = this.scene.add.graphics().setDepth(7);
+      .text(this.x + cfg.statusX, this.y + cfg.statusY, '', textStyle({ fontSize: '7px', color: '#f8f8f8' }))
+      .setDepth(8);
+    // Barra de PS: sprite de color recortado por ratio. setCrop(0,0,w*ratio,h).
+    this.hpBar = this.scene.add
+      .image(this.x + cfg.barX, this.y + cfg.barY, hpBarTexture(1)).setOrigin(0, 0).setDepth(6);
     if (!this.isPlayer) return;
-    this.hpText = this.scene.add.text(this.x + this.w - 7, this.barY + 7, '', textStyle())
-      .setOrigin(1, 0).setDepth(6);
-    this.expLabel = this.scene.add
-      .text(this.x + 5, this.y + this.h - 9, 'EXP', textStyle({ fontSize: '7px', color: '#5878a0' }))
-      .setDepth(6);
+    // El databox FRLG de 32px con la pista EXP horneada no deja sitio limpio para
+    // el número de PS; la barra de color (verde/amarillo/rojo) ya indica el PS de
+    // forma legible, igual que la caja enemiga. Relleno EXP dinámico (verde) sobre
+    // la pista de puntos horneada en el PNG.
     this.expGfx = this.scene.add.graphics().setDepth(6);
   }
 
@@ -73,17 +114,13 @@ export class DataBox {
     this.curHp = cur;
     this.maxHp = max;
     const ratio = max > 0 ? clamp01(cur / max) : 0;
-    const g = this.hpGfx;
-    g.clear();
-    g.fillStyle(0x282830, 1);
-    g.fillRect(this.barX, this.barY, this.barW, 4);
-    const fill = Math.round(this.barW * ratio);
-    if (fill > 0) {
-      g.fillStyle(hpColor(ratio), 1);
-      g.fillRect(this.barX, this.barY, fill, 4);
-    }
-    if (this.isPlayer && this.hpText) {
-      this.hpText.setText(`${Math.max(0, Math.round(cur))}/${max}`);
+    // Cambia la textura según el umbral de color y recorta el sprite por ratio.
+    this.hpBar.setTexture(hpBarTexture(ratio));
+    const w = Math.max(0, Math.round(HP_BAR_W * ratio));
+    if (w <= 0) {
+      this.hpBar.setVisible(false);
+    } else {
+      this.hpBar.setVisible(true).setCrop(0, 0, w, HP_BAR_H);
     }
   }
 
@@ -111,15 +148,15 @@ export class DataBox {
   }
 
   drawExp(ratio) {
+    if (!this.expGfx) return;
+    const { cfg } = this;
+    const x = this.x + cfg.expX;
+    const y = this.y + cfg.expY;
     const g = this.expGfx;
-    const x = this.x + 24;
-    const y = this.y + this.h - 7;
-    const w = this.w - 31;
     g.clear();
-    g.fillStyle(0x504848, 1);
-    g.fillRect(x - 1, y - 1, w + 2, 4);
-    const fill = Math.round(w * clamp01(ratio));
+    const fill = Math.round(cfg.expW * clamp01(ratio));
     if (fill > 0) {
+      // Azul EXP FRLG sobre la pista de puntos horneada del PNG.
       g.fillStyle(0x48a0f8, 1);
       g.fillRect(x, y, fill, 2);
     }

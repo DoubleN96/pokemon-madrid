@@ -24,6 +24,9 @@ export default class BattleScene extends Phaser.Scene {
     this.trainer = data.trainer || null;
     this.isTrainer = !!this.trainer;
     this.trainerPortrait = data.portrait || null;
+    // Entorno del fondo FRLG: 'grass' (parques/hierba), 'indoor' (interiores) o
+    // 'building' (calle, por defecto — la mayoría de Madrid es ciudad).
+    this.terrain = data.terrain || 'building';
     this.leveledIndexes = new Set();
     this.lastBatchHadText = false;
     this.closing = false;
@@ -103,15 +106,26 @@ export default class BattleScene extends Phaser.Scene {
   // ── Construcción del escenario ──────────────────────────────────────────
 
   buildField() {
-    this.add.rectangle(120, 80, 240, 160, 0xa8d8b0);
-    this.add.rectangle(120, 22, 240, 44, 0xc8e8dc);
+    // Posiciones de los Pokémon (pies = setOrigin(0.5,1)). Coinciden con los
+    // discos del fondo FRLG `building` (enemigo arriba-dcha, jugador abajo-izda).
     this.enemyHome = { x: 176, y: 76 };
     this.playerHome = { x: 60, y: 112 };
-    const ground = this.add.graphics().setDepth(1);
-    ground.fillStyle(0x78b070, 1);
-    ground.fillEllipse(this.enemyHome.x, 74, 76, 20);
-    ground.fillStyle(0x68a060, 1);
-    ground.fillEllipse(this.playerHome.x, 110, 92, 18);
+    // Fondo FRLG (256x112) anclado arriba-izda; cubre la zona de combate. El cuadro
+    // de diálogo (y=110) tapa la franja inferior. Fallback procedural si no cargó.
+    const bgKey = `battlebg_${this.terrain}`;
+    const key = this.textures.exists(bgKey) ? bgKey : 'battlebg_building';
+    if (this.textures.exists(key)) {
+      this.add.image(0, 0, key).setOrigin(0, 0).setDepth(0);
+    } else {
+      // Campo procedural antiguo (color plano + discos) como red de seguridad.
+      this.add.rectangle(120, 80, 240, 160, 0xa8d8b0).setDepth(0);
+      this.add.rectangle(120, 22, 240, 44, 0xc8e8dc).setDepth(0);
+      const ground = this.add.graphics().setDepth(1);
+      ground.fillStyle(0x78b070, 1);
+      ground.fillEllipse(this.enemyHome.x, 74, 76, 20);
+      ground.fillStyle(0x68a060, 1);
+      ground.fillEllipse(this.playerHome.x, 110, 92, 18);
+    }
     this.enemySprite = this.add
       .image(this.enemyHome.x, this.enemyHome.y, `pkmn_front_${this.enemyMon.species}`)
       .setOrigin(0.5, 1).setDepth(2);
@@ -121,8 +135,11 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   buildBoxes() {
+    // Caja enemiga arriba-izda (104x32 con cola), jugador abajo-dcha (112x32).
+    // El jugador se ancla en x=126 para que el ancho 112 (con cola) quede dentro
+    // del lienzo de 240px (126+112=238).
     this.enemyBox = new DataBox(this, { x: 4, y: 6, isPlayer: false });
-    this.playerBox = new DataBox(this, { x: 132, y: 72, isPlayer: true });
+    this.playerBox = new DataBox(this, { x: 126, y: 70, isPlayer: true });
     this.msg = new MessageBox(this);
     this.refreshBox('enemy');
     this.refreshBox('player');

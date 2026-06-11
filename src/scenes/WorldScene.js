@@ -173,7 +173,8 @@ export default class WorldScene extends Phaser.Scene {
     cam.flash(140, 248, 248, 248);
     cam.once('cameraflashcomplete', () => {
       this.scene.sleep('World');
-      this.scene.launch('Battle', { wild });
+      // Los encuentros salvajes ocurren en hierba alta → fondo FRLG 'grass'.
+      this.scene.launch('Battle', { wild, terrain: 'grass' });
     });
   }
 
