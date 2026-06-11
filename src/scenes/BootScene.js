@@ -40,8 +40,17 @@ export default class BootScene extends Phaser.Scene {
     this.registry.set('pokedex', pokedex);
     this.registry.set('movesData', movesData);
 
-    // Animaciones de andar del jugador y NPCs usados (3 frames por dirección, ping-pong)
-    const walkChars = ['may', 'mom', 'youngster', 'lass', 'shopkeeper_m', 'scientist', 'aroma', 'gentleman', 'generic_m1', 'generic_f1', 'elder_m', 'fisher'];
+    // Animaciones de andar del jugador y NPCs usados (3 frames por dirección, ping-pong).
+    // Incluye los 12 personajes de Pokémon Piso con sprite overworld propio (FASE A1).
+    const walkChars = [
+      // personajes propios (Piso) — sprites reskineados FRLG en el atlas chars
+      'marcelino', 'alvaro_rival', 'alex_digital', 'ivan_fintips', 'jesus_la_rata',
+      'sergio_guillen', 'eduardo', 'blanca_notarias', 'jose_antonio_casero',
+      'angel_perfeccionista', 'adrian_schizo', 'mariel',
+      // NPCs de ambiente genéricos (siguen en uso)
+      'may', 'mom', 'youngster', 'lass', 'shopkeeper_m', 'scientist', 'aroma',
+      'gentleman', 'generic_m1', 'generic_f1', 'elder_m', 'fisher',
+    ];
     const tex = this.textures.get('chars');
     for (const c of walkChars) {
       for (const dir of ['down', 'up', 'left', 'right']) {

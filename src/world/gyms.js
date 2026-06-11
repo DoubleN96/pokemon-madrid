@@ -164,7 +164,7 @@ register('gym_cashflow', (exit) => {
   });
   // LÍDER: Iván "FinTips".
   addLeader(m, matX, 3, {
-    id: 'gym_leader_ivan', sprite: 'gentleman',
+    id: 'gym_leader_ivan', sprite: 'ivan_fintips',
     trainer: {
       name: 'IVÁN "FINTIPS"',
       title: 'Líder · Gimnasio Cashflow',
@@ -232,7 +232,7 @@ register('gym_trading', (exit) => {
   });
   // LÍDER: Mariel.
   addLeader(m, matX, 3, {
-    id: 'gym_leader_mariel', sprite: 'lass',
+    id: 'gym_leader_mariel', sprite: 'mariel',
     trainer: {
       name: 'MARIEL',
       title: 'Líder · Reina del High-Frequency',
@@ -299,7 +299,7 @@ register('gym_fantasma', (exit) => {
   });
   // LÍDER: Jesús "la Rata".
   addLeader(m, matX, 3, {
-    id: 'gym_leader_jesus', sprite: 'pokemaniac',
+    id: 'gym_leader_jesus', sprite: 'jesus_la_rata',
     trainer: {
       name: 'JESÚS "LA RATA"',
       title: 'Líder · Fantasma de Luxemburgo',
@@ -367,7 +367,7 @@ register('gym_camion', (exit) => {
   });
   // LÍDER: Sergio Guillén.
   addLeader(m, matX, 3, {
-    id: 'gym_leader_sergio', sprite: 'hiker',
+    id: 'gym_leader_sergio', sprite: 'sergio_guillen',
     trainer: {
       name: 'SERGIO GUILLÉN',
       title: 'Líder · El Camionero de Lavapiés',
@@ -439,7 +439,7 @@ register('gym_notarias', (exit) => {
   });
   // LÍDER: Blanca.
   addLeader(m, matX, 3, {
-    id: 'gym_leader_blanca', sprite: 'lass',
+    id: 'gym_leader_blanca', sprite: 'blanca_notarias',
     trainer: {
       name: 'BLANCA',
       title: 'Líder · Academia de Notarías Encantadas',
@@ -511,7 +511,7 @@ register('gym_tacanos', (exit) => {
   // LÍDERES: Eduardo (delante) + la Madre (al fondo, la "mente maestra").
   // La Madre es el verdadero AS: lleva el equipo más fuerte y la medalla.
   m.npcs.push({
-    id: 'gym_leader_eduardo', sprite: 'gentleman', x: matX - 2, y: 4, dir: 'down', roam: false,
+    id: 'gym_leader_eduardo', sprite: 'eduardo', x: matX - 2, y: 4, dir: 'down', roam: false,
     trainer: {
       name: 'EDUARDO',
       title: 'El del Postureo en Redes',
@@ -606,7 +606,7 @@ register('gym_master', (exit) => {
   });
   // LÍDER: Ángel.
   addLeader(m, matX, 3, {
-    id: 'gym_leader_angel', sprite: 'scientist',
+    id: 'gym_leader_angel', sprite: 'angel_perfeccionista',
     trainer: {
       name: 'ÁNGEL',
       title: 'Líder · El Ansiolítico Perfeccionista',
@@ -677,7 +677,7 @@ register('gym_schizo', (exit) => {
   });
   // LÍDER: Adrián Barrera — el más duro de la Liga (penúltimo reto antes del Campeón).
   addLeader(m, matX, 3, {
-    id: 'gym_leader_adrian', sprite: 'psychic',
+    id: 'gym_leader_adrian', sprite: 'adrian_schizo',
     trainer: {
       name: 'ADRIÁN BARRERA',
       title: 'Líder · Tirano del Team Schizo',

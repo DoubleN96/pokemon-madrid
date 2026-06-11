@@ -397,6 +397,28 @@ export function getCredits() {
   return state.manifest ? state.manifest.credits : [];
 }
 
+/**
+ * Desbloqueo robusto de audio para móvil. La música se lanza en scene.create()
+ * (fuera de un gesto de usuario); si el navegador tenía el AudioContext suspendido
+ * por la política de autoplay, la pista queda ENCOLADA y no suena. Esta función,
+ * llamada desde un gesto REAL (toque/clic), (1) reanuda el contexto, (2) fuerza el
+ * unlock de Phaser, y (3) RE-LANZA la música actual si quedó parada. Idempotente y
+ * barata: se puede llamar en cada toque.
+ * @param {Phaser.Game} game
+ */
+export function resumeAudio(game) {
+  const snd = game && game.sound;
+  if (!snd) return;
+  const ctx = snd.context;
+  if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') ctx.resume();
+  if (snd.locked && typeof snd.unlock === 'function') snd.unlock();
+  // Re-lanza la música que debería estar sonando pero quedó parada por el bloqueo.
+  const cur = state.currentMusic;
+  if (cur && state.currentMusicKey && !cur.isPlaying && !state.muted) {
+    try { cur.play(); } catch { /* el contexto puede no estar listo aún; al siguiente toque */ }
+  }
+}
+
 // Export por defecto agrupado, por si el orquestador prefiere `import AudioManager from ...`.
 export default {
   fetchManifest,

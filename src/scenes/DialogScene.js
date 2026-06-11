@@ -4,7 +4,7 @@ import { drawBox, textStyle, typewriterText } from '../ui/theme.js';
 import { nameForPortrait } from '../data/portraits.js';
 
 const BOX_W = 236;
-const BOX_H = 48;
+const BOX_H = 54;
 const BOX_X = (GAME_W - BOX_W) / 2;
 const BOX_Y = GAME_H - BOX_H - 2;
 const WRAP_W = BOX_W - 22;
@@ -59,8 +59,8 @@ export default class DialogScene extends Phaser.Scene {
     // 2 renglones de 14px centrados (top 8 + 2×~18 ≈ 44 < 48). Las frases largas
     // se paginan solas (buildPages trocea en páginas de 2 líneas), así que nunca
     // se corta texto: simplemente hay más páginas.
-    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 8, '', textStyle({
-      fontSize: '14px',
+    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 9, '', textStyle({
+      fontSize: '16px',
       wordWrap: { width: WRAP_W },
       lineSpacing: 4,
     }));

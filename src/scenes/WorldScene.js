@@ -61,9 +61,9 @@ export default class WorldScene extends Phaser.Scene {
     const x = sameMap && Number.isInteger(pos.x) ? pos.x : spawn.x;
     const y = sameMap && Number.isInteger(pos.y) ? pos.y : spawn.y;
     const sprite = this.add
-      .sprite(tileToX(x), tileToY(y), 'chars', 'may_down_0')
+      .sprite(tileToX(x), tileToY(y), 'chars', 'marcelino_down_0')
       .setOrigin(0.5, 1);
-    this.player = new GridMover(this, sprite, 'may', x, y, pos.dir || 'down');
+    this.player = new GridMover(this, sprite, 'marcelino', x, y, pos.dir || 'down');
   }
 
   setupCamera() {

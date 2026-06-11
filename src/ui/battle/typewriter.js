@@ -5,15 +5,15 @@ import { buttonFromEvent, waitForButton, delay } from './keys.js';
 export class MessageBox {
   constructor(scene) {
     this.scene = scene;
-    // Caja más alta (48px) y texto a 12px (Marcelino pidió fuentes más grandes).
-    // El texto se PAGINA a 2 renglones (ver reveal) para que nunca se corte una
-    // 3ª línea por debajo del borde.
+    // Texto a 14px (Marcelino pidió fuentes más grandes y nítidas). Caja al fondo
+    // (y=110, justo bajo el databox del jugador para no solaparse) de 48px. El texto
+    // se PAGINA a 2 renglones (ver reveal) para que nunca se corte una 3ª línea.
     this.frame = drawBox(scene, 2, 110, 236, 48, { depth: 8 });
     this.text = scene.add
-      .text(10, 118, '', textStyle({ fontSize: '12px', wordWrap: { width: 214 }, lineSpacing: 3 }))
+      .text(10, 117, '', textStyle({ fontSize: '14px', wordWrap: { width: 214 }, lineSpacing: 2 }))
       .setDepth(9);
     this.cursor = scene.add
-      .text(225, 147, '▼', textStyle({ fontSize: '12px', color: '#d04040' }))
+      .text(225, 145, '▼', textStyle({ fontSize: '14px', color: '#d04040' }))
       .setDepth(9)
       .setVisible(false);
   }

@@ -315,7 +315,7 @@ const TETUAN_NPCS = [
   // con el inicial L5 por un jugador novato cuidadoso (objetivo compartido con
   // el agente de combate). Su equipo grande llega más adelante (es el Campeón).
   {
-    id: 'alvaro_rival', sprite: 'norman', x: 9, y: 12, dir: 'left', roam: false,
+    id: 'alvaro_rival', sprite: 'alvaro_rival', x: 9, y: 12, dir: 'left', roam: false,
     trainer: {
       name: 'ÁLVARO ALONSO',
       title: 'Rival · Vicepresidente del Humo',
@@ -345,7 +345,7 @@ const TETUAN_NPCS = [
   },
   // Iván "FinTips" — socio/mentor financiero. Porygon en el lore.
   {
-    id: 'ivan_fintips', sprite: 'gentleman', x: 8, y: 16, dir: 'down', roam: false,
+    id: 'ivan_fintips', sprite: 'ivan_fintips', x: 8, y: 16, dir: 'down', roam: false,
     dialog: [
       'Ah, Marcelino, el visionario. ¿Ya sales a eso de "poner orden en el caos"? Muy bien, muy bien... pero dime, ¿la rentabilidad de eso cuál es exactamente?',
       'Yo lo observo todo desde la barrera, con mi cartera bien diversificada: cripto, ladrillo, un poco de rent2rent. El caos da ROI si sabes leerlo, te lo digo yo.',
@@ -356,7 +356,7 @@ const TETUAN_NPCS = [
   // Mariel — amiga venezolana de Iván FinTips. Trader hiperactiva (HFT), ludópata,
   // baila sevillanas, influencer. No te deja hablar. Entrenadora de eléctricos veloces.
   {
-    id: 'mariel', sprite: 'lass', x: 11, y: 16, dir: 'left', roam: true,
+    id: 'mariel', sprite: 'mariel', x: 11, y: 16, dir: 'left', roam: true,
     trainer: {
       name: 'MARIEL',
       title: 'La Reina del High-Frequency',
@@ -382,7 +382,7 @@ const TETUAN_NPCS = [
   },
   // José Antonio — el casero. NPC de bloqueo temático ligero (solo charla). Junto a la salida sur.
   {
-    id: 'jose_antonio_casero', sprite: 'elder_m', x: 16, y: 30, dir: 'down', roam: false,
+    id: 'jose_antonio_casero', sprite: 'jose_antonio_casero', x: 16, y: 30, dir: 'down', roam: false,
     dialog: [
       'Eh, eh, eh. Marcelino. ¿Dónde vas con tanta prisa, majo? Que estamos a día 1, no te hagas el loco.',
       'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa y reluciente como una bola de billar*',
@@ -392,7 +392,7 @@ const TETUAN_NPCS = [
   },
   // Alex — el Tentado Digital. Trainer menor (Pikachu/Magnemite). Toca la guitarra → sprite guitarist.
   {
-    id: 'alex_digital', sprite: 'guitarist', x: 22, y: 16, dir: 'down', roam: false,
+    id: 'alex_digital', sprite: 'alex_digital', x: 22, y: 16, dir: 'down', roam: false,
     trainer: {
       name: 'ALEX',
       title: 'El Tentado Digital',
@@ -498,7 +498,7 @@ const RUTA2_NPCS = [
   // Sergio Guillén — camionero de Lavapiés. Trainer de fuerza bruta.
   // BALANCE ruta temprana: 2 Pokémon, Nv.5-6 (Snorlax es tanque, va a Nv.6).
   {
-    id: 'sergio_guillen', sprite: 'hiker', x: 8, y: 22, dir: 'down', roam: false,
+    id: 'sergio_guillen', sprite: 'sergio_guillen', x: 8, y: 22, dir: 'down', roam: false,
     trainer: {
       name: 'SERGIO',
       title: 'Camionero de la Bundesliga',
@@ -526,7 +526,7 @@ const RUTA2_NPCS = [
   // Jesús "la Rata" — ente del caos vapeador, vuelto de Luxemburgo.
   // BALANCE ruta temprana: 2 Pokémon, Nv.6-7.
   {
-    id: 'jesus_la_rata', sprite: 'pokemaniac', x: 14, y: 34, dir: 'up', roam: false,
+    id: 'jesus_la_rata', sprite: 'jesus_la_rata', x: 14, y: 34, dir: 'up', roam: false,
     trainer: {
       name: 'JESÚS "LA RATA"',
       title: 'El que volvió de Luxemburgo',
@@ -657,7 +657,7 @@ const CHAMBERI_NPCS = [
   // Blanca — novia de Álvaro, estudia notarías. Gardevoir en el lore.
   // BALANCE: 3.ª ciudad; equipo Nv.8-9, ajustado a un inicial recién crecido.
   {
-    id: 'blanca_notarias', sprite: 'lass', x: 10, y: 11, dir: 'down', roam: false,
+    id: 'blanca_notarias', sprite: 'blanca_notarias', x: 10, y: 11, dir: 'down', roam: false,
     trainer: {
       name: 'BLANCA',
       title: 'Academia de Notarías Encantadas',
@@ -685,7 +685,7 @@ const CHAMBERI_NPCS = [
   // Ángel — el ansiolítico perfeccionista, el que endereza a Alex.
   // BALANCE: equipo Nv.9-10.
   {
-    id: 'angel_perfeccionista', sprite: 'scientist', x: 18, y: 11, dir: 'down', roam: false,
+    id: 'angel_perfeccionista', sprite: 'angel_perfeccionista', x: 18, y: 11, dir: 'down', roam: false,
     trainer: {
       name: 'ÁNGEL',
       title: 'El Ansiolítico Perfeccionista',
@@ -712,7 +712,7 @@ const CHAMBERI_NPCS = [
   },
   // Adrián Barrera — villano (Team Schizo). Cameo que amenaza con el "Orden Perfecto".
   {
-    id: 'adrian_schizo', sprite: 'psychic', x: 20, y: 12, dir: 'down', roam: false,
+    id: 'adrian_schizo', sprite: 'adrian_schizo', x: 20, y: 12, dir: 'down', roam: false,
     dialog: [
       'Vaya, vaya. El célebre Marcelino. El "Emprendedor Caótico". Qué apodo más espantoso, por cierto.',
       'Yo soy Adrián. Y todo este caos vuestro —los pisos, el Tinder, el vapeo, la improvisación de tres al cuarto— se ha acabado. El Team Schizo va a imponer el ORDEN PERFECTO.',
