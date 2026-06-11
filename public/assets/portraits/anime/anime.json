@@ -18,7 +18,7 @@
     "name": "Iván \"FinTips\"",
     "role": "lider-gimnasio",
     "anime": "portraits/anime/ivan_fintips.png",
-    "bytes": 1014695
+    "bytes": 740516
   },
   {
     "id": "mariel",
@@ -32,7 +32,7 @@
     "name": "Alex",
     "role": "amigo",
     "anime": "portraits/anime/alex_digital.png",
-    "bytes": 915281
+    "bytes": 874385
   },
   {
     "id": "jesus_la_rata",
@@ -60,7 +60,7 @@
     "name": "Blanca",
     "role": "aliada",
     "anime": "portraits/anime/blanca_notarias.png",
-    "bytes": 818857
+    "bytes": 776235
   },
   {
     "id": "jose_antonio_casero",
@@ -81,6 +81,6 @@
     "name": "Adrián Barrera",
     "role": "villano",
     "anime": "portraits/anime/adrian_schizo.png",
-    "bytes": 854071
+    "bytes": 710691
   }
 ]
