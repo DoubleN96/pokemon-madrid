@@ -56,6 +56,15 @@ const ELEGANT = {
     [30, 31, 31, 31, 31, 35], [143, 144, 144, 144, 144, 148], [256, 257, 258, 144, 260, 261],
     [369, 370, 371, 372, 373, 374], [482, 483, 484, 485, 486, 487]],
 };
+// Edificio de GIMNASIO (4×4) — IDÉNTICO al GYM de maps.js (fachada cívica del MART
+// para que se lea como edificio público, no vivienda). Aquí se usa para los
+// gimnasios 5-8 de la zona nueva (Ruta 3 · Gran Vía y Parque del Retiro). La puerta
+// es la baldosa caminable justo DEBAJO del edificio: la libera wireGymDoors (maps.js)
+// recorriendo GYM_LINKS, igual que con los gimnasios 1-4 de Tetuán/Chamberí.
+const GYM = {
+  w: 4, h: 4, overheadRows: 1,
+  tiles: [[26, 27, 27, 29], [139, 140, 141, 142], [252, 253, 254, 255], [361, 362, 367, 368]],
+};
 
 // ---------- helpers de construcción (idénticos a maps.js) ----------
 
@@ -195,6 +204,16 @@ function buildRuta3() {
   stampBuilding(m, 2, 10, HOUSE_BIG);   // Edificio Metrópolis (fachada)
   stampBuilding(m, 17, 9, HOUSE);       // Vodevil / tienda de vapeo de Jesús (guiño)
   stampBuilding(m, 2, 22, HOUSE);       // Telefónica (fachada)
+
+  // GIMNASIOS de la Liga (zona nueva). El interior se enlaza en wireGymDoors
+  // (GYM_LINKS, maps.js). La puerta = baldosa caminable justo debajo del edificio.
+  // GIM 5 · NOTARÍAS (Blanca) — plaza central oeste, puerta (8,14).
+  stampBuilding(m, 7, 10, GYM);
+  addSign(m, 7, 14, 'GIMNASIO NOTARÍAS — Líder: BLANCA. "Te gano con cariño y jurisprudencia. ¿Firmas el consentimiento para perder?" Medalla: Contrato.');
+  // GIM 8 · CUARTEL TEAM SCHIZO (Adrián Barrera) — plaza central este, puerta (14,14).
+  // El penúltimo reto, el más duro: la base del villano.
+  stampBuilding(m, 13, 10, GYM);
+  addSign(m, 16, 14, 'CUARTEL DEL TEAM SCHIZO — Líder: ADRIÁN BARRERA. "El caos se acabó. Aquí se impone el ORDEN PERFECTO." Medalla: Orden. (El más duro.)');
 
   // Jardincillos con hierba alta (encuentros urbanos).
   stampTallGrass(m, 3, 4, 4, 5);
@@ -346,6 +365,16 @@ function buildRetiro() {
   // Algún árbol suelto.
   stampTree(m, 12, 25);
   stampTree(m, 26, 4);
+
+  // GIMNASIOS de la Liga (zona nueva). Interior enlazado en wireGymDoors (GYM_LINKS).
+  // La puerta = baldosa caminable justo debajo del edificio.
+  // GIM 7 · MÁSTER DE MÁSTERS (Ángel) — paseo norte, puerta (21,7).
+  stampBuilding(m, 20, 3, GYM);
+  addSign(m, 19, 7, 'GIMNASIO MÁSTER — Líder: ÁNGEL. "Aquí nada pasa sin mi revisión. Ni tú, ni tu estrategia." Medalla: Revisión.');
+  // GIM 6 · TIENDA DE TODO A CIEN (Eduardo + la Madre) — esquina sureste, puerta (24,26).
+  // Doble liderazgo (te cobran por usar pociones); la Madre es la "mente maestra".
+  stampBuilding(m, 23, 22, GYM);
+  addSign(m, 22, 26, 'GIMNASIO TACAÑOS — Líderes: EDUARDO y SU MADRE. "Entrar: 3€. Respirar el aire: 2€. Aquí TODO se paga." Medalla: Hipoteca.');
 
   // HIERBA ALTA abundante (es un parque): varios prados.
   stampTallGrass(m, 3, 10, 12, 6);

@@ -13,11 +13,15 @@
 // autónomo. Si en el futuro interiors.js exporta esos helpers, basta con
 // importarlos y borrar las copias locales: la firma es la misma.
 //
-// Líderes (tipo → "as", niveles progresivos 12-30), según docs/SPEC-POKEMON-PISO.md:
+// Líderes (tipo → "as", niveles progresivos 12-48), según docs/SPEC-POKEMON-PISO.md:
 //   1. Iván "FinTips"   (Normal/Eléctrico, as: Persian "Porygon-Z" + Raichu)  L12-15
 //   2. Mariel           (Eléctrico,        as: Electrode + Jolteon)            L16-19
 //   3. Jesús "la Rata"  (Veneno/Fantasma,  as: Weezing + Gengar)              L20-24
 //   4. Sergio Guillén   (Lucha/Normal,     as: Machamp + Snorlax)             L25-30
+//   5. Blanca           (Psíquico/Hada,    as: Mr.Mime + Alakazam)            L32-36  ← Ruta 3 · Gran Vía
+//   6. Eduardo + Madre  (Veneno/Siniestro, as: Persian + Muk/Weezing)         L36-40  ← Parque del Retiro
+//   7. Ángel            (Acero/Psíquico,   as: Magneton + Alakazam)           L40-44  ← Parque del Retiro
+//   8. Adrián Barrera   (Siniestro/Fantasma,as: Arbok + Gengar — el más duro) L44-48  ← Ruta 3 · Gran Vía
 //
 // Paleta de tiles interiores (idéntica a interiors.js):
 const WALL = 2574;        // pared interior lisa
@@ -396,6 +400,317 @@ register('gym_camion', (exit) => {
   return m;
 });
 
+// ===== GIMNASIO 5 · ACADEMIA DE NOTARÍAS ENCANTADAS — Blanca (Psíquico/Hada) =====
+// Despacho notarial impecable: archivadores, sellos y mucha jurisprudencia. Líder
+// dulce y sensata (la novia de Álvaro, "el único punto de cordura"); te gana "con
+// cariño y jurisprudencia". "As": Alakazam (la mente que todo lo registra) rematando
+// un Mr. Mime (la pantomima notarial; Psíquico/Hada en este pokedex). Gen 1 no tiene
+// Gardevoir → Mr.Mime/Alakazam, como propone la nota de diseño del SPEC. Entrenador
+// menor: el opositor a notarías que lleva ocho convocatorias.
+register('gym_notarias', (exit) => {
+  const { m, matX, matY } = makeRoom('gym_notarias', 'GIMNASIO NOTARÍAS', 11, 12, FLOOR_TILE);
+  linkExit(m, matX, matY, exit);
+  carpetAisle(m, matX, matY - 1, 4);
+  // Mostradores de firma y archivadores de expedientes (orden absoluto).
+  setSolid(m, 1, 3, TABLE); setSolid(m, 2, 3, TABLE);   // mesa de firmas
+  setSolid(m, 8, 3, TABLE); setSolid(m, 9, 3, TABLE);
+  setSolid(m, 1, 6, CABINET); setSolid(m, 9, 6, CABINET); // archivadores de escrituras
+  setSolid(m, 1, 8, SHELF);  setSolid(m, 9, 8, SHELF);    // tomos del código civil
+  m.layers.deco[5][2] = PLANT; m.layers.deco[5][8] = PLANT;
+  // Opositor eterno (entrenador menor opcional).
+  m.npcs.push({
+    id: 'gym_notarias_opositor', sprite: 'scientist', x: 3, y: 6, dir: 'right', roam: false,
+    trainer: {
+      name: 'OPOSITOR A NOTARÍAS',
+      title: 'Octava convocatoria',
+      party: [
+        { species: 96, level: 31 },  // Drowzee (la mente machacada de tanto repasar)
+        { species: 122, level: 32 }, // Mr. Mime (mima el temario, no se lo sabe)
+      ],
+      intro: [
+        'Llevo OCHO convocatorias, ocho. Blanca aprobó a la primera y encima es maja. La vida es injusta, combáteme.',
+        'Si me ganas, paso página del tema 47. Si pierdes, te lo recito entero. Tú verás qué prefieres.',
+      ],
+      win: ['Vale, vale, pasa con Blanca. Yo vuelvo al tema 47, que me lo sé... casi.'],
+      defeat: ['¡Suspendido! Como yo, pero al menos tú puedes presentarte otra vez. Anda, repasa.'],
+      prize: 1280,
+      flag: 'gym_notarias_opositor',
+    },
+  });
+  // LÍDER: Blanca.
+  addLeader(m, matX, 3, {
+    id: 'gym_leader_blanca', sprite: 'lass',
+    trainer: {
+      name: 'BLANCA',
+      title: 'Líder · Academia de Notarías Encantadas',
+      badge: 'Contrato',
+      party: [
+        { species: 35, level: 32 },  // Clefairy (el "hada" castiza; Normal en Gen 1)
+        { species: 36, level: 34 },  // Clefable (la fe pública evolucionada)
+        { species: 122, level: 35 }, // Mr. Mime (la pantomima notarial, Psíquico/Hada)
+        { species: 65, level: 36 },  // Alakazam — AS (la mente que registra cada cláusula)
+      ],
+      intro: [
+        'Hola otra vez, Marcelino. Aquí, en la Gran Vía, tengo el despacho en regla y al día. Antes de batirnos, fírmame el consentimiento. Aquí, aquí y... aquí.',
+        'Sí, sigo siendo la novia de Álvaro y el único punto de cordura de todo este caos de pisos, Tinder y vapeo. Alguien tiene que llevar los papeles, ¿no crees?',
+        'Te voy a ganar con cariño y jurisprudencia, sin un solo vicio de forma. ¿Me firmas también el consentimiento para perder? Es por dejarlo todo registrado.',
+      ],
+      win: [
+        'Impecable. Queda debidamente protocolizado: has vencido en buena lid y elevado a público tu mérito.',
+        'Toma la Medalla Contrato, con su factura y su sello. Y dile a Álvaro que se duche más de tres minutos; a ti te hará más caso que a mí. Suerte arriba, cielo.',
+      ],
+      defeat: [
+        'Caso cerrado, sin acritud. La burocracia siempre gana, es ley de vida y de notaría.',
+        'Estudia un poquito y vuelves cuando quieras. Te espero con los papeles preparados y el sello a mano.',
+      ],
+      prize: 4200,
+      flag: 'gym_notarias_blanca',
+    },
+  });
+  addSign(m, 1, 10, 'TABLÓN DE LA ACADEMIA — "Para combatir en la Liga: aporte original y copia. Las pociones usadas tributan al 21%. Firmado: Blanca."');
+  addSign(m, 9, 10, 'PLACA — "Mejor promoción de notarías. Y sí, también la mejor novia de la región, no como cierto Vicepresidente del Humo."');
+  return m;
+});
+
+// ===== GIMNASIO 6 · TIENDA DE TODO A CIEN — Eduardo + la Madre (Veneno/Siniestro) =====
+// Doble liderazgo (SPEC 3.D: "Eduardo + su madre", te cobran por usar pociones). Un
+// bazar tacaño donde hasta el aire se factura. Sableye/Greedent no son Gen 1 → se usan
+// Persian/Meowth (avaricia que araña), Muk/Weezing (la mugre venenosa que acumulan) y
+// Gengar/Haunter (el duende que roba joyas del lore de la Madre). Entrenador menor:
+// Sofía, la novia omnipresente, que cobra la entrada.
+register('gym_tacanos', (exit) => {
+  const { m, matX, matY } = makeRoom('gym_tacanos', 'GIMNASIO TACAÑOS', 11, 12, FLOOR_TILE);
+  linkExit(m, matX, matY, exit);
+  carpetAisle(m, matX, matY - 1, 4);
+  // Estanterías de bazar repletas y caja registradora (todo se cobra).
+  setSolid(m, 1, 3, SHELF); setSolid(m, 2, 3, SHELF);   // baratijas chinas
+  setSolid(m, 8, 3, SHELF); setSolid(m, 9, 3, SHELF);
+  setSolid(m, 1, 6, TABLE); setSolid(m, 9, 6, TABLE);   // mostrador con caja registradora
+  setSolid(m, 1, 8, CABINET); setSolid(m, 9, 8, CABINET); // vitrina de "ofertas" no rebajadas
+  m.layers.deco[7][2] = PLANT; m.layers.deco[7][8] = PLANT;
+  // Sofía — novia omnipresente de Eduardo (entrenador menor opcional).
+  m.npcs.push({
+    id: 'gym_tacanos_sofia', sprite: 'lass', x: 3, y: 6, dir: 'right', roam: false,
+    trainer: {
+      name: 'SOFÍA',
+      title: 'Novia (y caja) de Eduardo',
+      party: [
+        { species: 52, level: 35 },  // Meowth (recauda monedas)
+        { species: 88, level: 36 },  // Grimer (lo que se pega a la cartera ajena)
+      ],
+      intro: [
+        'Para ver a Eduardo y a su madre hay que pasar por caja. Son 3 pavos la entrada, 2 más por respirar el aire acondicionado. ¿Pagas o combates?',
+        'Llevo organizando nuestra boda pública desde 2019. La pagamos a plazos... bueno, la paga su madre a plazos. Combáteme mientras imprimo facturas.',
+      ],
+      win: ['Vale, pasa, pero NO toques nada que no esté pagado. Eduardo, ¡cariño, tienes visita que no ha pagado el aire!'],
+      defeat: ['¡Caja registradora hace CHING! Vuelve con el cambio justo, que aquí no se devuelve.'],
+      prize: 1500,
+      flag: 'gym_tacanos_sofia',
+    },
+  });
+  // LÍDERES: Eduardo (delante) + la Madre (al fondo, la "mente maestra").
+  // La Madre es el verdadero AS: lleva el equipo más fuerte y la medalla.
+  m.npcs.push({
+    id: 'gym_leader_eduardo', sprite: 'gentleman', x: matX - 2, y: 4, dir: 'down', roam: false,
+    trainer: {
+      name: 'EDUARDO',
+      title: 'El del Postureo en Redes',
+      party: [
+        { species: 52, level: 36 },  // Meowth ("Día de Pago")
+        { species: 53, level: 38 },  // Persian (la avaricia que araña)
+        { species: 110, level: 39 }, // Weezing (la imagen que monta humo)
+      ],
+      intro: [
+        '*selfie con la caja registradora de fondo* Ah, Marcelino. Espera, que esto sube a stories: "Domingo de bazar familiar y reflexión". Con esta luz quedo divino.',
+        'Te combato, pero te aviso: aquí cada poción que uses te la cobro. Genética pura. Mi madre le cobró una Coca-Cola a Álvaro y lo cuenta con ORGULLO. Cuando me ganes —si me ganas— habla con ella, que es la jefa.',
+      ],
+      win: [
+        'Bueno... lo borro de stories y arreglado. Para los seguidores, hoy NO he perdido. Pasa con mi madre, valiente. Suerte la vas a necesitar.',
+      ],
+      defeat: [
+        '¡Y a esto le llamo yo rentabilidad! Tu derrota, mis stories, cero gasto. Engagement puro, primo.',
+        'Vuelve cuando puedas permitirte perder con estilo. El estilo no se regala. Ni yo, ni mi madre, regalamos nada.',
+      ],
+      prize: 1800,
+      flag: 'gym_tacanos_eduardo',
+    },
+  });
+  addLeader(m, matX + 1, 3, {
+    id: 'gym_leader_madre', sprite: 'elder_m',
+    trainer: {
+      name: 'LA MADRE DE EDUARDO',
+      title: 'Líder · Mente Maestra de la Tacañería',
+      badge: 'Hipoteca',
+      party: [
+        { species: 53, level: 37 },  // Persian (araña hasta el último céntimo)
+        { species: 109, level: 38 }, // Koffing (el aire que también cobra)
+        { species: 93, level: 39 },  // Haunter (el duende que roba joyas del lore)
+        { species: 89, level: 40 },  // Muk — AS (todo lo que acumula y NO comparte)
+      ],
+      intro: [
+        '*gafas gruesas, mirada severa* Conque tú eres el amigo de mi hijo. El del caos. Siéntate. No, de pie, que la silla son 5 pavos.',
+        'Yo cobro hasta el aire que respiras. Le cobré una Coca-Cola a tu amigo Álvaro y volvería a hacerlo. La tacañería, criatura, no es un defecto: es un MÉTODO.',
+        'Mi Muk acumula todo lo que toca y no suelta ni una. Igualito que yo con la cartera. Combate, anda. Y como uses una poción, te la facturo con IVA.',
+      ],
+      win: [
+        '...Hmpf. Me has ganado. Cosa que no perdono, pero registro. Toma la Medalla Hipoteca; te la has GANADO, que es lo único que respeto en esta vida: lo ganado.',
+        'Y dile a mi hijo que deje de hacerse fotos y empiece a ahorrar. Que de algún sitio tiene que salir lo de su boda eterna. Ale, fuera, que cierro.',
+      ],
+      defeat: [
+        'Lo que yo decía. Aquí no se gana gratis, ni la medalla ni nada. Todo se paga, criatura. TODO.',
+        'Vuelve cuando tengas con qué. Y trae el dinero en mano, que aquí no se fía. Que se fió Jesús... y mira.',
+      ],
+      prize: 5000,
+      flag: 'gym_tacanos_madre',
+    },
+  });
+  addSign(m, 1, 10, 'LISTA DE PRECIOS — "Entrar: 3€. Respirar aire fresco: 2€. Mirar sin comprar: 5€. Usar el baño: PROHIBIDO. — La Dirección (Mamá)."');
+  addSign(m, 9, 10, 'CARTEL — "Aquí NO se fía. Que se fió Jesús la Rata en 2019 y aún lo estamos cobrando. Pregunte por nuestra boda pública (financiada)."');
+  return m;
+});
+
+// ===== GIMNASIO 7 · MÁSTER DE MÁSTERS — Ángel (Acero/Psíquico) =====
+// Aula-laboratorio obsesivamente ordenada del "ansiolítico perfeccionista" que no
+// deja ligar a Alex. Todo revisado tres veces. Tipo Acero/Psíquico → Magneton (el
+// imán que todo lo alinea) + Alakazam (la revisión psíquica final). Entrenador menor:
+// el alumno al que Ángel corrige sin parar.
+register('gym_master', (exit) => {
+  const { m, matX, matY } = makeRoom('gym_master', 'GIMNASIO MÁSTER', 11, 12, FLOOR_TILE);
+  linkExit(m, matX, matY, exit);
+  carpetAisle(m, matX, matY - 1, 4);
+  // Pupitres alineados al milímetro y aparatos de "revisión".
+  setSolid(m, 1, 3, TABLE); setSolid(m, 2, 3, TABLE);   // pupitres revisados
+  setSolid(m, 8, 3, TABLE); setSolid(m, 9, 3, TABLE);
+  setSolid(m, 1, 6, CABINET); setSolid(m, 9, 6, CABINET); // archivo de correcciones
+  setSolid(m, 1, 8, SHELF);  setSolid(m, 9, 8, SHELF);    // manuales subrayados
+  m.layers.deco[5][2] = PLANT; m.layers.deco[5][8] = PLANT;
+  // Alumno corregido sin descanso (entrenador menor opcional).
+  m.npcs.push({
+    id: 'gym_master_alumno', sprite: 'guitarist', x: 3, y: 6, dir: 'right', roam: false,
+    trainer: {
+      name: 'ALUMNO DE ÁNGEL',
+      title: 'Corregido en bucle',
+      party: [
+        { species: 81, level: 39 },  // Magnemite (alineado al milímetro)
+        { species: 64, level: 40 },  // Kadabra (repasa, repasa, repasa)
+      ],
+      intro: [
+        'Ángel me ha corregido el trabajo trece veces. TRECE. Combáteme antes de que encuentre el error catorce.',
+        'Yo solo quería aprobar el máster. Vine con Alex "a ligar" y mira, acabé revisando comas a las tres de la mañana.',
+      ],
+      win: ['Vale, pasa con Ángel. Y si ves un fallo en mi formación... no se lo digas. Por favor.'],
+      defeat: ['¡Error en tu línea de ataque! Ángel tenía razón: siempre hay un fallo. Repásalo.'],
+      prize: 1560,
+      flag: 'gym_master_alumno',
+    },
+  });
+  // LÍDER: Ángel.
+  addLeader(m, matX, 3, {
+    id: 'gym_leader_angel', sprite: 'scientist',
+    trainer: {
+      name: 'ÁNGEL',
+      title: 'Líder · El Ansiolítico Perfeccionista',
+      badge: 'Revisión',
+      party: [
+        { species: 96, level: 40 },  // Drowzee (la mente que todo repasa)
+        { species: 82, level: 42 },  // Magneton (tres imanes alineados, simétricos)
+        { species: 64, level: 43 },  // Kadabra (penúltima revisión)
+        { species: 65, level: 44 },  // Alakazam — AS (la revisión psíquica final, perfecta)
+      ],
+      intro: [
+        'Un momento. Aquí, en mi máster, nada pasa sin mi revisión. Ni tú, ni tu estrategia, ni esa cuarta poción que llevas mal colocada en la mochila. La he visto. La he apuntado.',
+        'Soy el que mantiene a Alex con los pies en la tierra. Si fuera por él estaría haciendo match con una eslava en lugar de aprobando. No. Lo. Permito.',
+        'He repasado tu equipo tres veces y tiene fallos. Permíteme señalártelos uno a uno, con calma, antes de pulverizarte con precisión milimétrica. Cuando quieras.',
+      ],
+      win: [
+        'Mmm. Aceptable. No es perfecto —nunca lo es— pero es... aceptable. Lo anoto en el cuaderno de mejoras, sección "imprevistos que no preví".',
+        'Toma la Medalla Revisión. Y ordena la mochila antes de salir, te lo pido por favor: el orden reduce la ansiedad. La tuya, y sobre todo la mía.',
+      ],
+      defeat: [
+        'Lo ves. Un fallo en la línea tres de tu plan. Te lo avisé. Siempre, SIEMPRE hay un fallo.',
+        'Respira, corrígelo y vuelve. La perfección es un proceso, no un golpe de suerte. Yo te espero. No tengo ninguna prisa. Tengo todo medido.',
+      ],
+      prize: 4600,
+      flag: 'gym_master_angel',
+    },
+  });
+  addSign(m, 1, 10, 'NORMA DEL AULA — "Prohibido: improvisar, llegar tarde, dejar la mochila desordenada y ligar en horario lectivo. Cumplimiento: 100%. — Ángel."');
+  addSign(m, 9, 10, 'CUADRO DE HONOR — "Trabajos sin un solo error: 0. Es estadísticamente imposible, pero seguimos intentándolo. Cada día. Sin falta."');
+  return m;
+});
+
+// ===== GIMNASIO 8 · CUARTEL DEL TEAM SCHIZO — Adrián Barrera (Siniestro/Fantasma) =====
+// El penúltimo reto y el MÁS DURO: la base del villano, donde Adrián impone su "Orden
+// Perfecto". Música, risas por decreto y dominación intelectual. Mr.Mime Tirano del
+// lore → en Gen 1, equipo Siniestro/Fantasma de control mental: Hypno (hipnosis),
+// Arbok (la serpiente que aprieta), Haunter→Gengar (la sombra que controla). Entrenador
+// menor: un comandante del Team Schizo (guiño a Cortina, sabotaje gástrico).
+register('gym_schizo', (exit) => {
+  const { m, matX, matY } = makeRoom('gym_schizo', 'CUARTEL TEAM SCHIZO', 11, 13, FLOOR_TILE);
+  linkExit(m, matX, matY, exit);
+  carpetAisle(m, matX, matY - 1, 4);
+  // Sala de mando: pantallas de propaganda, atriles y vitrinas de "decretos".
+  setSolid(m, 1, 3, CABINET); setSolid(m, 2, 3, CABINET); // archivos del "Orden Perfecto"
+  setSolid(m, 8, 3, CABINET); setSolid(m, 9, 3, CABINET);
+  setSolid(m, 1, 6, TABLE); setSolid(m, 9, 6, TABLE);     // atriles de decretos
+  setSolid(m, 1, 8, SHELF); setSolid(m, 9, 8, SHELF);     // partituras y libros de debate
+  m.layers.deco[7][2] = PLANT; m.layers.deco[7][8] = PLANT;
+  // Comandante del Team Schizo (entrenador menor opcional).
+  m.npcs.push({
+    id: 'gym_schizo_comandante', sprite: 'psychic', x: 3, y: 6, dir: 'right', roam: false,
+    trainer: {
+      name: 'COMANDANTE SCHIZO',
+      title: 'Sabotaje Gástrico',
+      party: [
+        { species: 89, level: 43 },  // Muk (revuelve estómagos)
+        { species: 24, level: 44 },  // Arbok (aprieta hasta rendirte)
+      ],
+      intro: [
+        'Alto. Para ver a Adrián, primero pasas por mí. Yo soy el que sabotea las cenas y revuelve los estómagos del enemigo. Una especialidad.',
+        'El Orden Perfecto exige sacrificios. El mío fue el aparato digestivo. Combate, intruso del caos.',
+      ],
+      win: ['*náuseas* Ugh... pasa, pasa. Adrián te espera al fondo, con el ceño fruncido de siempre.'],
+      defeat: ['¡El caos siempre revuelve! Vuelve cuando tengas el estómago... y el equipo, más fuertes.'],
+      prize: 1760,
+      flag: 'gym_schizo_comandante',
+    },
+  });
+  // LÍDER: Adrián Barrera — el más duro de la Liga (penúltimo reto antes del Campeón).
+  addLeader(m, matX, 3, {
+    id: 'gym_leader_adrian', sprite: 'psychic',
+    trainer: {
+      name: 'ADRIÁN BARRERA',
+      title: 'Líder · Tirano del Team Schizo',
+      badge: 'Orden',
+      party: [
+        { species: 96, level: 44 },  // Drowzee (primera capa de control mental)
+        { species: 24, level: 45 },  // Arbok (la serpiente que estrangula la voluntad)
+        { species: 97, level: 46 },  // Hypno (hipnosis: el debate ganado por decreto)
+        { species: 93, level: 46 },  // Haunter (la sombra que vigila)
+        { species: 94, level: 48 },  // Gengar — AS (el Mr.Mime Tirano del lore, en sombra)
+      ],
+      intro: [
+        'Vaya, vaya. El célebre Marcelino. El "Emprendedor Caótico". Has llegado lejos para alguien sin un plan decente. Me sorprende. Me irrita, pero me sorprende.',
+        'Yo soy Adrián, y esto se acabó: el caos, los pisos, el Tinder, el vapeo, la improvisación de tres al cuarto. El Team Schizo impone el ORDEN PERFECTO. Vacaciones por decreto. Debates ganados por decreto. Y las risas... cuando YO lo diga.',
+        '*frunce el ceño como un crío al que le quitan el postre* Mi madre me consintió todo y mira qué bien salí. Ahora te toca a ti obedecer. Mi equipo te va a poner en tu sitio. En el sitio CORRECTO. ¡Empieza el orden!',
+      ],
+      win: [
+        '...No. NO. Esto no estaba en mi plan. *le tiembla el bigote* El caos no PUEDE vencer al orden, es... es incorrecto, es antinatural, voy a llamar a mi tía.',
+        'Toma tu maldita Medalla Orden. Te la has ganado, lo reconozco, y odio reconocer cosas. Pero esto no acaba aquí: arriba te espera Álvaro, el Campeón. Y él SÍ tiene un Excel. Veremos cuánto te dura el caos contra la lógica perfecta.',
+      ],
+      defeat: [
+        'Previsible. El caos nunca tuvo nada que hacer contra el Orden Perfecto. Lo tenía todo calculado, decretado y firmado.',
+        'Vuelve cuando aceptes que el mundo necesita un dueño. Y ese dueño, querido Marcelino, soy yo. Yo y mi tía, que da el visto bueno.',
+      ],
+      prize: 7000,
+      flag: 'gym_schizo_adrian',
+    },
+  });
+  addSign(m, 1, 11, 'DECRETO Nº1 DEL TEAM SCHIZO — "Las vacaciones se planifican. Los debates se ganan por decreto. Las risas, cuando lo diga Adrián. Incumplir = expulsión."');
+  addSign(m, 9, 11, 'PROCLAMA — "El caos es un error de diseño. El Orden Perfecto es inevitable. Música, risas e intelecto: los tres pilares. Firmado y sellado por mi tía."');
+  return m;
+});
+
 // ---------- ensamblado (espeja interiors.js::BUILDING_LINKS / buildInteriors) ----------
 //
 // Mapa de cada gimnasio → su baldosa de salida exterior. `exit` es a dónde te
@@ -413,6 +728,19 @@ export const GYM_LINKS = [
   { gym: 'gym_fantasma', exit: { map: 'chamberi', x: 17, y: 26, dir: 'down' } },
   // GIM 4 · Camión (Sergio) → ciudad CHAMBERÍ (zona sur, donde aparca).
   { gym: 'gym_camion', exit: { map: 'chamberi', x: 11, y: 25, dir: 'down' } },
+  // ---- GIMNASIOS 5-8 (Liga de 8 medallas), zona nueva (areaExtra.js) ----
+  // El edificio GYM (4×4) se estampa en areaExtra.js sobre la baldosa indicada;
+  // la `exit`/puerta es la baldosa caminable JUSTO DEBAJO del edificio (la libera
+  // wireGymDoors). Coords verificadas contra la colisión real de ruta3/retiro
+  // (footprint despejado + puerta alcanzable a pie desde el spawn de cada zona).
+  // GIM 5 · Notarías (Blanca) → RUTA 3 · Gran Vía (plaza central oeste).
+  { gym: 'gym_notarias', exit: { map: 'ruta3', x: 8, y: 14, dir: 'down' } },
+  // GIM 6 · Tacaños (Eduardo + Madre) → PARQUE DEL RETIRO (esquina sureste, "bazar").
+  { gym: 'gym_tacanos', exit: { map: 'retiro', x: 24, y: 26, dir: 'down' } },
+  // GIM 7 · Máster (Ángel) → PARQUE DEL RETIRO (paseo norte, aula-laboratorio).
+  { gym: 'gym_master', exit: { map: 'retiro', x: 21, y: 7, dir: 'down' } },
+  // GIM 8 · Team Schizo (Adrián) → RUTA 3 · Gran Vía (plaza central este, cuartel).
+  { gym: 'gym_schizo', exit: { map: 'ruta3', x: 14, y: 14, dir: 'down' } },
 ];
 
 // Construye todos los gimnasios enlazados a su salida exterior.
@@ -458,7 +786,17 @@ export function buildGyms() {
 // │ gym_trading  │ chamberi  │ door  { x:14, y:9 }   │ exit { x:14, y:10, dir:down } │
 // │ gym_fantasma │ chamberi  │ door  { x:17, y:25 }  │ exit { x:17, y:26, dir:down } │
 // │ gym_camion   │ chamberi  │ door  { x:11, y:24 }  │ exit { x:11, y:25, dir:down } │
+// │ gym_notarias │ ruta3     │ bldg  { 7,10 } 4×4    │ exit { x:8,  y:14, dir:down } │
+// │ gym_tacanos  │ retiro    │ bldg  { 23,22 } 4×4   │ exit { x:24, y:26, dir:down } │
+// │ gym_master   │ retiro    │ bldg  { 20,3 } 4×4    │ exit { x:21, y:7,  dir:down } │
+// │ gym_schizo   │ ruta3     │ bldg  { 13,10 } 4×4   │ exit { x:14, y:14, dir:down } │
 // └──────────────┴───────────┴──────────────────────┴──────────────────────────────┘
+//
+// NOTA gimnasios 5-8: a diferencia de los 1-4 (donde la "puerta" es 1 tile bajo un
+// edificio ya existente en la ciudad), aquí areaExtra.js ESTAMPA el edificio GYM
+// (4×4) en la baldosa `bldg` indicada y la puerta es la baldosa caminable JUSTO
+// DEBAJO del edificio (= la `exit`). wireGymDoors la libera y crea el warp de
+// entrada, igual que con los 1-4. El warp de SALIDA lo crea gyms.js vía linkExit.
 //
 // Es decir, por cada fila, añadir al `m.warps` de la CIUDAD (no del gimnasio):
 //   tetuan:   { x:20, y:8,  toMap:'gym_cashflow', toX:<spawnX>, toY:<spawnY>, dir:'up' }

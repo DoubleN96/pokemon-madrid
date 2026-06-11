@@ -153,6 +153,46 @@ const reachedRetiro = await walkUntil('ArrowDown', async () => {
 console.log('   Ruta 3 → Retiro:', reachedRetiro ? `EN ${JSON.stringify(await save())}` : 'NO (no bloqueante)');
 
 // ============================================================================
+// 5) GIMNASIOS NUEVOS (5-8, Liga de 8 medallas). BLOQUEANTE: comprobar que al
+//    menos UNO de los nuevos gimnasios es ALCANZABLE ANDANDO y se ENTRA (el warp
+//    cambia save.player.map al interior). Probamos el Gimnasio Notarías (Blanca)
+//    en Ruta 3 · Gran Vía: edificio en (7,10), puerta caminable debajo en (8,14).
+//    Cobertura extra (no bloqueante): Gimnasio Máster (Ángel) en el Retiro (21,7).
+// ============================================================================
+console.log('5. GIMNASIOS NUEVOS: caminar a la PUERTA del Gimnasio Notarías (Ruta 3, 8,14) → warp al interior');
+// Colocar al jugador en (8,15), justo DEBAJO de la puerta del gimnasio, mirando arriba.
+await teleport('ruta3', 8, 15, 'up');
+const nbpos = await save();
+console.log('   ante Gimnasio Notarías:', JSON.stringify(nbpos));
+if (!nbpos || nbpos.map !== 'ruta3') await fail('teletransporte ante Gimnasio Notarías falló');
+await shot('07-ante-gym-notarias');
+
+const enteredNotarias = await walkUntil('ArrowUp', async () => {
+  const p = await save();
+  return !!(p && p.map === 'gym_notarias');
+}, 10);
+const notariasPos = await save();
+if (!enteredNotarias) await fail(`no entró al Gimnasio Notarías; quedó en ${JSON.stringify(notariasPos)}`);
+await sleep(500);
+await shot('08-dentro-gym-notarias');
+console.log('   ✅ DENTRO del Gimnasio Notarías (Blanca):', JSON.stringify(notariasPos));
+
+// Salir del gimnasio nuevo (bajar al felpudo) → vuelve a 'ruta3'.
+const exitedNotarias = await walkUntil('ArrowDown', async () => {
+  const p = await save();
+  return !!(p && p.map === 'ruta3');
+}, 12);
+console.log('   salida del Gimnasio Notarías:', exitedNotarias ? `de vuelta en ${JSON.stringify(await save())}` : 'NO salió (no bloqueante)');
+
+// Cobertura extra (no bloqueante): Gimnasio Máster (Ángel) en el Retiro, puerta (21,7).
+await teleport('retiro', 21, 8, 'up');
+const enteredMaster = await walkUntil('ArrowUp', async () => {
+  const p = await save();
+  return !!(p && p.map === 'gym_master');
+}, 8);
+console.log('   Gimnasio Máster (Retiro 21,7):', enteredMaster ? `DENTRO ${JSON.stringify(await save())}` : 'NO (no bloqueante)');
+
+// ============================================================================
 // RESUMEN
 // ============================================================================
 console.log('\n=== RESUMEN MUNDO ===');
@@ -161,11 +201,13 @@ console.log('Gimnasio alcanzable  : gym_trading  (puerta Chamberí 14,10) →', 
 console.log('Zona nueva alcanzable: ruta3        (salida sur Chamberí)   →', reachedRuta3 ? 'PASS' : 'FALLO');
 console.log('Gimnasio alcanzable  : gym_cashflow (puerta Tetuán  20,9)   →', enteredCashflow ? 'PASS' : 'FALLO');
 console.log('Cadena de zona nueva : ruta3 → retiro                       →', reachedRetiro ? 'PASS' : '(no bloqueante)');
+console.log('Gimnasio NUEVO       : gym_notarias (puerta Ruta 3   8,14)  →', enteredNotarias ? 'PASS' : 'FALLO');
+console.log('Gimnasio NUEVO extra : gym_master   (puerta Retiro  21,7)   →', enteredMaster ? 'PASS' : '(no bloqueante)');
 console.log('Errores consola:', realErrors.length);
 realErrors.slice(0, 8).forEach((e) => console.log('  -', e.slice(0, 140)));
 
-if (enteredGym && reachedRuta3 && enteredCashflow && realErrors.length === 0) {
-  console.log('\nWORLD E2E: PASS ✅ (gimnasio Trading entrable + Ruta 3 alcanzable, sin errores)');
+if (enteredGym && reachedRuta3 && enteredCashflow && enteredNotarias && realErrors.length === 0) {
+  console.log('\nWORLD E2E: PASS ✅ (gimnasios 1-4 + gimnasio NUEVO 5 (Notarías) entrables + Ruta 3 alcanzable, sin errores)');
   await browser.close(); process.exit(0);
 } else {
   console.log('\nWORLD E2E: REVISAR ⚠️');
