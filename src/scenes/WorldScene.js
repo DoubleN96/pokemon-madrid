@@ -119,7 +119,11 @@ export default class WorldScene extends Phaser.Scene {
     const d = DIRS[dir];
     const nx = this.player.tileX + d.dx;
     const ny = this.player.tileY + d.dy;
-    if (this.isBlocked(nx, ny, this.player)) { this.player.idle(); return; }
+    if (this.isBlocked(nx, ny, this.player)) {
+      this.player.idle();
+      if (this.time.now > (this._bumpAt || 0)) { sfx(this, 'bump', { volume: 0.5 }); this._bumpAt = this.time.now + 320; }
+      return;
+    }
     const save = this.registry.get('save');
     const riding = !!(save && save.flags && save.flags.riding);
     const factor = riding ? BIKE_FACTOR : (this.isRunHeld() ? RUN_FACTOR : 1);
@@ -177,6 +181,7 @@ export default class WorldScene extends Phaser.Scene {
     this.transitioning = true;
     this.inputLocked = true;
     this.player.idle();
+    sfx(this, 'door', { volume: 0.6 });
     const dest = { map: warp.toMap, x: warp.toX, y: warp.toY, dir: warp.dir || this.player.dir };
     this.cameras.main.fadeOut(250, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -263,6 +268,7 @@ export default class WorldScene extends Phaser.Scene {
     this.talk(npc.def.dialog, () => {
       const save = this.registry.get('save');
       ((save && save.party) || []).forEach(healFull);
+      sfx(this, 'heal', { volume: 0.7 });
       this.chainTalk(
         ['¡Tus Pokémon están como nuevos!', '¡Que te vaya bien, y mucho ojo por ahí!'],
         () => this.endInteraction(npc),
