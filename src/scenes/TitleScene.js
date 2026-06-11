@@ -407,12 +407,12 @@ export default class TitleScene extends Phaser.Scene {
     drawBox(this, boxX, boxY, boxW, boxH);
 
     // Entrada del panel con un breve deslizamiento desde abajo.
-    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#383838', resolution: 2 };
+    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#181818', resolution: 4 };
     this.menuItems = [
-      this.add.text(boxX + 22, boxY + 11, 'CONTINUAR', style),
-      this.add.text(boxX + 22, boxY + 27, 'NUEVA PARTIDA', style),
+      this.add.text(boxX + 22, boxY + 10, 'CONTINUAR', style),
+      this.add.text(boxX + 22, boxY + 26, 'NUEVA PARTIDA', style),
     ];
-    this.cursor = this.add.text(boxX + 10, boxY + 11, '▶', { ...style, color: '#c03028' });
+    this.cursor = this.add.text(boxX + 10, boxY + 10, '▶', { ...style, color: '#c03028' });
 
     // Animación de entrada del menú (fade + ligero ascenso).
     const items = [...this.menuItems, this.cursor];

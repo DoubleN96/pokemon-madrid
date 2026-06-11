@@ -10,26 +10,40 @@ export const BOX_COLORS = {
   panelDetail: 0xd0e8f8, // fondo panel detalle
 };
 
-export const TEXT_COLOR = '#383838';
+// Texto bien OSCURO sobre la caja clara para máximo contraste (antes #383838,
+// se veía grisáceo en móvil). Casi negro = trazo nítido y "crujiente".
+export const TEXT_COLOR = '#181818';
 export const TEXT_COLOR_LIGHT = '#f8f8f8';
-export const TEXT_COLOR_DIM = '#787878';
+export const TEXT_COLOR_DIM = '#707070';
 
-// Fuente píxel del juego (estilo GBA/Pokémon). Se carga vía @font-face en
-// index.html (Pixelify Sans, licencia OFL) bajo el alias 'PixelMadrid'. El
-// fallback a 'monospace' cubre los pocos glifos que la fuente píxel no trae
-// (cursores geométricos ▶ ▼ y flechas ↑ ↓), que usan otras escenas.
+// Sombra clara de 1px bajo el texto oscuro: define el borde de cada glifo (le
+// da el aspecto nítido tipo GBA) sin emborronar el píxel-art.
+export const TEXT_SHADOW = '#c8c8c8';
+
+// Fuente píxel del juego: la AUTÉNTICA de Pokémon Rojo Fuego/Verde Hoja (GBA),
+// cargada vía @font-face en index.html bajo el alias 'PixelMadrid'. Es una
+// recreación libre con trazos GRUESOS de 2px pensada para leerse a tamaño
+// pequeño en la pantalla GBA — por eso sale legible y nítida en móvil (al
+// contrario que las pixel-fonts finas como Pixelify, que se veían como hilos
+// grises). El fallback a 'monospace' cubre los pocos glifos que no trae
+// (cursores ▶ ▼ ↑ ↓, ₧ pesetas, € y ★), igual que antes.
 export const GAME_FONT = '"PixelMadrid", monospace';
 
-// Estilo de texto estándar del juego: fuente píxel nítida a 8px (su rejilla
-// nativa cae en píxeles enteros) con resolution alta para que el texto se vea
-// CRUJIENTE al escalar la pantalla GBA en móvil (FIT sube 240px ~4×).
+// Estilo de texto estándar del juego. La fuente FRLG es monoespaciada y su
+// rejilla cae en píxeles enteros; a 10px se lee CLARA y GRUESA en la pantalla
+// GBA escalada en móvil. resolution 4 rasteriza a 4× para que no haya bordes
+// borrosos al escalar, y la sombra clara de 1px remata el contraste.
 export function textStyle(overrides = {}) {
+  const { shadow: shadowOverride, ...rest } = overrides;
   return {
     fontFamily: GAME_FONT,
-    fontSize: '8px',
+    fontSize: '10px',
     color: TEXT_COLOR,
     resolution: 4,
-    ...overrides,
+    shadow: shadowOverride === null
+      ? { offsetX: 0, offsetY: 0, color: '#000', blur: 0, stroke: false, fill: false }
+      : { offsetX: 0, offsetY: 1, color: TEXT_SHADOW, blur: 0, stroke: false, fill: true, ...(shadowOverride || {}) },
+    ...rest,
   };
 }
 

@@ -47,9 +47,14 @@ export default class DialogScene extends Phaser.Scene {
 
   buildBox() {
     drawBox(this, BOX_X, BOX_Y, BOX_W, BOX_H);
-    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 7, '', textStyle({
+    // El diálogo es la superficie de texto principal y su caja (48px de alto)
+    // tiene sito de sobra para 2 renglones GRANDES: subimos a 11px (la fuente
+    // FRLG a 11px se lee CLARÍSIMA en móvil y aún cabe una frase larga en 2
+    // líneas). lineSpacing ajustado para centrar bien los 2 renglones.
+    this.textObj = this.add.text(BOX_X + 8, BOX_Y + 6, '', textStyle({
+      fontSize: '11px',
       wordWrap: { width: WRAP_W },
-      lineSpacing: 6,
+      lineSpacing: 3,
     }));
     this.arrow = this.add.text(BOX_X + BOX_W - 13, BOX_Y + BOX_H - 13, '▼', textStyle()).setVisible(false);
     this.time.addEvent({

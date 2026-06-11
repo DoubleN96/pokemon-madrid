@@ -7,18 +7,22 @@
   <title>Pokémon Madrid — Edición Castiza</title>
 
   <!--
-    FUENTE PÍXEL DEL JUEGO (estilo GBA/Pokémon).
-    Pixelify Sans (SIL Open Font License 1.1) instanciada a peso 400 y servida
-    como woff2 estática (~15 KB). Cubre acentos castellanos (Á É Í Ó Ú ñ ¡ ¿),
-    el símbolo ₧ (pesetas) y €. Se expone bajo el alias 'PixelMadrid' para que
-    src/ui/theme.js la use de forma estable. Su rejilla nativa cae en píxeles
-    enteros a 8px, así que el texto sale CRUJIENTE en la pantalla GBA.
+    FUENTE PÍXEL DEL JUEGO — la AUTÉNTICA de Pokémon Rojo Fuego/Verde Hoja (GBA).
+    "Pokémon FRLG" es una recreación libre de la tipografía original de la GBA,
+    DISEÑADA para leerse a tamaño pequeño en la pantalla de la consola: trazos
+    GRUESOS de 2px y caja monoespaciada, así que sale nítida y muy legible en
+    móvil (al contrario que las pixel-fonts finas tipo Pixelify, que se veían
+    como hilitos grises). Cubre todo el ASCII + acentos castellanos
+    (Á É Í Ó Ú Ñ Ü á é í ó ú ñ ü ¡ ¿). Subset woff2 (~3.5 KB).
+    Se expone bajo el alias 'PixelMadrid' para que src/ui/theme.js la use sin
+    cambiar el nombre de familia. El fallback a 'monospace' cubre los pocos
+    glifos que la fuente no trae (cursores ▶ ▼ ↑ ↓, ₧ pesetas, € y ★).
   -->
-  <link rel="preload" href="./assets/fonts/PixelifySans-Regular.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="./assets/fonts/PokemonFRLG.woff2" as="font" type="font/woff2" crossorigin />
   <style>
     @font-face {
       font-family: 'PixelMadrid';
-      src: url('./assets/fonts/PixelifySans-Regular.woff2') format('woff2');
+      src: url('./assets/fonts/PokemonFRLG.woff2') format('woff2');
       font-weight: 400;
       font-style: normal;
       font-display: block;
@@ -52,11 +56,14 @@
     async function boot() {
       try {
         if (document.fonts && document.fonts.load) {
-          // Cargar el tamaño exacto que usa el juego (8px) + uno mayor por si
-          // alguna escena lo escala; ready garantiza que TODAS estén listas.
+          // Cargar los tamaños que usa el juego (texto base 10px + títulos)
+          // para forzar el rasterizado antes del primer render; ready garantiza
+          // que TODAS las instancias estén listas.
           await Promise.all([
+            document.fonts.load('10px "PixelMadrid"'),
             document.fonts.load('8px "PixelMadrid"'),
             document.fonts.load('16px "PixelMadrid"'),
+            document.fonts.load('30px "PixelMadrid"'),
           ]);
           await document.fonts.ready;
         }

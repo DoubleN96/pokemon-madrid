@@ -142,17 +142,22 @@ export default class IntroScene extends Phaser.Scene {
     this.setPhase('select');
     this.prof.setVisible(false);
     const pokedex = this.registry.get('pokedex');
-    const white = { fontFamily: GAME_FONT, fontSize: '8px', color: '#f8f8f8', resolution: 2 };
-    this.add.text(GAME_W / 2, 10, '¡ELIGE TU COMPAÑERO!',
-      { fontFamily: GAME_FONT, fontSize: '10px', fontStyle: 'bold', color: '#FFD700', resolution: 2 }).setOrigin(0.5);
+    // Etiquetas de los iniciales: blanco nítido (res4) y un poco más grandes.
+    const white = { fontFamily: GAME_FONT, fontSize: '9px', color: '#f8f8f8', resolution: 4 };
+    this.add.text(GAME_W / 2, 9, '¡ELIGE TU COMPAÑERO!',
+      { fontFamily: GAME_FONT, fontSize: '11px', fontStyle: 'bold', color: '#FFD700', resolution: 4,
+        shadow: { offsetX: 0, offsetY: 1, color: '#7a4a00', blur: 0, fill: true } }).setOrigin(0.5);
     this.starterSprites = STARTERS.map((id, i) => this.add.image(60 + i * 60, 62, `pkmn_front_${id}`));
     this.starterLabels = STARTERS.map((id, i) =>
       this.add.text(60 + i * 60, 96, pokedex[id - 1].name.toUpperCase(), white).setOrigin(0.5));
     this.selCursor = this.add.text(60, 22, '▼',
-      { fontFamily: GAME_FONT, fontSize: '10px', color: '#FFD700', resolution: 2 }).setOrigin(0.5);
+      { fontFamily: GAME_FONT, fontSize: '11px', color: '#FFD700', resolution: 4 }).setOrigin(0.5);
+    // Caja de descripción: fuente FRLG a 9px (cabe el texto largo del inicial en
+    // la caja de 46px de alto) bien oscura y nítida para que se lea claro.
     drawBox(this, 2, 112, 236, 46);
-    this.descText = this.add.text(10, 119, '',
-      { fontFamily: GAME_FONT, fontSize: '8px', color: '#383838', resolution: 2, wordWrap: { width: 220 } });
+    this.descText = this.add.text(9, 118, '',
+      { fontFamily: GAME_FONT, fontSize: '9px', color: '#181818', resolution: 4, lineSpacing: 2,
+        shadow: { offsetX: 0, offsetY: 1, color: '#c8c8c8', blur: 0, fill: true }, wordWrap: { width: 222 } });
     this.updateSelect();
   }
 
@@ -189,12 +194,12 @@ export default class IntroScene extends Phaser.Scene {
     const name = pokedex[STARTERS[this.selIndex] - 1].name.toUpperCase();
     this.descText.setText(`¿Te quedas con ${name}?`);
     this.confirmBox = drawBox(this, 178, 58, 52, 40);
-    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#383838', resolution: 2 };
+    const style = { fontFamily: GAME_FONT, fontSize: '10px', color: '#181818', resolution: 4 };
     this.confirmItems = [
-      this.add.text(198, 65, 'SÍ', style),
-      this.add.text(198, 81, 'NO', style),
+      this.add.text(198, 64, 'SÍ', style),
+      this.add.text(198, 80, 'NO', style),
     ];
-    this.confirmCursor = this.add.text(187, 65, '▶', style);
+    this.confirmCursor = this.add.text(186, 64, '▶', style);
   }
 
   closeConfirm() {
