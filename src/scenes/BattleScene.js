@@ -558,6 +558,19 @@ export default class BattleScene extends Phaser.Scene {
       if (!this.save.flags.badges.includes(t.badge)) this.save.flags.badges.push(t.badge);
       await this.msg.type(`¡Te has llevado la Medalla ${t.badge}!`, { confirm: true });
     }
+    // Campeón de la Liga Chamberí: corona al jugador e inscribe su equipo en el
+    // Salón de la Fama (parodia castiza). Cambio mínimo y aislado: solo se dispara
+    // cuando el entrenador trae la marca `champion` (Álvaro, el Campeón).
+    if (t.champion) {
+      this.save.flags.champion = true;
+      await this.msg.type('¡Has vencido al Campeón Álvaro y te coronas CAMPEÓN de la Liga Chamberí!', { confirm: true });
+      await this.msg.type('Tu equipo entra en el SALÓN DE LA FAMA, para que el barrio entero lo recuerde:', { confirm: true });
+      for (const mon of this.save.party || []) {
+        if (!mon) continue;
+        await this.msg.type(`★ ${monName(mon, this.pokedex)}  ·  Nv. ${mon.level}`, { confirm: true });
+      }
+      await this.msg.type('El caos, por una vez, ha vencido a la lógica perfecta. ¡Enhorabuena, Marcelino!', { confirm: true });
+    }
   }
 
   // Derrota frente a un entrenador: solo su diálogo; el whiteout (curar +

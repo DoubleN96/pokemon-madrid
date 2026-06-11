@@ -193,7 +193,32 @@ export default class WorldScene extends Phaser.Scene {
     });
   }
 
+  // ¿Cumple el jugador el requisito de un warp con puerta (warp.require)?
+  // Hoy solo se usa `require.badges` (nº de medallas para la Liga Chamberí), pero
+  // queda abierto a otros gates futuros. Si NO se cumple, el warp no se usa.
+  meetsWarpRequire(req) {
+    if (!req) return true;
+    const save = this.registry.get('save');
+    if (typeof req.badges === 'number') {
+      const badges = (save && save.flags && Array.isArray(save.flags.badges)) ? save.flags.badges : [];
+      if (badges.length < req.badges) return false;
+    }
+    return true;
+  }
+
   useWarp(warp) {
+    // Puerta condicionada (Liga Chamberí, etc.): si el jugador no cumple el
+    // requisito, se muestra el aviso y NO se teletransporta. El jugador queda
+    // sobre la baldosa (caminable) y puede retroceder con normalidad.
+    if (warp.require && !this.meetsWarpRequire(warp.require)) {
+      this.inputLocked = true;
+      this.player.idle();
+      const lines = (warp.require.lines && warp.require.lines.length)
+        ? warp.require.lines
+        : ['La puerta está cerrada.'];
+      this.talk(lines, () => { this.inputLocked = false; });
+      return;
+    }
     this.transitioning = true;
     this.inputLocked = true;
     this.player.idle();
