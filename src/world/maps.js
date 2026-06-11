@@ -293,6 +293,7 @@ const TETUAN_NPCS = [
       'Ah, Marcelino, el visionario. ¿Ya sales a eso de "poner orden en el caos"? Muy bien, muy bien... pero dime, ¿la rentabilidad de eso cuál es exactamente?',
       'Yo lo observo todo desde la barrera, con mi cartera bien diversificada: cripto, ladrillo, un poco de rent2rent. El caos da ROI si sabes leerlo, te lo digo yo.',
       'Consejo de socio gratis, que para algo soy tu mentor: un equipo Pokémon es una cartera. Diversifica tipos, no te apalanques en un solo bicho. Y nunca, jamás, le pidas un préstamo a Eduardo.',
+      '¿Te conté lo de Cancún? El Churches y yo la liamos pardísima en el RIU. #FinTipsYElChurchesLaLianEnRiuCancun, lo tengo hasta de dominio. Marca personal, bro, marca personal.',
     ],
   },
   // Mariel — amiga venezolana de Iván FinTips. Trader hiperactiva (HFT), ludópata,
@@ -329,6 +330,7 @@ const TETUAN_NPCS = [
       'Eh, eh, eh. Marcelino. ¿Dónde vas con tanta prisa, majo? Que estamos a día 1, no te hagas el loco.',
       'El alquiler. La calvicie es poder y el alquiler SIEMPRE sube. *se acaricia la cabeza, lisa y reluciente como una bola de billar*',
       'Anda, hoy te dejo salir porque vas a hacer cosas de Pokémon y eso da prestigio al edificio. Pero a la vuelta... el recibo, majo. El recibo.',
+      'Y dile a tu compañero Álvaro que el agua no es gratis, que me la negocia cada mes como si fuera la Liga. Maserati sí, pero el recibo del agua lo discute. ¡Lo que hay que ver!',
     ],
   },
   // Alex — el Tentado Digital. Trainer menor (Pikachu/Magnemite). Toca la guitarra → sprite guitarist.
