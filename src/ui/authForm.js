@@ -55,13 +55,26 @@ function buildAuthDom() {
   pass.type = 'password';
   pass.placeholder = 'Contraseña';
   pass.autocomplete = 'current-password';
+  pass.style.cssText += ';margin:0;flex:1';
+  // Botón 👁 para MOSTRAR/ocultar la contraseña (Marcelino: "que te deje ver la contraseña").
+  const eye = el('button', BTN_CSS + ';margin:0;padding:6px 9px;min-width:38px', '👁');
+  eye.type = 'button';
+  eye.title = 'Mostrar/ocultar contraseña';
+  eye.addEventListener('click', () => {
+    const show = pass.type === 'password';
+    pass.type = show ? 'text' : 'password';
+    eye.textContent = show ? '🙈' : '👁';
+    pass.focus();
+  });
+  const passWrap = el('div', 'display:flex;gap:6px;align-items:stretch;margin:0 0 8px');
+  passWrap.append(pass, eye);
   const error = el('div', ERROR_CSS, '');
   const row = el('div', 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center');
   const bIn = el('button', BTN_CSS, 'ENTRAR');
   const bUp = el('button', BTN_CSS, 'CREAR CUENTA');
   const bGuest = el('button', BTN_CSS, 'SIN CUENTA');
   row.append(bIn, bUp, bGuest);
-  panel.append(el('div', TITLE_CSS, 'TU CUENTA DE ENTRENADOR'), email, pass, error, row);
+  panel.append(el('div', TITLE_CSS, 'TU CUENTA DE ENTRENADOR'), email, passWrap, error, row);
   root.appendChild(panel);
   return { root, email, pass, error, buttons: [bIn, bUp, bGuest] };
 }
