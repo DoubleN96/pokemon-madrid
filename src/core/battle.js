@@ -8,6 +8,7 @@ import {
   calcStats, damage, captureChance, expGain, stageMultiplier, accuracyMultiplier,
 } from './formulas.js';
 import { gainExp } from './monster.js';
+import { itemDef, isBall, ballBonus } from './items.js';
 
 // Forcejeo: se usa cuando no quedan PP en ningún movimiento (Gen 3: tipo normal,
 // retroceso de 1/4 del daño causado).
@@ -198,17 +199,23 @@ function validateItem(b, action, events) {
     events.push({ t: 'text', msg: '¡No te queda ninguno!' });
     return true;
   }
-  if (action.item === 'poke-ball') {
+  const def = itemDef(action.item);
+  if (isBall(action.item)) {
     if (!b.isTrainer) return false;
     events.push({ t: 'text', msg: '¡No seas chorizo! ¡No puedes capturar Pokémon de otro entrenador!' });
     return true;
   }
   const mon = b.party[action.target ?? b.activeIndex];
   if (!mon) { events.push({ t: 'text', msg: '¡Ahí no hay ningún Pokémon!' }); return true; }
-  if (action.item === 'potion') return validatePotion(b, mon, events);
-  if (action.item === 'antidote') {
-    if (mon.status === 'psn') return false;
+  if (def.category === 'heal') return validatePotion(b, mon, events);
+  if (def.category === 'cure') {
+    if (mon.status === def.cures) return false;
     events.push({ t: 'text', msg: 'No tendría ningún efecto.' });
+    return true;
+  }
+  if (def.category === 'revive') {
+    if (mon.currentHp <= 0) return false;
+    events.push({ t: 'text', msg: 'No tendría ningún efecto. ¡No está debilitado!' });
     return true;
   }
   events.push({ t: 'text', msg: '¡No puedes usar eso ahora!' });
@@ -248,28 +255,45 @@ function tryRun(b, events) {
   return true;
 }
 
+// Texto castizo del efecto de cada objeto cura/revivir, por estado.
+const CURE_MSG = {
+  psn: 'se ha curado del veneno',
+  par: 'se ha curado de la parálisis',
+  brn: 'se ha curado de las quemaduras',
+  slp: 'se ha despertado',
+  frz: 'se ha descongelado',
+};
+
 function useItem(b, action, events) {
   b.bag[action.item] = (b.bag[action.item] || 0) - 1;
-  if (action.item === 'poke-ball') return throwBall(b, events);
+  if (isBall(action.item)) return throwBall(b, action.item, events);
   const target = action.target ?? b.activeIndex;
   const mon = b.party[target];
-  if (action.item === 'potion') {
-    const healed = Math.min(20, maxHpOf(b, mon) - mon.currentHp);
+  const def = itemDef(action.item);
+  if (def.category === 'heal') {
+    const healed = Math.min(def.heal || 0, maxHpOf(b, mon) - mon.currentHp);
     if (target === b.activeIndex) applyHp(b, 'player', healed, events);
     else mon.currentHp += healed;
     events.push({ t: 'text', msg: `¡${nameOf(b, mon)} ha recuperado ${healed} PS!` });
-  } else if (action.item === 'antidote') {
+  } else if (def.category === 'cure') {
     mon.status = null;
     if (target === b.activeIndex) events.push({ t: 'status', side: 'player', status: null });
-    events.push({ t: 'text', msg: `¡${nameOf(b, mon)} se ha curado del veneno!` });
+    events.push({ t: 'text', msg: `¡${nameOf(b, mon)} ${CURE_MSG[def.cures] || 'se ha recuperado'}!` });
+  } else if (def.category === 'revive') {
+    mon.status = null;
+    mon.sleepTurns = 0;
+    mon.currentHp = Math.max(1, Math.floor(maxHpOf(b, mon) / 2));
+    events.push({ t: 'text', msg: `¡${nameOf(b, mon)} ha vuelto a la vida!` });
   }
   return false;
 }
 
-function throwBall(b, events) {
+function throwBall(b, ballId, events) {
   const foe = activeMon(b, 'enemy');
-  const bonus = STATUS_CATCH_BONUS[foe.status] || 1;
-  const { caught, shakes } = captureChance(speciesOf(b, foe), foe, 1, bonus, b.rng);
+  const statusBonus = STATUS_CATCH_BONUS[foe.status] || 1;
+  const { caught, shakes } = captureChance(
+    speciesOf(b, foe), foe, ballBonus(ballId), statusBonus, b.rng,
+  );
   events.push({ t: 'ball', shakes, caught });
   if (!caught) return false;
   b.over = { result: 'caught', caughtMonster: foe, expReports: b.expReports };
