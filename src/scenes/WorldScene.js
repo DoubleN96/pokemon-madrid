@@ -10,6 +10,7 @@ import GridMover, { DIRS, tileToX, tileToY } from '../world/engine/GridMover.js'
 import Npc from '../world/engine/Npc.js';
 import { rollEncounter } from '../world/engine/encounters.js';
 import { playGrassRustle } from '../world/grassRustle.js';
+import { whiteoutDestination, healPoint } from '../world/respawn.js';
 
 const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
 const BIKE_FACTOR = 0.35;   // moto = WALK_MS × 0.35 (mucho más rápido)
@@ -324,6 +325,9 @@ export default class WorldScene extends Phaser.Scene {
     this.talk(npc.def.dialog, () => {
       const save = this.registry.get('save');
       ((save && save.party) || []).forEach(healFull);
+      // Registra este punto como el último lugar de curación para el respawn tras
+      // un whiteout (estilo FRLG: revives en el último Centro Pokémon visitado).
+      this.recordHealPoint(save);
       sfx(this, 'heal', { volume: 0.7 });
       this.chainTalk(
         ['¡Tus Pokémon están como nuevos!', '¡Que te vaya bien, y mucho ojo por ahí!'],
@@ -331,6 +335,14 @@ export default class WorldScene extends Phaser.Scene {
         por,
       );
     }, por);
+  }
+
+  // Guarda en save.flags.lastCenter el mapa y la posición donde reaparecer tras un
+  // whiteout. Usa el healSpawn del mapa actual (delante del mostrador del Centro).
+  recordHealPoint(save) {
+    if (!save) return;
+    if (!save.flags) save.flags = {};
+    save.flags.lastCenter = healPoint(this.mapId, this.mapData);
   }
 
   shopInteraction(npc) {
@@ -383,17 +395,18 @@ export default class WorldScene extends Phaser.Scene {
     this.syncPlayerMount();
   }
 
-  // Derrota total: curar y recolocar en el healSpawn de Tetuán (red de seguridad
-  // por si Battle solo dejó el equipo a 0 sin recolocar).
+  // Derrota total (whiteout): curar y recolocar en el ÚLTIMO Centro Pokémon
+  // visitado (estilo FRLG). Si el jugador no ha curado en ningún sitio aún, cae a
+  // la ciudad inicial (Tetuán). Red de seguridad por si Battle solo dejó el equipo
+  // a 0 sin recolocar.
   handleDefeat(save, data) {
     const party = save.party || [];
     const flagged = !!(data && (data.defeat || data.result === 'lose')) || this.whiteout === true;
     const wiped = party.length > 0 && party.every((m) => m.currentHp <= 0);
     if (!flagged && !wiped) return;
     party.forEach(healFull);
-    const home = MAPS.tetuan;
-    const spawn = home.healSpawn || home.playerSpawn || { x: 1, y: 1 };
-    Object.assign(save.player, { map: 'tetuan', x: spawn.x, y: spawn.y, dir: 'down' });
+    const dest = whiteoutDestination(save, MAPS, 'tetuan');
+    Object.assign(save.player, { map: dest.map, x: dest.x, y: dest.y, dir: dest.dir || 'down' });
   }
 
   syncToSavedPosition(save) {
@@ -431,6 +444,7 @@ export default class WorldScene extends Phaser.Scene {
       bag: {},
       pokedex: { seen: [], caught: [] },
       flags: {},
+      options: { expShare: false },
       playTimeS: 0,
     };
     this.registry.set('save', save);

@@ -494,6 +494,241 @@ t('derrota: sin pokémon sanos → lose', () => {
   assert.equal(over.result, 'lose');
 });
 
+// ---------- mecánicas especiales de movimientos (auditoría PokeAPI) ----------
+
+// Fija un único movimiento (con PP de sobra) en un monstruo para tests deterministas.
+function withMove(mon, slug, pp = 10) {
+  mon.moves = [{ id: slug, pp, maxPp: pp }];
+  return mon;
+}
+
+console.log('\n— movimientos especiales: self-faint, daño fijo, KO, estado —');
+t('Autodestrucción: hace daño Y el usuario se debilita siempre', () => {
+  // Jugador muy rápido y fuerte (CHARM nv60) actúa primero; el rival es un BLASTOISE
+  // (id 9) nv50 con MUCHOS PS, así que sobrevive al golpe y el combate no termina:
+  // aislamos el auto-debilitamiento del usuario. rng fijo bajo (sin crítico enemigo
+  // porque el enemigo ni llega a atacar: el usuario se autodestruye antes).
+  const rng = fixed(0.5);
+  const boom = withMove(createMonster(pokedex, CHARM, 60, rng), 'self-destruct');
+  const tgt = createMonster(pokedex, 9, 50, rng); // BLASTOISE, muchos PS
+  const reserve = createMonster(pokedex, SQUIRT, 30, rng);
+  const battle = createBattle({ pokedex, movesData, party: [boom, reserve], enemyParty: [tgt], rng });
+  const res = battle.act({ type: 'move', index: 0 });
+  assert.ok(res.events.some((e) => e.t === 'hp' && e.side === 'enemy' && e.to < e.from), 'el enemigo recibió daño');
+  assert.ok(res.events.some((e) => e.t === 'faint' && e.side === 'player'), 'el usuario se debilitó');
+  assert.equal(boom.currentHp, 0, 'el usuario queda a 0 PS');
+  assert.ok(tgt.currentHp > 0, 'el rival sobrevivió (combate no termina)');
+  assert.equal(battle.state().phase, 'switch', 'fase de cambio forzado tras autodestruirse');
+});
+t('Explosión funciona igual que Autodestrucción (mechanic self-faint)', () => {
+  assert.equal(movesData['explosion'].mechanic, 'self-faint');
+  assert.equal(movesData['self-destruct'].mechanic, 'self-faint');
+});
+t('Daño fijo: Bomba Sónica resta exactamente 20 PS', () => {
+  const rng = mulberry32(7);
+  const atkr = withMove(createMonster(pokedex, SQUIRT, 40, rng), 'sonic-boom');
+  const tgt = createMonster(pokedex, RATTATA, 40, rng);
+  const hpBefore = tgt.currentHp;
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt], rng });
+  battle.act({ type: 'move', index: 0 });
+  assert.equal(tgt.currentHp, hpBefore - 20, 'restó 20 PS exactos');
+});
+t('Seísmo/Tinieblas (level-damage): night-shade resta = nivel del usuario', () => {
+  // night-shade es FANTASMA (inmune contra tipo Normal en Gen 3). Usamos un objetivo
+  // de tipo Agua (SQUIRT) que NO es inmune. Jugador rápido (nv60) para atacar primero.
+  const rng = fixed(0.5);
+  const atkr = withMove(createMonster(pokedex, CHARM, 60, rng), 'night-shade');
+  const tgt = createMonster(pokedex, 9, 50, rng); // BLASTOISE (agua, no inmune a fantasma)
+  const hpBefore = tgt.currentHp;
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt], rng });
+  battle.act({ type: 'move', index: 0 });
+  assert.equal(tgt.currentHp, hpBefore - 60, 'restó PS = nivel del usuario (60)');
+});
+t('Super Fang (half-hp) reduce los PS del objetivo a la mitad', () => {
+  // Jugador rápido (nv60) actúa primero; objetivo con muchos PS sobrevive.
+  const rng = fixed(0.5);
+  const atkr = withMove(createMonster(pokedex, RATTATA, 60, rng), 'super-fang');
+  const tgt = createMonster(pokedex, 9, 50, rng); // BLASTOISE
+  const hpBefore = tgt.currentHp;
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt], rng });
+  battle.act({ type: 'move', index: 0 });
+  assert.equal(tgt.currentHp, hpBefore - Math.floor(hpBefore / 2), 'restó la mitad de los PS');
+});
+t('KO fulminante (Fisura) falla si el rival es de mayor nivel', () => {
+  const rng = fixed(0); // rng=0 garantizaría acierto si el nivel lo permitiera
+  const atkr = withMove(createMonster(pokedex, RATTATA, 10, rng), 'fissure');
+  const tgt = createMonster(pokedex, SQUIRT, 50, rng);
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt], rng });
+  const res = battle.act({ type: 'move', index: 0 });
+  assert.ok(res.events.some((e) => e.t === 'miss'), 'falla contra mayor nivel');
+  assert.ok(tgt.currentHp > 0, 'el rival no se debilita');
+});
+t('KO fulminante (Guillotina) debilita de un golpe si acierta (jugador más rápido)', () => {
+  // Jugador nv60 (más rápido) usa Guillotina con rng=0 (acierta) contra rival nv30.
+  const rng = fixed(0);
+  const atkr = withMove(createMonster(pokedex, CHARM, 60, rng), 'guillotine');
+  const tgt = createMonster(pokedex, RATTATA, 30, rng);
+  const reserve = createMonster(pokedex, SQUIRT, 30, rng);
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt, reserve], rng, isTrainer: true });
+  const res = battle.act({ type: 'move', index: 0 });
+  assert.ok(res.events.some((e) => e.t === 'faint' && e.side === 'enemy'), 'el rival cae de un golpe');
+  assert.equal(tgt.currentHp, 0, 'el rival queda KO');
+});
+t('Descanso (rest) cura del todo y duerme al usuario', () => {
+  // Comprobamos el efecto inmediato del motor antes de cualquier contraataque:
+  // inspeccionamos los eventos de la acción, no el estado tras el turno completo.
+  const rng = fixed(0.5);
+  const atkr = withMove(createMonster(pokedex, SQUIRT, 60, rng), 'rest'); // rápido: actúa 1.º
+  const max = calcStats(pokedex[SQUIRT - 1], atkr).hp;
+  atkr.currentHp = 1;
+  const tgt = createMonster(pokedex, RATTATA, 5, rng);
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt], rng });
+  const res = battle.act({ type: 'move', index: 0 });
+  // El evento de estado slp y la subida de PS al máximo ocurren al usar Descanso.
+  assert.ok(res.events.some((e) => e.t === 'status' && e.status === 'slp'), 'emite sueño');
+  const hpEv = res.events.find((e) => e.t === 'hp' && e.side === 'player' && e.to === max);
+  assert.ok(hpEv, 'recupera hasta el máximo de PS');
+  assert.equal(atkr.status, 'slp', 'queda dormido');
+});
+t('Salpicadura (splash) no falla silenciosamente: mensaje coherente', () => {
+  const rng = mulberry32(5);
+  const atkr = withMove(createMonster(pokedex, SQUIRT, 30, rng), 'splash');
+  const tgt = createMonster(pokedex, RATTATA, 5, rng);
+  const battle = createBattle({ pokedex, movesData, party: [atkr], enemyParty: [tgt], rng });
+  const res = battle.act({ type: 'move', index: 0 });
+  assert.ok(res.events.some((e) => e.t === 'text' && /no pasó nada/.test(e.msg)), 'mensaje canónico de Salpicadura');
+});
+
+console.log('\n— SHIFT (FRLG): ofrecer cambio al debilitar a un rival de entrenador —');
+t('SHIFT: al caer el 1.º del rival se ofrece cambiar (fase enemy-shift)', () => {
+  const rng = mulberry32(17);
+  const ace = createMonster(pokedex, SQUIRT, 50, rng); // KO de un golpe
+  const reserve = createMonster(pokedex, CHARM, 30, rng);
+  const enemy = [createMonster(pokedex, RATTATA, 2, rng), createMonster(pokedex, BULBA, 25, rng)];
+  const battle = createBattle({ pokedex, movesData, party: [ace, reserve], enemyParty: enemy, isTrainer: true, rng, shiftPrompt: true });
+  const idx = battle.state().active.moves.findIndex((m) => m.data && m.data.power);
+  const res = battle.act({ type: 'move', index: idx });
+  assert.ok(res.events.some((e) => e.t === 'faint' && e.side === 'enemy'), 'el rival cae');
+  assert.ok(res.events.some((e) => e.t === 'shift-offer'), 'se emite la oferta de cambio');
+  const st = battle.state();
+  assert.equal(st.phase, 'enemy-shift', 'fase enemy-shift');
+  assert.equal(st.pendingEnemy, enemy[1], 'se ve a quién sacará el rival');
+});
+t('SHIFT: el jugador dice NO → el rival saca al siguiente y sigue el combate', () => {
+  const rng = mulberry32(17);
+  const ace = createMonster(pokedex, SQUIRT, 50, rng);
+  const reserve = createMonster(pokedex, CHARM, 30, rng);
+  const enemy = [createMonster(pokedex, RATTATA, 2, rng), createMonster(pokedex, BULBA, 25, rng)];
+  const battle = createBattle({ pokedex, movesData, party: [ace, reserve], enemyParty: enemy, isTrainer: true, rng, shiftPrompt: true });
+  const idx = battle.state().active.moves.findIndex((m) => m.data && m.data.power);
+  battle.act({ type: 'move', index: idx });
+  const res = battle.act({ type: 'shift-decision', switch: false });
+  assert.ok(res.events.some((e) => e.t === 'switch' && e.side === 'enemy' && e.monster === enemy[1]), 'el rival saca al BULBA');
+  assert.equal(battle.state().phase, 'choice', 'vuelve a la fase de elección');
+  assert.equal(battle.state().active.monster, ace, 'el jugador conserva su Pokémon');
+});
+t('SHIFT: el jugador dice SÍ → cambia ANTES de que el rival saque al suyo', () => {
+  const rng = mulberry32(17);
+  const ace = createMonster(pokedex, SQUIRT, 50, rng);
+  const reserve = createMonster(pokedex, CHARM, 30, rng);
+  const enemy = [createMonster(pokedex, RATTATA, 2, rng), createMonster(pokedex, BULBA, 25, rng)];
+  const battle = createBattle({ pokedex, movesData, party: [ace, reserve], enemyParty: enemy, isTrainer: true, rng, shiftPrompt: true });
+  const idx = battle.state().active.moves.findIndex((m) => m.data && m.data.power);
+  battle.act({ type: 'move', index: idx });
+  const res = battle.act({ type: 'shift-decision', switch: true, index: 1 });
+  const switchIdxs = res.events.map((e, i) => ((e.t === 'switch') ? { i, side: e.side, mon: e.monster } : null)).filter(Boolean);
+  assert.equal(switchIdxs.length, 2, 'dos cambios: jugador y rival');
+  assert.equal(switchIdxs[0].side, 'player', 'el jugador cambia primero');
+  assert.equal(switchIdxs[0].mon, reserve);
+  assert.equal(switchIdxs[1].side, 'enemy', 'luego el rival');
+  assert.equal(battle.state().active.monster, reserve, 'el jugador entró con su reserva');
+  assert.equal(battle.state().phase, 'choice');
+});
+t('SHIFT desactivado (sin flag): el rival saca al siguiente inmediatamente (compat)', () => {
+  const rng = mulberry32(17);
+  const ace = createMonster(pokedex, SQUIRT, 50, rng);
+  const reserve = createMonster(pokedex, CHARM, 30, rng);
+  const enemy = [createMonster(pokedex, RATTATA, 2, rng), createMonster(pokedex, BULBA, 25, rng)];
+  const battle = createBattle({ pokedex, movesData, party: [ace, reserve], enemyParty: enemy, isTrainer: true, rng });
+  const idx = battle.state().active.moves.findIndex((m) => m.data && m.data.power);
+  const res = battle.act({ type: 'move', index: idx });
+  assert.ok(!res.events.some((e) => e.t === 'shift-offer'), 'sin oferta de cambio');
+  assert.ok(res.events.some((e) => e.t === 'switch' && e.side === 'enemy'), 'relevo inmediato');
+  assert.notEqual(battle.state().phase, 'enemy-shift');
+});
+
+console.log('\n— Reparto de Experiencia (EXP Share) —');
+t('OFF (clásico): solo el participante activo gana experiencia', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng });
+  const { events, over } = playUntilOver(battle);
+  assert.equal(over.result, 'win');
+  const expEvents = events.filter((e) => e.t === 'exp');
+  assert.equal(expEvents.length, 1, 'solo un evento de exp');
+  assert.ok(expEvents.every((e) => e.index === 0 || e.index == null), 'la exp es del activo (índice 0)');
+  // El de la banca NO sube nivel ni gana exp.
+  assert.equal(banca.exp, expForLevel(pokedex[CHARM - 1].growthRate, 5), 'la banca conserva su exp');
+});
+t('ON (Reparto EXP): TODO el equipo consciente gana experiencia a la vez', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const expBancaBefore = banca.exp;
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events, over } = playUntilOver(battle);
+  assert.equal(over.result, 'win');
+  const expEvents = events.filter((e) => e.t === 'exp');
+  assert.equal(expEvents.length, 2, 'dos eventos de exp: activo y banca');
+  assert.ok(expEvents.some((e) => e.index === 0), 'el activo recibe exp');
+  assert.ok(expEvents.some((e) => e.index === 1), 'la banca recibe exp');
+  // El de la banca GANA exp de verdad.
+  assert.ok(banca.exp > expBancaBefore, 'la banca ha ganado experiencia');
+  // Misma cantidad para todos (modern gen): los dos eventos comparten amount.
+  assert.equal(expEvents[0].amount, expEvents[1].amount, 'mismo reparto para todos');
+});
+t('ON: la banca debilitada NO recibe experiencia', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  banca.currentHp = 0; // debilitado
+  const expBancaBefore = banca.exp;
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events } = playUntilOver(battle);
+  const expEvents = events.filter((e) => e.t === 'exp');
+  assert.ok(!expEvents.some((e) => e.index === 1), 'la banca debilitada no recibe exp');
+  assert.equal(banca.exp, expBancaBefore, 'su exp no cambia');
+});
+t('ON: los eventos de exp/nivel llegan etiquetados con índice y nombre', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events } = playUntilOver(battle);
+  const tagged = events.filter((e) => e.t === 'exp' || e.t === 'levelup' || e.t === 'learn');
+  assert.ok(tagged.length > 0, 'hay eventos de exp/nivel');
+  assert.ok(tagged.every((e) => Number.isInteger(e.index) && typeof e.name === 'string'), 'todos llevan index + name');
+});
+t('ON: subidas de nivel y aprendizaje de movimientos de la banca siguen funcionando', () => {
+  const rng = mulberry32(7);
+  const active = createMonster(pokedex, SQUIRT, 50, rng); // garantiza el KO
+  // Banca a punto de subir y aprender: BULBASAUR a 5 exp del nivel 7 (aprende algo pronto).
+  const banca = createMonster(pokedex, BULBA, 6, rng);
+  banca.exp = expForLevel('medium-slow', 7) - 5;
+  const wild = createMonster(pokedex, RATTATA, 20, rng); // mucha exp
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events, over } = playUntilOver(battle);
+  assert.equal(over.result, 'win');
+  const bancaLevelups = events.filter((e) => e.t === 'levelup' && e.index === 1);
+  assert.ok(bancaLevelups.length >= 1, 'la banca subió al menos un nivel');
+  assert.ok(banca.level > 6, 'la banca subió de nivel de verdad');
+});
+
 // ---------- resumen ----------
 console.log(`\n${passed} pasados, ${failed} fallidos`);
 if (failed > 0) process.exit(1);
