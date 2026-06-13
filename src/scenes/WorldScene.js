@@ -57,6 +57,7 @@ export default class WorldScene extends Phaser.Scene {
     this.transitioning = false;
     this.turnUntil = 0;
 
+    this.registerOverlayScenes();
     this.layers = createMapLayers(this, this.mapData);
     // MOs: normaliza el estado de campo del save (obstáculos retirados, zonas
     // visitadas), registra esta zona como VISITADA (para el Vuelo) y refleja en el
@@ -604,16 +605,29 @@ export default class WorldScene extends Phaser.Scene {
     }, por);
   }
 
+  // Registra las escenas overlay 'Pc' y 'Map' UNA VEZ al crear el mundo (sin tocar
+  // main.js, contrato del proyecto). Antes se hacía perezosamente DENTRO de openPc/
+  // openFlyMap, pero esos se invocan desde callbacks transitorios (p.ej. al cerrar el
+  // diálogo del NPC del PC): el ScenePlugin DIFIERE el `add` y el `launch` posterior
+  // apunta a una escena aún no registrada → la escena NUNCA arrancaba (el PC "no se
+  // abría"). Registrándolas aquí, en create(), el `launch` posterior es determinista.
+  registerOverlayScenes() {
+    if (!this.scene.get('Pc')) this.scene.add('Pc', PcScene, false);
+    if (!this.scene.get('Map')) this.scene.add('Map', MapScene, false);
+  }
+
   // Lanza la escena 'Pc' como overlay sobre World (mismo patrón que el menú: World
   // sigue por debajo pero con inputLocked, así NO se dispara el onWake de combate).
-  // La escena se registra perezosamente para no tocar main.js (contrato del proyecto).
   openPc(onClose) {
-    if (!this.scene.get('Pc')) this.scene.add('Pc', PcScene, false);
+    // 'Pc' ya está registrada (registerOverlayScenes en create). Salvaguarda por si
+    // se invocara en un estado inesperado: nunca reventar el mundo.
+    let pc = this.scene.get('Pc');
+    if (!pc) pc = this.scene.add('Pc', PcScene, false);
+    if (!pc) { if (onClose) onClose(); return; }
     this.inputLocked = true;
     this.player.idle();
     sfx(this, 'door', { volume: 0.45 });
     this.scene.launch('Pc');
-    const pc = this.scene.get('Pc');
     const resume = () => {
       pc.events.off('shutdown', resume);
       pc.events.off('sleep', resume);
@@ -631,14 +645,18 @@ export default class WorldScene extends Phaser.Scene {
     const menu = this.scene.get('Menu');
     const unlock = () => {
       menu.events.off('shutdown', unlock);
-      menu.events.off('sleep', unlock);
       this.inputLocked = false;
       // El menú pudo alternar la moto (toggleMoto → save.flags.riding): refleja el
       // estado montado/a pie en el sprite del jugador al cerrar el menú.
       this.syncPlayerMount();
     };
+    // IMPORTANTE: solo desbloquear el input de World cuando el menú se CIERRA del
+    // todo ('shutdown' por closeMenu → scene.stop), NUNCA cuando se DUERME ('sleep').
+    // El menú DUERME para abrir el MAPA por encima (openMap → scene.sleep): si en ese
+    // momento desbloqueáramos World, las pulsaciones dentro del mapa (Enter/Z, p.ej.
+    // confirmar destino de VUELO) se filtrarían a World.openMenu()/interact(),
+    // corrompiendo la pila de escenas y dejando el menú y el PC sin poder abrirse.
     menu.events.once('shutdown', unlock);
-    menu.events.once('sleep', unlock);
     // Handoff de MOs: el consumo de acciones (VUELO / MO de campo) SOLO debe ocurrir
     // cuando el menú se CIERRA del todo ('shutdown' por closeMenu), NO cuando se
     // DUERME ('sleep') al abrir el mapa por encima — si no, se consumiría antes de
