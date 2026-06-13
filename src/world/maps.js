@@ -15,6 +15,7 @@ import { buildLiga, wireLigaDoor } from './liga.js';
 import { EXTRA_MAPS } from './areaExtra.js';
 import { BERCERO_MAPS, wireBerceroEntry } from './areaBercero.js';
 import { TORREVIEJA_MAPS, wireTorreviejaEntry } from './areaTorrevieja.js';
+import { addFieldObstacle } from './fieldMoves.js';
 
 const GRASS = 113;
 const TALL = 94;
@@ -438,6 +439,67 @@ const TETUAN_NPCS = [
       '¡Cuando lo atrape, te reto aquí en la plaza! Tú entrena, que yo voy a por ti.',
     ],
   },
+  // ── REPARTIDORES DE MOs (HM) de Tetuán ─────────────────────────────────────
+  // JARDINERO de la plaza — regala la MO01 CORTE (corta arbustos). Lore: poda los
+  // setos de la Plaza de Tetuán.
+  {
+    id: 'jardinero_corte', sprite: 'aroma', x: 5, y: 30, dir: 'down', roam: false,
+    gift: {
+      item: 'mo01', flag: 'mo_cut_given',
+      lines: [
+        'Buenas, chaval. Soy el jardinero de la plaza. Llevo toda la vida podando los setos de Tetuán.',
+        'Mira, te voy a dar una cosa que me sobra: la MO01, CORTE. Enséñasela a un bicho de tipo planta o normal y podrás cortar los arbustos finos que bloquean el paso.',
+      ],
+      doneLines: [
+        '¿Qué tal va el CORTE? Acuérdate: un Pokémon de tipo planta, bicho o normal puede aprenderlo.',
+        'Por la Ruta 2, en un huerto escondido, hay arbustos y rocas que cortar. ¡Échale un ojo!',
+      ],
+    },
+  },
+  // OBRERO del Parque Móvil — regala la MO04 FUERZA (empuja rocas). Lore: mueve
+  // bloques de hormigón en las obras eternas del barrio.
+  {
+    id: 'obrero_fuerza', sprite: 'generic_m1', x: 20, y: 28, dir: 'down', roam: false,
+    gift: {
+      item: 'mo04', flag: 'mo_strength_given',
+      lines: [
+        'Eh, tú, el de los Pokémon. Yo trabajo en las obras del Parque Móvil, moviendo bloques de hormigón a pulso.',
+        'Toma, la MO04, FUERZA. Con un Pokémon fuerte (lucha, tierra, roca o normal) podrás empujar esas rocas enormes que cortan el camino. A mí me viene grande sin grúa.',
+      ],
+      doneLines: [
+        'La FUERZA es para las rocas GRANDES. Las pequeñas y quebradizas se rompen con Golpe Roca, que eso te lo da el cantero.',
+      ],
+    },
+  },
+  // CANTERO — regala la MO06 GOLPE ROCA (rompe rocas pequeñas). Lore: pica piedra.
+  {
+    id: 'cantero_golperoca', sprite: 'elder_m', x: 6, y: 29, dir: 'right', roam: false,
+    gift: {
+      item: 'mo06', flag: 'mo_rocksmash_given',
+      lines: [
+        'Soy cantero, muchacho. Me paso el día picando piedra. Hay rocas que se rompen de un golpe seco, si sabes dónde dar.',
+        'Quédate la MO06, GOLPE ROCA. Un Pokémon de lucha, tierra, roca o normal romperá las rocas pequeñas que estorban. A veces, debajo, sale algún bicho.',
+      ],
+      doneLines: [
+        'El GOLPE ROCA rompe las rocas chicas. Para las grandes, FUERZA, que esa la lleva el obrero del Parque Móvil.',
+      ],
+    },
+  },
+  // AVIADOR del barrio — regala la MO02 VUELO. Lore: cuida palomas mensajeras en
+  // una azotea de Bravo Murillo; te enseña a viajar volando.
+  {
+    id: 'aviador_vuelo', sprite: 'gentleman', x: 10, y: 21, dir: 'down', roam: false,
+    gift: {
+      item: 'mo02', flag: 'mo_fly_given',
+      lines: [
+        'Hombre, el aspirante a Campeón. Yo crío palomas mensajeras en la azotea, ¿sabes? Conocen Madrid mejor que el GPS.',
+        'Toma, la MO02, VUELO. Con un Pokémon de tipo volador podrás viajar al instante a cualquier zona con Centro Pokémon que ya hayas visitado. Ábrelo desde el MAPA.',
+      ],
+      doneLines: [
+        'Para VOLAR, abre el MAPA (en el menú) y elige una zona ya visitada con Centro Pokémon. Mi paloma te lleva. ¡Madrid en un visto y no visto!',
+      ],
+    },
+  },
 ];
 
 // ---------- RUTA 2 (20×40) ----------
@@ -475,6 +537,19 @@ function buildRuta2() {
   sprinkle(m, BUSH, [[2, 12], [17, 10], [3, 35]]);
   addSign(m, 11, 3, 'RUTA 2 — Bravo Murillo abajo, dirección CHAMBERÍ. "Tramo con entrenadores. Camina con el equipo a tono."');
   addSign(m, 16, 16, 'QUIOSCO. Prensa, cromos y pipas. "Ya están los cromos de la Liga Chamberí. El de Álvarín fumando es el raro."');
+  // RINCÓN DE LAS MOs (jardincillo opcional, SO de la ruta): muestra de los tres
+  // movimientos de campo de TIERRA. Un ARBUSTO cortable (Corte), una ROCA grande
+  // empujable (Fuerza) y una ROCA pequeña rompible (Golpe Roca) bloquean un huerto
+  // con un cartel-recompensa. Está FUERA del camino principal (x9-10 / x13-14): no
+  // afecta a la navegación entre warps. Cada obstáculo guarda una baldosa distinta.
+  // Arbusto cortable: tapa la entrada al huerto desde el oeste (x6,y31).
+  addFieldObstacle(m, 6, 31, 'bush');
+  // Roca grande (Fuerza): corta el paso por el centro del huerto (x7,y32).
+  addFieldObstacle(m, 7, 33, 'boulder');
+  // Roca pequeña (Golpe Roca): última barrera antes del cartel (x8,y34).
+  addFieldObstacle(m, 8, 34, 'rock');
+  // Cartel-recompensa al fondo del huerto (solo se lee tras retirar los obstáculos).
+  addSign(m, 8, 33, 'HUERTO ESCONDIDO DE LA RUTA 2. "El que llega hasta aquí con Corte, Fuerza y Golpe Roca, se merece el secreto: las mejores pipas de Madrid se cultivan en este rincón. Chsss."');
   ruta2Data(m);
   return m;
 }
