@@ -13,6 +13,7 @@ import { buildInteriors, BUILDING_LINKS } from './interiors.js';
 import { buildGyms, GYM_LINKS } from './gyms.js';
 import { buildLiga, wireLigaDoor } from './liga.js';
 import { EXTRA_MAPS } from './areaExtra.js';
+import { BERCERO_MAPS, wireBerceroEntry } from './areaBercero.js';
 
 const GRASS = 113;
 const TALL = 94;
@@ -818,6 +819,7 @@ export const MAPS = {
   ...buildGyms(),   // gimnasios de la Liga Chamberí (interiores)
   ...buildLiga(),   // ENDGAME: Liga Chamberí (Alto Mando + Campeón Álvaro)
   ...EXTRA_MAPS,    // zona nueva: Ruta 3 · Gran Vía + Parque del Retiro
+  ...BERCERO_MAPS,  // zona nueva: BERCERO (pueblo de Valladolid, el padre + la pandilla)
 };
 
 // Enlaza las puertas del overworld con sus interiores (warps de ida).
@@ -826,3 +828,7 @@ wireBuildingDoors(MAPS);
 wireGymDoors(MAPS);
 // Abre la puerta GATED de la Liga (Tetuán, 8 medallas) y la cablea al interior.
 wireLigaDoor(MAPS);
+// Engancha la ZONA BERCERO de forma aditiva: interior de la casa del padre +
+// la "Estación de Autobuses" en un tile libre de Tetuán (único punto de viaje) +
+// los warps de ida/vuelta. No reorganiza ningún mapa existente.
+wireBerceroEntry(MAPS);
