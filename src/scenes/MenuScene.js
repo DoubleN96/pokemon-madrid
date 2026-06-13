@@ -9,6 +9,7 @@ import {
 import { calcStats } from '../core/formulas.js';
 import { saveGame } from '../services/saves.js';
 import { itemDef } from '../core/items.js';
+import MapScene from './MapScene.js';
 
 // Texto del efecto de cada objeto de estado/revivir en el menú de mochila.
 const FIELD_CURE_MSG = {
@@ -22,6 +23,7 @@ const FIELD_CURE_MSG = {
 const OPTIONS = [
   { id: 'team', label: 'EQUIPO' },
   { id: 'bag', label: 'MOCHILA' },
+  { id: 'map', label: 'MAPA' },
   { id: 'moto', label: 'MOTO' },
   { id: 'dex', label: 'POKÉDEX' },
   { id: 'opts', label: 'OPCIONES' },
@@ -176,6 +178,7 @@ export default class MenuScene extends Phaser.Scene {
     const id = OPTIONS[this.rootIdx].id;
     if (id === 'team') this.showTeam();
     else if (id === 'bag') this.showBag();
+    else if (id === 'map') this.openMap();
     else if (id === 'moto') this.toggleMoto();
     else if (id === 'dex') this.showDex();
     else if (id === 'opts') this.showOptions();
@@ -188,6 +191,27 @@ export default class MenuScene extends Phaser.Scene {
     if (!this.save.flags) this.save.flags = {};
     this.save.flags.riding = !this.save.flags.riding;
     this.closeMenu();
+  }
+
+  // Abre el MAPA (Town Map estilo FRLG) como overlay sobre el menú. Registro
+  // PEREZOSO de la escena 'Map' (mismo contrato que PcScene: no se toca main.js).
+  // El menú se DUERME mientras el mapa está abierto (así sus listeners no compiten)
+  // y se DESPIERTA al cerrar el mapa. World sigue pausado por debajo de ambos.
+  openMap() {
+    if (!this.scene.get('Map')) this.scene.add('Map', MapScene, false);
+    this.busy = true;
+    sfx(this, 'select', { volume: 0.4 });
+    this.scene.launch('Map');
+    const map = this.scene.get('Map');
+    const onClose = () => {
+      map.events.off('shutdown', onClose);
+      map.events.off('sleep', onClose);
+      this.busy = false;
+      this.scene.wake();
+    };
+    map.events.once('shutdown', onClose);
+    map.events.once('sleep', onClose);
+    this.scene.sleep();
   }
 
   // ---------- Opciones ----------
