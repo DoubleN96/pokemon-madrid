@@ -130,85 +130,162 @@ const LIGA_BUILDERS = {};
 function register(id, builder) { LIGA_BUILDERS[id] = builder; }
 
 // ===== LIGA CHAMBERÍ — Salón del Alto Mando + el Campeón Álvaro =====
-// Sala alargada (9×16). El jugador entra por el felpudo (abajo, centro x4) y sube
-// por el pasillo central. Dos chokes con el ALTO MANDO (filas 10 y 6) le cierran
-// el paso; al fondo (fila 3) espera el CAMPEÓN. Estética: moqueta de gala, plantas
-// y un par de aparatos (el "Excel viviente" del lore).
+// Sala alargada (9×18). El jugador entra por el felpudo (abajo, centro x4) y sube
+// por el pasillo central. CUATRO chokes con el ALTO MANDO real de Marcelino
+// (filas 14, 11, 8 y 5) le cierran el paso; al fondo (fila 3) espera el CAMPEÓN
+// Álvaro. Estética: moqueta de gala, plantas y un par de aparatos (el "Excel
+// viviente" del lore).
+//
+// EL ALTO MANDO son amigos reales de Marcelino (parodia cariñosa). Solo Pokémon
+// Gen-1 (IDs 1-151), niveles L50-54 (por debajo/cerca del Campeón, L52-56):
+//   1. RAMIRO         (Siniestro/tramposo, póker)  — as: Gengar 94  (el as bajo la manga)
+//   2. TATIÁN         (Lucha/mole adorable)        — as: Snorlax 143 (el osito que te parte)
+//   3. RAFAEL ROBLEDO (Acero/Oro, estafador)       — as: Persian 53 (Día de Pago = te lanza dinero)
+//   4. ALEX           (Eléctrico/Tóxico)           — as: Electabuzz 125 (combate mirando el móvil)
 register('liga_chamberi', (exit) => {
   const W = 9;
-  const { m, matX, matY } = makeRoom('liga_chamberi', 'LIGA CHAMBERÍ', W, 16, FLOOR_TILE);
-  linkExit(m, matX, matY, exit);            // felpudo (4,15) → Tetuán; spawn (4,14)
+  const { m, matX, matY } = makeRoom('liga_chamberi', 'LIGA CHAMBERÍ', W, 18, FLOOR_TILE);
+  linkExit(m, matX, matY, exit);            // felpudo (4,17) → Tetuán; spawn (4,16)
   carpetAisle(m, matX, matY - 1, 3);        // moqueta roja del pasillo central
 
-  // Decoración de gala en el vestíbulo (parte baja).
-  m.layers.deco[13][1] = PLANT; m.layers.deco[13][7] = PLANT;
-  m.layers.deco[8][1] = PLANT;  m.layers.deco[8][7] = PLANT;
-  addSign(m, 1, 12, 'NORMA DE LA LIGA CHAMBERÍ — "Solo Campeones con las 8 medallas. Prohibido: fumar (sí, Álvaro, va por ti), improvisar sin gracia y dejar la luz encendida."');
-  addSign(m, 7, 12, 'PLACA DE HONOR — "Aquí se decide quién pone orden en el caos de Madrid. Arriba del todo te espera el Campeón. Sube si te atreves, compañero de piso."');
+  // Decoración de gala en el vestíbulo (parte baja) y entre salas.
+  m.layers.deco[15][1] = PLANT; m.layers.deco[15][7] = PLANT;
+  m.layers.deco[9][1] = PLANT;  m.layers.deco[9][7] = PLANT;
+  addSign(m, 1, 16, 'NORMA DE LA LIGA CHAMBERÍ — "Solo Campeones con las 8 medallas. Prohibido: fumar (sí, Álvaro, va por ti), improvisar sin gracia y dejar la luz encendida."');
+  addSign(m, 7, 16, 'PLACA DE HONOR — "Cuatro del Alto Mando y el Campeón. Todos compañeros de piso o de fatigas de Marcelino. Sube si te atreves: arriba te espera Álvaro."');
 
-  // ---- ALTO MANDO 1: ROSA "LA AUDITORA" (fila 10) — Acero/Psíquico, control ----
-  // Corredor angosto: archivadores en toda la fila salvo el pasillo (x4) y el
-  // flanco donde se planta Rosa (x5). Rosa mira al pasillo (izquierda): el jugador,
-  // de pie en el pasillo (x4), pulsa hacia ella y combate. El pasillo NUNCA se
-  // bloquea, así que tras vencerla (sigue en el mapa) se puede seguir subiendo.
-  chokeRow(m, 10, matX, matX + 1, CABINET);
+  // ---- ALTO MANDO 1: RAMIRO (fila 14) — Siniestro/tramposo, póker ----
+  // Corredor angosto: muebles en toda la fila salvo el pasillo (x4) y el flanco
+  // donde se planta el miembro del Alto Mando. Mira al pasillo: el jugador, de pie
+  // en el pasillo (x4), pulsa hacia él y combate. El pasillo NUNCA se bloquea, así
+  // que tras vencerlo (sigue en el mapa) se puede seguir subiendo. Sin soft-lock.
+  chokeRow(m, 14, matX, matX + 1, CABINET);
   m.npcs.push({
-    x: matX + 1, y: 10, dir: 'left', roam: false,
-    id: 'liga_alto_mando_1', sprite: 'psychic',
+    x: matX + 1, y: 14, dir: 'left', roam: false,
+    id: 'liga_alto_mando_1', sprite: 'ramiro',
     trainer: {
-      name: 'ROSA "LA AUDITORA"',
-      title: 'Alto Mando · Auditora Implacable',
+      name: 'RAMIRO',
+      title: 'Alto Mando · El As Bajo la Manga',
       party: [
-        { species: 82, level: 50 },  // Magneton (tres imanes, cuadre perfecto)
-        { species: 122, level: 51 }, // Mr. Mime (la pantomima de un balance cuadrado)
-        { species: 65, level: 52 },  // Alakazam — as del Alto Mando 1 (la mente que cuadra todo)
+        { species: 53, level: 50 },  // Persian (gato ladino, el farol con bigotes)
+        { species: 42, level: 51 },  // Golbat (juega de noche, en la sombra)
+        { species: 110, level: 51 }, // Weezing (cortina de humo: nunca le ves las cartas)
+        { species: 94, level: 54 },  // Gengar — AS (el truco que no veías venir)
       ],
       intro: [
-        'Alto. Antes de subir, una auditoría rápida. Soy Rosa, primera del Alto Mando, y reviso cuentas, equipos y excusas. Tú traes de las tres.',
-        'Álvaro me fichó porque cuadro lo que él calcula. Si quieres llegar al Campeón, primero me cuadras a mí el balance. A ver ese caos tuyo, ¿da o no da beneficio?',
+        'Hombre, Marcelino. Siéntate, que esto es una partida y acabas de entrar tarde, con la mano ya repartida. Soy Ramiro, primero del Alto Mando. De Torrevieja, pa servirte.',
+        'Yo vivo del póker, chaval: leo a la gente como tú lees... bueno, tú no lees mucho. Y siempre, SIEMPRE, me guardo un as bajo la manga. *se ajusta las gafas de sol bajo techo*',
+        'Va, repartamos. Si me ganas, subes. Pero te aviso: aquí el que va de farol soy yo, y el farol me lo creo hasta yo. Tu colega Ann Jou ya lo sabe... aún me debe tres cartas de One Piece.',
       ],
       win: [
-        'Cuentas claras: me has ganado en buena lid. Lo firmo, lo sello y te dejo pasar.',
-        'Sube, anda. El siguiente es más bruto que yo, y arriba... arriba está Álvaro con su dichoso Excel. Suerte, criatura.',
+        'Bua. Me has visto el farol. *deja las cartas boca arriba* Eso no me pasa ni en la partida del jueves. Lo reconozco: ibas de menos y tenías la mano buena.',
+        'Sube, anda. Y si ves a Ann Jou, dile que la próxima me trae el "Luffy Líder" o se viene conmigo a Torrevieja a explicármelo. Suerte arriba, que el de la azotea no se marca faroles: tiene los números de verdad.',
       ],
       defeat: [
-        'Balance negativo. Tu plan no cuadra ni con calzador. Revísalo y vuelves.',
-        'La Liga no se aprueba por la cara. Aquí cada combate se audita. Adiós.',
+        'Casa gana. *recoge la banca con una sonrisa* No es nada personal, compañero: es que yo ya jugaba antes de que tú te sentaras a la mesa.',
+        'Vuelve cuando sepas mirar a los ojos sin pestañear. Y trae algo que apostar, que esto sin emoción no es póker.',
       ],
       prize: 5200,
       flag: 'liga_alto_mando_1',
     },
   });
 
-  // ---- ALTO MANDO 2: D. RAMÓN "EL PORTERO" (fila 6) — Lucha/Roca, muro ----
-  // Mismo esquema, flanco opuesto (x3): D. Ramón mira al pasillo (derecha). El
-  // pasillo central (x4) queda libre; no hay riesgo de soft-lock.
-  chokeRow(m, 6, matX, matX - 1, SHELF);
+  // ---- ALTO MANDO 2: TATIÁN (fila 11) — Lucha/mole adorable ----
+  // Flanco opuesto (x3): mira al pasillo (derecha). El pasillo central (x4) queda
+  // libre; sin riesgo de soft-lock.
+  chokeRow(m, 11, matX, matX - 1, SHELF);
   m.npcs.push({
-    x: matX - 1, y: 6, dir: 'right', roam: false,
-    id: 'liga_alto_mando_2', sprite: 'gentleman',
+    x: matX - 1, y: 11, dir: 'right', roam: false,
+    id: 'liga_alto_mando_2', sprite: 'tatian',
     trainer: {
-      name: 'D. RAMÓN "EL PORTERO"',
-      title: 'Alto Mando · Muro de Contención',
+      name: 'TATIÁN',
+      title: 'Alto Mando · El Osito Amoroso',
       party: [
-        { species: 68, level: 52 },  // Machamp (cuatro brazos, cero pasa)
-        { species: 112, level: 53 }, // Rhydon (el muro que no se mueve)
-        { species: 143, level: 54 }, // Snorlax — as del Alto Mando 2 (el tapón definitivo)
+        { species: 57, level: 51 },  // Primeape (la fiesta que se pone seria)
+        { species: 62, level: 52 },  // Poliwrath (puro músculo de gimnasio)
+        { species: 68, level: 52 },  // Machamp (cuatro brazos para abrazarte)
+        { species: 143, level: 54 }, // Snorlax — AS (gigante, adorable, te aplasta de cariño)
       ],
       intro: [
-        'De aquí no pasa ni el aire, chaval. Soy D. Ramón, segundo del Alto Mando y portero de toda la vida del edificio del Campeón.',
-        'Llevo 40 años diciéndole a la gente "no está" cuando viene el del recibo. A ti no te voy a decir que no está: te lo voy a demostrar a base de bien. ¡Pasa si puedes!',
+        '¡EHHH, Marcelino!! *con vozarrón finísimo de peluche* ¡Ven aquí, ven aquí que te como a besos! ...digo, que te combato. Soy Tatián, segundo del Alto Mando, camionero de Levante y el más blandito de toda Torrevieja.',
+        'Mira esta mole, ¿eh? Ciento diez kilos de osito amoroso. Doy miedo hasta que abro la boca y me sale esta vocecita. La gente flipa. Pero ojo: en combate abrazo MUY fuerte. *risa aguda*',
+        'Venga, dame guerra, peque. Si me ganas subes; si pierdes, te invito a una y tan amigos. ¡Que para eso estamos, hombre! Pero primero te parto, con todo el amor del mundo.',
       ],
       win: [
-        '...Buah. Me has tumbado el muro. Eso no lo había hecho ni el casero, y mira que lo intentó.',
-        'Anda, sube. Pero te aviso: el de arriba no juega. Ese sí que tiene un Excel de verdad. Yo solo tengo una fregona y mala leche.',
+        '¡JOPÉ! *aplaude con dos manos como sartenes* ¡Qué máquina, Marcelino! Me has tumbado al Snorlax y todo. Ven que te dé un abrazo... ¡no corras, hombre, que es de los buenos!',
+        'Sube, fiera, sube. El siguiente es Rafael, el del traje: como te quiera vender algo, NO firmes nada. Y arriba está Álvaro, que ese no abraza, ese optimiza. ¡Mucha suerte, peque!',
       ],
       defeat: [
-        'Ea. De aquí no pasas. Como te he dicho: ni el aire.',
-        'Entrena, come y vuelve. Y trae el recibo de la luz, que Álvaro lo está esperando.',
+        'Ay, no, no... *te recoge del suelo con cuidado* Perdona, ¿te he apretado mucho? Es que no controlo la fuerza, soy un trozo de pan con bíceps.',
+        'Cura a tus bichos y vuelves, anda. Y la próxima te traes meriendas, que combatir con hambre es muy triste. ¡Un besito!',
       ],
-      prize: 5600,
+      prize: 5500,
       flag: 'liga_alto_mando_2',
+    },
+  });
+
+  // ---- ALTO MANDO 3: RAFAEL ROBLEDO (fila 8) — Acero/Oro, estafador ----
+  chokeRow(m, 8, matX, matX + 1, CABINET);
+  m.npcs.push({
+    x: matX + 1, y: 8, dir: 'left', roam: false,
+    id: 'liga_alto_mando_3', sprite: 'rafael_robledo',
+    trainer: {
+      name: 'RAFAEL ROBLEDO',
+      title: 'Alto Mando · El Encantador de Serpientes',
+      party: [
+        { species: 82, level: 52 },  // Magneton (atrae el dinero como un imán)
+        { species: 91, level: 52 },  // Cloyster (la perla que no te va a dar)
+        { species: 99, level: 53 },  // Kingler (pinzas doradas, te las clava en la firma)
+        { species: 53, level: 54 },  // Persian — AS (DÍA DE PAGO: te lanza el dinero a la cara)
+      ],
+      intro: [
+        'Buenas, buenas. Marcelino, ¿verdad? El cuñado de... bueno, el compañero de piso del Campeón. Soy Rafael Robledo, hermano de Blanca. *te tiende la mano y un folleto a la vez*',
+        'Tengo un producto FINANCIERO que te va a interesar muchísimo: alto riesgo, rentabilidad garantizada (entre comillas), y de legalidad... pues regulera. Firma aquí, aquí y aquí y pasas directo al Campeón. ¿No? Bueno, hombre, no te enfades.',
+        'Entonces a la antigua: te combato, y mi Persian usa Día de Pago, que es como yo cobro: lanzándote el dinero a la cara hasta que caes. Si me ganas, te dejo subir. Y NO firmas nada. Avaricia, chaval, que mueve el mundo.',
+      ],
+      win: [
+        '...Vaya. Me has dejado sin cartera y sin clientela. *recoge las monedas del suelo* Eres más listo de lo que vendía tu expediente. Mi hermana Blanca tenía razón contigo, qué rabia.',
+        'Sube, anda, que arriba te espera Álvaro y ese sí que tiene dinero DE VERDAD, no como mis preferentes. Y dile a Blanca que su hermano sigue siendo un crack... aunque haya perdido.',
+      ],
+      defeat: [
+        'Lo sabía. *te guarda la cartera en el bolsillo* La avaricia es un don, y tú no lo tienes. Sin acritud: el dinero busca a quien sabe apostarlo.',
+        'Vuelve con mejor cartera de bichos. Y de paso, ¿no querrás un plan de pensiones? Es coña. ...¿O no?',
+      ],
+      prize: 5700,
+      flag: 'liga_alto_mando_3',
+    },
+  });
+
+  // ---- ALTO MANDO 4: ALEX (fila 5) — Eléctrico/Tóxico, combate mirando el móvil ----
+  // Flanco opuesto (x3): mira al pasillo (derecha).
+  chokeRow(m, 5, matX, matX - 1, SHELF);
+  m.npcs.push({
+    x: matX - 1, y: 5, dir: 'right', roam: false,
+    id: 'liga_alto_mando_4', sprite: 'alex_digital',
+    trainer: {
+      name: 'ALEX',
+      title: 'Alto Mando · El Programador Enamoradizo',
+      party: [
+        { species: 101, level: 52 }, // Electrode (explota como su batería social)
+        { species: 110, level: 53 }, // Weezing (el aire del piso a las 3 a.m.)
+        { species: 89, level: 53 },  // Muk (todo lo tóxico, con mucho cariño)
+        { species: 125, level: 54 }, // Electabuzz — AS (combate a 200 pulsaciones y mirando el móvil)
+      ],
+      intro: [
+        '¡Eyyy, Marcelino, tío! *no levanta la vista del móvil* Espera, espera, que estoy en un match importantísimo... vale, ya. Bueno, sí: soy Alex, el cuarto del Alto Mando. Tu colega del piso, el de la guitarra a las tantas.',
+        'Álvaro me puso aquí "para que socialice", dice. Yo le dije que no, pero ya sabes que no sé decir que no a nadie... ni a un combate, ni a un match, ni a la pizza de las 4 a.m. Es mi don y mi condena.',
+        'Va, te combato mientras voy deslizando, que multitarea soy un crack. Tóxico-eléctrico, como mi vida amorosa. Si me ganas subes; si pierdes, te enseño la conversación que me tiene en ascuas. ¡Dale!',
+      ],
+      win: [
+        'Buah, me has ganado mientras escribía... y encima me ha dejado en visto. Día redondo, oye. *suelta el móvil un segundo* En serio, máquina: pocos me ganan al Electabuzz.',
+        'Sube, crack, que arriba está Álvaro y ese no mira el móvil ni cuando duerme las tres horas que duerme. Yo me quedo aquí... a ver si me contesta. Suerte, tío, te lo mereces.',
+      ],
+      defeat: [
+        'Jajaja, ¿ves? Tú tampoco le dices que no a una derrota. *te da una palmada* Somos iguales, Marcelino, por eso nos llevamos bien.',
+        'Cura a los bichos y vuelves. Yo aquí sigo, deslizando y combatiendo. La constancia que no tengo en el amor la echo en los combates. ¡Nos vemos!',
+      ],
+      prize: 5800,
+      flag: 'liga_alto_mando_4',
     },
   });
 

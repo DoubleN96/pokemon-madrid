@@ -7,7 +7,7 @@ import { PORTRAIT_IDS } from '../data/portraits.js';
 // navegador (sobre todo móvil) podría estar sirviendo en versión cacheada vieja:
 // el atlas de personajes `chars` (npcs.webp) y la UI de combate FRLG (databoxes,
 // barras, fondos). Subir este número fuerza una recarga limpia en clientes.
-const ASSET_VER = '6';
+const ASSET_VER = '7';
 const v = (url) => `${url}?v=${ASSET_VER}`;
 
 // Carga global de assets. Los sprites de batalla se cargan bajo demanda en BattleScene
@@ -85,6 +85,8 @@ export default class BootScene extends Phaser.Scene {
       'marcelino', 'alvaro_rival', 'alex_digital', 'ivan_fintips', 'jesus_la_rata',
       'sergio_guillen', 'eduardo', 'blanca_notarias', 'jose_antonio_casero',
       'angel_perfeccionista', 'adrian_schizo', 'mariel', 'ann_jou',
+      // ALTO MANDO real (Liga) + cameo Pablo Gallo — sprites reskineados FRLG
+      'ramiro', 'tatian', 'rafael_robledo', 'pablo_gallo',
       // bici/moto del jugador: 'marcelino_bike' es el sprite PROPIO de Marcelino
       // montado en bici (reskin/composición sobre su torso real, 3 frames/dir con
       // pedaleo). 'bike' es el antiguo sprite genérico roto, se conserva por
