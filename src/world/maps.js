@@ -14,6 +14,7 @@ import { buildGyms, GYM_LINKS } from './gyms.js';
 import { buildLiga, wireLigaDoor } from './liga.js';
 import { EXTRA_MAPS } from './areaExtra.js';
 import { BERCERO_MAPS, wireBerceroEntry } from './areaBercero.js';
+import { TORREVIEJA_MAPS, wireTorreviejaEntry } from './areaTorrevieja.js';
 
 const GRASS = 113;
 const TALL = 94;
@@ -820,6 +821,7 @@ export const MAPS = {
   ...buildLiga(),   // ENDGAME: Liga Chamberí (Alto Mando + Campeón Álvaro)
   ...EXTRA_MAPS,    // zona nueva: Ruta 3 · Gran Vía + Parque del Retiro
   ...BERCERO_MAPS,  // zona nueva: BERCERO (pueblo de Valladolid, el padre + la pandilla)
+  ...TORREVIEJA_MAPS,  // zona nueva: TORREVIEJA (costa de Alicante, la madre Marilyn + playa/salinas)
 };
 
 // Enlaza las puertas del overworld con sus interiores (warps de ida).
@@ -832,3 +834,7 @@ wireLigaDoor(MAPS);
 // la "Estación de Autobuses" en un tile libre de Tetuán (único punto de viaje) +
 // los warps de ida/vuelta. No reorganiza ningún mapa existente.
 wireBerceroEntry(MAPS);
+// Engancha la ZONA TORREVIEJA de forma aditiva: interior de la casa de la madre +
+// una SEGUNDA línea de bus (Levante) en un tile libre de Tetuán (distinto del de
+// Bercero) + los warps de ida/vuelta. No reorganiza ningún mapa existente ni Bercero.
+wireTorreviejaEntry(MAPS);
