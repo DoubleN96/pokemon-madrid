@@ -5,6 +5,7 @@ import Phaser from 'phaser';
 import { createBattle } from '../core/battle.js';
 import { calcStats, expForLevel } from '../core/formulas.js';
 import { evolve, createMonster } from '../core/monster.js';
+import { ensurePc, sendToPc } from '../core/pcStorage.js';
 import { drawBox, bmText, ITEM_NAMES } from '../ui/theme.js';
 import { MessageBox } from '../ui/battle/typewriter.js';
 import { DataBox } from '../ui/battle/databoxes.js';
@@ -602,7 +603,16 @@ export default class BattleScene extends Phaser.Scene {
       this.save.party.push(mon);
       await this.msg.type(`¡${name} se une a tu equipo!`, { confirm: true });
     } else {
-      await this.msg.type(`Tu equipo está completo. ${name} ha sido liberado... ¡Hasta otra, majo!`, { confirm: true });
+      // Equipo lleno: overflow al PC DE FINTIPS (estilo FRLG), nunca se libera.
+      const pc = ensurePc(this.save);
+      const res = sendToPc(pc, mon);
+      if (res.ok) {
+        await this.msg.type(`Tu equipo está completo. ¡${name} fue enviado al PC de FinTips!`, { confirm: true });
+        await this.msg.type(`Queda guardado en ${pc.names[res.boxIndex]}. Diversificar es la clave, bro.`, { confirm: true });
+      } else {
+        // PC también lleno (caso extremo): se avisa sin perderlo del aviso.
+        await this.msg.type(`Tu equipo y el PC de FinTips están a tope. ${name} se queda esperando... ¡haz hueco, majo!`, { confirm: true });
+      }
     }
   }
 

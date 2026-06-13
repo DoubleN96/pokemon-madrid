@@ -9,6 +9,7 @@ import Phaser from 'phaser';
 import { GAME_W, GAME_H, STARTERS, MONEY_START, SAVE_VERSION } from '../config.js';
 import { drawBox, bmText } from '../ui/theme.js';
 import { createMonster } from '../core/monster.js';
+import { createPc } from '../core/pcStorage.js';
 import { saveGame } from '../services/saves.js';
 import { MAPS } from '../world/maps.js';
 import { el, ROOT_CSS, PANEL_CSS, TITLE_CSS, INPUT_CSS, BTN_CSS } from '../ui/authForm.js';
@@ -244,6 +245,8 @@ export default class IntroScene extends Phaser.Scene {
       flags: { introDone: true, rivalStarter: RIVAL_COUNTER[id] || 4 },
       // Opciones de partida. Reparto de Experiencia arranca DESACTIVADO (clásico).
       options: { expShare: false },
+      // PC de almacenamiento "EL PC DE FINTIPS" (cajas de Bill): arranca vacío.
+      pc: createPc(),
       playTimeS: 0,
     };
   }

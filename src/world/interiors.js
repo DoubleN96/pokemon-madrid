@@ -184,12 +184,14 @@ register('cpoke_tetuan', (exit) => {
       'Que vaya bien. Y si ves a Álvaro, dile de mi parte que se duche más de tres minutos.',
     ],
   });
-  // PC de almacenamiento (charla decorativa).
+  // PC DE FINTIPS — punto de acceso al almacenamiento (cajas de Bill, FRLG).
+  // pcAccess: true → al interactuar, WorldScene abre la UI del PC tras un diálogo.
   m.npcs.push({
     id: 'pc_box_tetuan', sprite: 'scientist', x: 8, y: 3, dir: 'down', roam: false,
+    pcAccess: true,
     dialog: [
-      'Este es el PC de almacenamiento, conectado al sistema del Profesor Galdós.',
-      'Aún está en pruebas, así que de momento solo cura y guarda. Como el Excel de Marcelino: prometía mucho y hace dos cosas.',
+      'Este es EL PC DE FINTIPS, conectado a la "nube de activos" de Iván.',
+      'Aquí guardas los Pokémon que no te caben en la cartera... digo, en el equipo. Diversificar es la clave, bro.',
     ],
   });
   addSign(m, 1, 3, 'TABLÓN — "Se busca compañero de piso. Imprescindible: pagar a tiempo y no usar el vape de Jesús."');
@@ -291,11 +293,13 @@ register('cpoke_chamberi', (exit) => {
       'Vuelva cuando guste. Y salude a Blanca de mi parte: esa muchacha es la única persona cuerda de todo este barrio.',
     ],
   });
+  // PC DE FINTIPS — mismo sistema de cajas que en Tetuán (acceso global).
   m.npcs.push({
     id: 'pc_box_chamberi', sprite: 'gentleman', x: 8, y: 3, dir: 'down', roam: false,
+    pcAccess: true,
     dialog: [
-      'Disfruto del café de enfrente mientras curan a mis Pokémon. La vida señorial de Chamberí, ya sabe.',
-      'Dicen que la Estación Fantasma esconde algo. Yo, de noche, prefiero no acercarme. Hay cosas que ni la jurisprudencia de Blanca arregla.',
+      'Permítame: acceda a SU cartera en EL PC DE FINTIPS. La misma nube, las mismas cajas, desde cualquier Centro.',
+      'Yo aquí gestiono la mía mientras curan a mis Pokémon. La vida señorial de Chamberí, ya sabe.',
     ],
   });
   addSign(m, 1, 3, 'TABLÓN — "Tertulia en el Café del Modernismo, hoy a las cinco. Tema: ¿es el ladrillo un Pokémon?"');
