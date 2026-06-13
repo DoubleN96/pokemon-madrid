@@ -721,6 +721,42 @@ const CHAMBERI_NPCS = [
       'Hoy no voy a combatirte; no estás a mi altura todavía. Pero pronto mi Mr. Mime y yo te pondremos en tu sitio. En el sitio CORRECTO. Tú espera.',
     ],
   },
+  // Ann Jou — amigo de Marcelino. Asiático, gafas, sudadera negra. Se cree
+  // SUPERIOR y muy negativo; vive del PÓKER profesional y de CAMBIAR cromos de
+  // One Piece. Tapa su vacío existencial yéndose a ganar a pueblerinos. Novia
+  // venezolana, Lucía, muy maja, que su familia no acaba de aceptar.
+  // Lo plantamos junto al Gimnasio Trading/Casino de Mariel (puerta 14,10): pega
+  // con su rollo de azar, cartas y banca. Tile (16,11) — plaza, alcanzable a pie.
+  // BALANCE: 3.ª ciudad, equipo Nv.9-11 (azar/casino): Voltorb (ruleta), Meowth
+  // (Pay Day = vive del juego) y Persian, su "as" engreído.
+  {
+    id: 'ann_jou', sprite: 'ann_jou', x: 16, y: 11, dir: 'down', roam: false,
+    trainer: {
+      name: 'ANN JOU',
+      title: 'Crupier del Vacío Existencial',
+      party: [
+        { species: 100, level: 9 },  // Voltorb — la bola de la ruleta
+        { species: 52, level: 10 },  // Meowth — Pay Day, "yo del póker vivo"
+        { species: 53, level: 11 },  // Persian — su as engreído y elegante
+      ],
+      intro: [
+        'Anda, Marcelino. Mira, te lo digo de buen rollo, que somos colegas: esto de los Pokémon no se te da. Pero bueno, a casi nadie. La gente, en general, es bastante mediocre.',
+        'Yo me bajo a los pueblos de al lado a ganarles a todos. Es triste, ¿eh? Ganas a quince paletos y por dentro sigues igual de vacío. Pero algo hay que hacer entre torneo y torneo de póker.',
+        '¿Sabes que ayer cambié un Luffy Líder de One Piece por tres cartas que valían el doble? Lo de leerle la cara a la gente es lo mío. Por eso vivo del póker, no por suerte. La suerte es para los pobres de espíritu.',
+        'Va, te combato. Pero conste que esto es como el casino de tu amiga Mariel: la banca, o sea yo, siempre gana. Lucía me dice que sea más majo... ella sí que es maja, oye. Lástima lo de mi familia. En fin. Reparte.',
+      ],
+      win: [
+        '...Vale. Vale. No pasa nada. Ha sido la varianza, una mala racha, un bad beat de manual. A nivel teórico yo iba ganando, que lo sepas.',
+        'Toma tu premio, anda, que del póker de esta semana me sobra. Y no se lo cuentes a Lucía, que luego me dice que ves, que no soy tan bueno. Es muy maja, pero qué pesadita con la humildad.',
+      ],
+      defeat: [
+        'Lo ves. Te lo dije. Esto no se te da, y a la mayoría tampoco. Que no es algo personal, es que el mundo es mediocre y ya está.',
+        'Me vuelvo a mi pueblo de turno a ganarle a la peña y a sentir exactamente lo mismo de siempre: nada. *se ajusta las gafas* Bueno. A ver si Lucía me ha guardado cena.',
+      ],
+      prize: 720,
+      flag: 'ann_jou_chamberi',
+    },
+  },
   // Flavor castizo conservado, mejorado.
   {
     id: 'senora_olavide', sprite: 'generic_f1', x: 12, y: 20, dir: 'down', roam: true,
