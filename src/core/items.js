@@ -78,7 +78,42 @@ export const ITEMS = {
     name: 'CARTA', desc: 'Coleccionable castizo. No hace nada... aún.',
     price: 0, category: 'key', usableInBattle: false, usableInField: false,
   },
+  // ─── OBJETOS MO (HM, estilo FRLG) ──────────────────────────────────────────
+  // Objetos clave que DESBLOQUEAN un movimiento de campo. No se venden (price 0,
+  // category 'mo'). El uso real lo gobierna core/fieldMoves.js + WorldScene; aquí
+  // solo existen como ítem de mochila (para el gate "tienes el objeto MO").
+  // `field` enlaza con FIELD_MOVES[<id>] de fieldMoves.js.
+  mo01: {
+    name: 'MO01 CORTE', desc: 'Corta arbustos finos que bloquean el paso.',
+    price: 0, category: 'mo', field: 'cut', usableInBattle: false, usableInField: true,
+  },
+  mo02: {
+    name: 'MO02 VUELO', desc: 'Vuela a cualquier zona ya visitada con Centro Pokémon.',
+    price: 0, category: 'mo', field: 'fly', usableInBattle: false, usableInField: true,
+  },
+  mo03: {
+    name: 'MO03 SURF', desc: 'Surca el agua a lomos de un Pokémon.',
+    price: 0, category: 'mo', field: 'surf', usableInBattle: false, usableInField: true,
+  },
+  mo04: {
+    name: 'MO04 FUERZA', desc: 'Empuja rocas pesadas que cortan el camino.',
+    price: 0, category: 'mo', field: 'strength', usableInBattle: false, usableInField: true,
+  },
+  mo06: {
+    name: 'MO06 GOLPE ROCA', desc: 'Rompe rocas pequeñas y quebradizas.',
+    price: 0, category: 'mo', field: 'rocksmash', usableInBattle: false, usableInField: true,
+  },
 };
+
+// ¿Es un objeto MO (HM)? (category 'mo'). Lo usan la mochila y el menú de MOs.
+export function isFieldMoveItem(id) {
+  return ITEMS[id]?.category === 'mo';
+}
+
+// id del movimiento de campo que desbloquea un objeto MO (o null).
+export function fieldMoveOfItem(id) {
+  return ITEMS[id]?.field || null;
+}
 
 // Devuelve la definición del objeto o un objeto vacío seguro si no existe.
 export function itemDef(id) {

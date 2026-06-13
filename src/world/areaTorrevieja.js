@@ -263,13 +263,24 @@ function buildTorrevieja() {
   stampBuilding(m, 8, 16, HOUSE);                // chiringuito-heladería
   addSign(m, 7, 19, 'CHIRINGUITO "EL SALERO". Horchata, helado de turrón y bravas. "El cartel de cerrado es decorativo: aquí no cierran ni con temporal."');
 
-  // === SUR: PLAYA + MAR (preparado para Surf futuro) + PUERTO DEPORTIVO ===
-  // ARENA de playa ancha en el sur, y MAR abierto al borde inferior (colisiona).
+  // === SUR: PLAYA + MAR (SURF) + PUERTO DEPORTIVO ===
+  // ARENA de playa ancha en el sur, y MAR abierto al borde inferior (colisiona; se
+  // cruza SURFEANDO con la MO03). El mar es agua de tipo WATER → al chocar de cara
+  // se ofrece Surf (ver WorldScene.maybeFieldMovePrompt).
   stampBeach(m, 2, 22, 28, 3);
-  stampWaterBody(m, 2, 25, 28, 5, WATER);        // MAR mediterráneo (Surf futuro)
+  stampWaterBody(m, 2, 25, 28, 5, WATER);        // MAR mediterráneo (Surf)
+  // ENTRADA DE SURF: la orilla del mar (WEDGE) está toda cerrada por el marco. Para
+  // poder ENTRAR al agua, abrimos un acceso de 2 tiles en la fila de orilla (x11-12,
+  // y25): los convertimos en AGUA de verdad (no marco), de modo que el jugador,
+  // parado en la arena (x11/x12, y24), mire al sur y pueda surfear hacia el mar.
+  for (const sx of [11, 12]) {
+    m.layers.ground[25][sx] = WATER;
+    m.layers.deco[25][sx] = -1;
+    m.collision[25][sx] = 1;   // colisiona a pie; solo se pisa surfeando
+  }
   // EMBARCADERO de madera asomando al mar (preparación visible para cruzar con Surf).
   fenceH(m, 14, 24, 4);                          // pantalán del puerto deportivo
-  addSign(m, 13, 23, 'PUERTO DEPORTIVO DE TORREVIEJA. Veleros, gaviotas y el faro al fondo. "Dicen que algún día se podrá cruzar el mar a nado... con el Pokémon adecuado." (MO Surf, futuro.)');
+  addSign(m, 13, 23, 'PUERTO DEPORTIVO DE TORREVIEJA. Veleros, gaviotas y el faro al fondo. "Con la MO03 SURF y un Pokémon de agua, se cruza el mar a nado hasta la isla del fondo."');
   addSign(m, 18, 23, 'PLAYA DE LOS LOCOS / LA MATA. Arena fina, banderita verde. "Sombrilla clavada a las 8, sitio para toda la vida. Reglas del veraneo levantino."');
 
   // Detalles del paseo: arbolado, vallas, flores.
@@ -313,14 +324,22 @@ function torreviejaData(m) {
 }
 
 const TORREVIEJA_NPCS = [
-  // Pescador del puerto (ambiente costero). Charla cariñosa del veraneo levantino.
+  // Pescador del puerto (ambiente costero). REGALA la MO03 SURF (lore perfecto:
+  // "cruzar el mar a nado con el bicho adecuado"). Charla cariñosa del veraneo.
   {
     id: 'pescador_torrevieja', sprite: 'fisher', x: 16, y: 23, dir: 'down', roam: false,
-    dialog: [
-      'Buenas, mozo. ¿Vienes a ver a tu madre? Marilyn anda preguntando por ti TODO el verano, que lo sepas.',
-      'Yo aquí, echando la caña en el pantalán. El mar de Torrevieja es de los buenos: salado, calentito y con su brisa de poniente.',
-      'Dicen que algún día se cruzará a nado hasta esa isla del fondo... con el bicho adecuado. Yo, de momento, con la barca y la paciencia.',
-    ],
+    gift: {
+      item: 'mo03', flag: 'mo_surf_given',
+      lines: [
+        'Buenas, mozo. ¿Vienes a ver a tu madre? Marilyn anda preguntando por ti TODO el verano, que lo sepas.',
+        'Yo aquí, echando la caña en el pantalán. El mar de Torrevieja es de los buenos: salado, calentito y con su brisa de poniente.',
+        'Mira, te voy a dar la MO03, SURF. Con un Pokémon de tipo agua podrás cruzar el mar a nado, hasta esa isla del fondo. Lo que yo hago con la barca, tú con tu bicho.',
+      ],
+      doneLines: [
+        'Para SURFEAR, ponte de cara al mar con un Pokémon de agua en el equipo y úsalo. ¡A navegar el Mediterráneo, mozo!',
+        'Dicen que algún día se cruzará a nado hasta esa isla del fondo. Tú ya puedes. Yo, de momento, con la barca y la paciencia.',
+      ],
+    },
   },
   // Heladero del chiringuito "El Salero" (ambiente). Cariñoso, de pueblo de veraneo.
   {

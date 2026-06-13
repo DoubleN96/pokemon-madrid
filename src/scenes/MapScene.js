@@ -23,12 +23,18 @@ import {
   MAP_VIEW, MAP_COLORS, REGIONS, MAP_POINTS,
   pointForMap, toScreen, rectToScreen,
 } from '../world/townMap.js';
+import { isVisited } from '../world/fieldMoves.js';
 
 export default class MapScene extends Phaser.Scene {
   constructor() { super('Map'); }
 
-  create() {
+  create(data = {}) {
     this.save = this.registry.get('save');
+    // Modo VUELO: cuando WorldScene lanza el mapa con { flyMode:true, onFly }, A/Z
+    // sobre un punto VOLABLE y ya VISITADO ejecuta el viaje rápido (callback onFly).
+    // En modo informativo (sin flyMode) A/Z solo recentra (comportamiento previo).
+    this.flyMode = !!data.flyMode;
+    this.onFly = typeof data.onFly === 'function' ? data.onFly : null;
     this.busy = false;
     this.view = null;
     // Punto donde está el jugador (resuelto desde save.player.map).
@@ -88,9 +94,34 @@ export default class MapScene extends Phaser.Scene {
   }
 
   confirm() {
-    // VUELO futuro: aquí se lanzaría el viaje rápido a un punto `flyable` visitado.
-    // De momento es informativo: un pequeño sfx de confirmación y nada más.
+    const p = MAP_POINTS[this.cursorIdx];
+    // MODO VUELO: si el punto es VOLABLE (centro Pokémon) y YA VISITADO, viaja.
+    if (this.flyMode && p && p.flyable && p.flyTo) {
+      if (!isVisited(this.save, p.id) && !this.pointVisited(p)) {
+        sfx(this, 'cancel', { volume: 0.4 });
+        if (this.infoText) this.infoText.setText(`${p.name}: aún no has estado aquí. No puedes volar a una zona sin visitar.`);
+        return;
+      }
+      sfx(this, 'door', { volume: 0.5 });
+      if (this.onFly) this.onFly({ map: p.flyTo.map, x: p.flyTo.x, y: p.flyTo.y });
+      this.close();
+      return;
+    }
+    if (this.flyMode && p) {
+      sfx(this, 'cancel', { volume: 0.4 });
+      if (this.infoText) this.infoText.setText(`${p.name}: no se puede volar aquí (no tiene Centro Pokémon).`);
+      return;
+    }
+    // Modo informativo: solo un sfx de confirmación.
     sfx(this, 'select', { volume: 0.4 });
+  }
+
+  // ¿El punto cuenta como visitado? (visited del save O cualquiera de sus `maps`
+  // marcado como visitado; tolerante a saves que registraron un id de mapa interno).
+  pointVisited(p) {
+    if (!p) return false;
+    if (isVisited(this.save, p.id)) return true;
+    return (p.maps || []).some((m) => isVisited(this.save, m));
   }
 
   close() {
@@ -124,8 +155,9 @@ export default class MapScene extends Phaser.Scene {
     const c = this.setView();
     // Fondo del mapa (panel azul "atlas") + cabecera.
     c.add(drawBox(this, 0, 0, GAME_W, GAME_H, { fill: 0x2a3a6a }));
-    this.text(c, 8, 5, 'MAPA — ESPAÑA', { color: TEXT_COLOR_LIGHT });
-    this.text(c, GAME_W - 8, 5, 'B/Esc: salir', { color: '#c8d0f0', origin: [1, 0] });
+    this.text(c, 8, 5, this.flyMode ? 'MAPA — ¿VOLAR A...?' : 'MAPA — ESPAÑA', { color: TEXT_COLOR_LIGHT });
+    this.text(c, GAME_W - 8, 5, this.flyMode ? 'A: volar · B: salir' : 'B/Esc: salir',
+      { color: '#c8d0f0', origin: [1, 0] });
 
     // Lienzo del mapa (marco claro).
     c.add(drawBox(this, MAP_VIEW.x - 2, MAP_VIEW.y - 2, MAP_VIEW.w + 4, MAP_VIEW.h + 4, { fill: 0x0f1c3c }));
@@ -218,8 +250,11 @@ export default class MapScene extends Phaser.Scene {
       const s = toScreen(p.pos);
       this.pointScreens[i] = s;
       const g = this.add.graphics();
-      // Punto: círculo. Amarillo si es centro "volable" (visitable), claro si no.
-      const fill = p.flyable ? MAP_COLORS.pointVisited : MAP_COLORS.point;
+      // Punto: círculo. Amarillo si es centro volable y YA VISITADO (destino de
+      // Vuelo válido); más apagado si es volable pero aún sin visitar; claro si no
+      // es volable. En modo Vuelo esto comunica de un vistazo a dónde puedes ir.
+      const visitedFly = p.flyable && this.pointVisited(p);
+      const fill = visitedFly ? MAP_COLORS.pointVisited : (p.flyable ? 0xb8a850 : MAP_COLORS.point);
       g.fillStyle(MAP_COLORS.pointEdge, 1);
       g.fillCircle(s.x, s.y, 4);
       g.fillStyle(fill, 1);

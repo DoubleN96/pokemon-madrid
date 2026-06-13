@@ -7,7 +7,7 @@ import { PORTRAIT_IDS } from '../data/portraits.js';
 // navegador (sobre todo móvil) podría estar sirviendo en versión cacheada vieja:
 // el atlas de personajes `chars` (npcs.webp) y la UI de combate FRLG (databoxes,
 // barras, fondos). Subir este número fuerza una recarga limpia en clientes.
-const ASSET_VER = '9';
+const ASSET_VER = '10';
 const v = (url) => `${url}?v=${ASSET_VER}`;
 
 // Carga global de assets. Los sprites de batalla se cargan bajo demanda en BattleScene
@@ -28,8 +28,11 @@ export default class BootScene extends Phaser.Scene {
     this.load.bitmapFont('frlg16', v('assets/fonts/frlg16.png'), v('assets/fonts/frlg16.fnt'));
     this.load.bitmapFont('frlg10', v('assets/fonts/frlg10.png'), v('assets/fonts/frlg10.fnt'));
 
-    // Tileset overworld Gen 3 (16x16, reempaquetado a 127 columnas sin margen)
-    this.load.spritesheet('tiles', 'assets/tilesets/rse-tileset.png', { frameWidth: 16, frameHeight: 16 });
+    // Tileset overworld Gen 3 (16x16, reempaquetado a 127 columnas sin margen).
+    // Cache-bust ?v= (ASSET_VER): el tileset se amplió con tiles de OBSTÁCULO de MO
+    // (roca de Fuerza GID 6328, roca de Golpe Roca GID 6329) en huecos en blanco del
+    // final, así que el cliente debe recargar la versión nueva (no la cacheada).
+    this.load.spritesheet('tiles', v('assets/tilesets/rse-tileset.png'), { frameWidth: 16, frameHeight: 16 });
     // Atlas de personajes (jugador + NPCs, formato TexturePacker). Cache-bust ?v=
     // en ambas URLs para que el móvil no sirva el npcs.webp viejo cacheado.
     this.load.atlas('chars', v('assets/sprites/chars/npcs.webp'), v('assets/sprites/chars/npcs.json'));
