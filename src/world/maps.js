@@ -757,6 +757,40 @@ const CHAMBERI_NPCS = [
       flag: 'ann_jou_chamberi',
     },
   },
+  // Pablo Gallo — cameo SIMPÁTICO y NEUTRO (NPC entrenador majo, NO Alto Mando).
+  // Rasgos LIMPIOS: argentino de buen rollo, ingeniero de software, gym, anime y
+  // tatuajes. El material sensible/difamatorio del roadmap (secc. D) se EXCLUYE por
+  // completo: repo público, nada acusatorio/dañino sobre una persona real. Cameo
+  // amistoso de parodia cariñosa. Lo plantamos en la plaza de Olavide (20,13),
+  // tile libre del disco, lejos de los otros entrenadores (Blanca/Ángel/Ann Jou).
+  // BALANCE: 3.ª ciudad, equipo Nv.18-21 temático "gym + anime + código".
+  {
+    id: 'pablo_gallo', sprite: 'pablo_gallo', x: 20, y: 13, dir: 'left', roam: false,
+    trainer: {
+      name: 'PABLO GALLO',
+      title: 'Programador Tatuado de Buen Rollo',
+      party: [
+        { species: 66, level: 18 },  // Machop — el del gym, levanta hierro
+        { species: 25, level: 19 },  // Pikachu — anime puro, el favorito de todos
+        { species: 67, level: 21 },  // Machoke — su as, brazos de hacer dominadas
+      ],
+      intro: [
+        '¡Eh, qué hacés, campeón! *deja las pesas un momento* Pablo, ingeniero de software, de Buenos Aires pero afincado en Madrid. Vos sos Marcelino, ¿no? Me hablaron bien de vos.',
+        'Mirá, yo soy tranqui: código de día, gimnasio de tarde, y a la noche, anime hasta las mil. Esta vida es redonda, te lo firmo. Ah, y los tatuajes... cada uno tiene su historia, pero esa te la cuento con una birra.',
+        'Dale, tirá unos Pokémon que te muestro lo que entrena un porteño con disciplina. Sin maldad, ¿eh? Acá venimos a pasarla bien y a sudar la camiseta.',
+      ],
+      win: [
+        '¡Uhh, qué máquina! Me ganaste limpio, eso se respeta, che. Tenés actitud de protagonista de shonen, te lo digo en serio.',
+        'Tomá tu premio, te lo ganaste con codo. Y si algún día querés que te arme un script o te recomiende un anime, ya sabés dónde encontrarme: entre las pesas y el portátil. ¡Un abrazo grande!',
+      ],
+      defeat: [
+        'Jaja, ¡me salió bien la rutina de hoy! Tranqui, che, que perder también entrena. Mañana volvés más fuerte.',
+        'Pasá por el gym cuando quieras y entrenamos juntos. Eso sí, traete agua, que sin hidratación no hay gloria. ¡Nos vemos, crack!',
+      ],
+      prize: 1320,
+      flag: 'pablo_gallo_chamberi',
+    },
+  },
   // Flavor castizo conservado, mejorado.
   {
     id: 'senora_olavide', sprite: 'generic_f1', x: 12, y: 20, dir: 'down', roam: true,
