@@ -8,6 +8,16 @@ import {
 } from '../ui/theme.js';
 import { calcStats } from '../core/formulas.js';
 import { saveGame } from '../services/saves.js';
+import { itemDef } from '../core/items.js';
+
+// Texto del efecto de cada objeto de estado/revivir en el menú de mochila.
+const FIELD_CURE_MSG = {
+  psn: 'se ha curado del veneno',
+  par: 'se ha curado de la parálisis',
+  brn: 'se ha curado de las quemaduras',
+  slp: 'se ha despertado',
+  frz: 'se ha descongelado',
+};
 
 const OPTIONS = [
   { id: 'team', label: 'EQUIPO' },
@@ -302,20 +312,30 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   // Curación fuera de combate (la curación completa en Centros la hace el core healFull).
+  // Se apoya en el catálogo central (core/items.js) para pociones, antídotos/
+  // antiparálisis/etc. y revivir.
   applyItem(item, mon) {
     const name = this.displayName(mon);
-    if (item === 'potion') {
+    const def = itemDef(item);
+    const max = calcStats(this.speciesOf(mon), mon).hp;
+    if (def.category === 'heal') {
       if (mon.currentHp <= 0) return { used: false, msg: `${name} está debilitado. Así no le hace nada.` };
-      const max = calcStats(this.speciesOf(mon), mon).hp;
       if (mon.currentHp >= max) return { used: false, msg: `${name} ya tiene los PS al máximo.` };
-      const healed = Math.min(20, max - mon.currentHp);
+      const healed = Math.min(def.heal || 0, max - mon.currentHp);
       mon.currentHp += healed;
       return { used: true, msg: `¡${name} ha recuperado ${healed} PS!` };
     }
-    if (item === 'antidote') {
-      if (mon.status !== 'psn') return { used: false, msg: 'No tendría ningún efecto.' };
+    if (def.category === 'cure') {
+      if (mon.status !== def.cures) return { used: false, msg: 'No tendría ningún efecto.' };
       mon.status = null;
-      return { used: true, msg: `¡${name} se ha curado del veneno!` };
+      return { used: true, msg: `¡${name} ${FIELD_CURE_MSG[def.cures] || 'se ha recuperado'}!` };
+    }
+    if (def.category === 'revive') {
+      if (mon.currentHp > 0) return { used: false, msg: `${name} no está debilitado.` };
+      mon.status = null;
+      mon.sleepTurns = 0;
+      mon.currentHp = Math.max(1, Math.floor(max / 2));
+      return { used: true, msg: `¡${name} ha vuelto a la vida!` };
     }
     return { used: false, msg: 'Eso no se puede usar ahora.' };
   }
@@ -445,7 +465,7 @@ export default class MenuScene extends Phaser.Scene {
   selectBagItem() {
     if (!this.bagItems.length) return;
     const { id } = this.bagItems[this.bagIdx];
-    if (id === 'potion' || id === 'antidote') {
+    if (itemDef(id).usableInField) {
       this.pendingItem = id;
       this.showTeam();
       return;

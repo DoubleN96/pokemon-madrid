@@ -3,6 +3,7 @@ import { TILE, WALK_MS, ENCOUNTER_RATE, SAVE_VERSION, MONEY_START } from '../con
 import { MAPS } from '../world/maps.js';
 import { createMonster, healFull } from '../core/monster.js';
 import { createPc, ensurePc } from '../core/pcStorage.js';
+import { ensureWallet } from '../core/items.js';
 import { openShop } from '../ui/shop.js';
 import { portraitForNpc } from '../data/portraits.js';
 import { playMusic, sfx } from '../audio/AudioManager.js';
@@ -468,9 +469,10 @@ export default class WorldScene extends Phaser.Scene {
   ensureSave() {
     let save = this.registry.get('save');
     if (save) {
-      // Saves antiguos (cargados de la nube/local) no traen `pc`: lo añadimos
-      // vacío y bien formado sin subir versión (retrocompatible).
+      // Saves antiguos (cargados de la nube/local) no traen `pc` ni cartera
+      // (`money`/`bag`): los añadimos bien formados sin subir versión (retrocompatible).
       ensurePc(save);
+      ensureWallet(save, MONEY_START);
       return save;
     }
     const spawn = (MAPS.tetuan && MAPS.tetuan.playerSpawn) || { x: 1, y: 1 };

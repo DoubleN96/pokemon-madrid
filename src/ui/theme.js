@@ -1,5 +1,9 @@
 // Módulo D — Estética compartida estilo GBA FRLG: cajas, texto, barras y constantes de UI.
 import Phaser from 'phaser';
+// Los nombres/descripciones de objetos viven ahora en el catálogo central
+// (core/items.js). Se re-exportan aquí para no romper a quien ya los importaba
+// desde theme.js (MenuScene, BattleScene, ui/shop.js).
+import { ITEM_NAMES as _ITEM_NAMES, ITEM_DESCS as _ITEM_DESCS } from '../core/items.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FUENTE BITMAP NÍTIDA (BitmapText)
@@ -258,18 +262,6 @@ export const TYPE_COLORS = {
 
 export const STATUS_LABELS = { par: 'PAR', psn: 'PSN', brn: 'QUE', slp: 'DOR', frz: 'CON' };
 
-export const ITEM_NAMES = {
-  'poke-ball': 'POKÉ BALL',
-  potion: 'POCIÓN',
-  antidote: 'ANTÍDOTO',
-  'poke-doll': 'POKÉ MUÑECO',
-  card: 'CARTA',
-};
-
-export const ITEM_DESCS = {
-  'poke-ball': 'Para capturar Pokémon salvajes.',
-  potion: 'Restaura 20 PS de un Pokémon.',
-  antidote: 'Cura a un Pokémon envenenado.',
-  'poke-doll': 'Permite huir de combates salvajes.',
-  card: 'Coleccionable castizo. No hace nada... aún.',
-};
+// Re-exportados del catálogo central (core/items.js).
+export const ITEM_NAMES = _ITEM_NAMES;
+export const ITEM_DESCS = _ITEM_DESCS;

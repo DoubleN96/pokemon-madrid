@@ -7,6 +7,7 @@ import { calcStats, expForLevel } from '../core/formulas.js';
 import { evolve, createMonster } from '../core/monster.js';
 import { ensurePc, sendToPc } from '../core/pcStorage.js';
 import { drawBox, bmText, ITEM_NAMES } from '../ui/theme.js';
+import { BATTLE_USABLE_ITEMS, itemDef, isBall } from '../core/items.js';
 import { MessageBox } from '../ui/battle/typewriter.js';
 import { DataBox } from '../ui/battle/databoxes.js';
 import { mainMenu, fightMenu, bagMenu, partyMenu, yesNoMenu } from '../ui/battle/menus.js';
@@ -16,7 +17,8 @@ import { waitForButton } from '../ui/battle/keys.js';
 import * as fx from '../ui/battle/animations.js';
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
-const BAG_ITEMS = ['poke-ball', 'potion', 'antidote'];
+// Objetos utilizables en combate (bolas + curación + estado + revivir), del catálogo central.
+const BAG_ITEMS = BATTLE_USABLE_ITEMS;
 
 export default class BattleScene extends Phaser.Scene {
   constructor() { super('Battle'); }
@@ -359,13 +361,34 @@ export default class BattleScene extends Phaser.Scene {
     }
     const item = await bagMenu(this, items);
     if (!item) return null;
-    if (item === 'poke-ball') return { type: 'item', item };
-    return { type: 'item', item, target: this.activeIndex };
+    // Las bolas no necesitan objetivo (van contra el Pokémon salvaje).
+    if (isBall(item)) return { type: 'item', item };
+    // Curación/estado/revivir: si el equipo tiene más de uno, se elige a quién;
+    // con uno solo, va directo al Pokémon activo (o al único, para REVIVIR no aplica).
+    const target = await this.chooseItemTarget(item);
+    if (target === null) return null;
+    return { type: 'item', item, target };
+  }
+
+  // Selección de Pokémon destino para un objeto. REVIVIR solo permite elegir
+  // Pokémon debilitados; el resto, solo Pokémon NO debilitados. Si solo hay un
+  // candidato evidente, se usa directamente sin abrir el menú.
+  async chooseItemTarget(item) {
+    const def = itemDef(item);
+    const rows = this.buildPartyRows({ forItem: def });
+    const usable = rows.filter((r) => !r.disabled);
+    if (usable.length === 0) return this.activeIndex; // el motor lo invalida con mensaje
+    if (def.category === 'revive') {
+      if (usable.length === 1) return usable[0].index;
+      return partyMenu(this, rows, { forced: false });
+    }
+    if (usable.length === 1) return usable[0].index;
+    return partyMenu(this, rows, { forced: false });
   }
 
   bagEntries() {
     return BAG_ITEMS
-      .filter((key) => !(this.isTrainer && key === 'poke-ball'))
+      .filter((key) => !(this.isTrainer && isBall(key)))
       .filter((key) => (this.save.bag[key] || 0) > 0)
       .map((key) => ({ item: key, label: ITEM_NAMES[key] || key.toUpperCase(), qty: this.save.bag[key] }));
   }
@@ -380,13 +403,23 @@ export default class BattleScene extends Phaser.Scene {
     return partyMenu(this, this.buildPartyRows(), { forced });
   }
 
-  buildPartyRows() {
+  // forItem: si se pasa la definición de un objeto, las filas se habilitan/
+  // deshabilitan según a quién puede aplicarse (REVIVIR → solo debilitados; el
+  // resto → solo NO debilitados). Sin forItem, es el menú de cambio (clásico).
+  buildPartyRows({ forItem = null } = {}) {
     return this.save.party.map((mon, i) => {
       const species = this.pokedex[mon.species - 1];
       const stats = calcStats(species, mon);
-      const state = mon.currentHp <= 0 ? 'DEB' : (mon.status || '').toUpperCase();
+      const fainted = mon.currentHp <= 0;
+      const state = fainted ? 'DEB' : (mon.status || '').toUpperCase();
       const label = `${monName(mon, this.pokedex).padEnd(11)}Nv${String(mon.level).padStart(2)}  ${Math.max(0, mon.currentHp)}/${stats.hp} ${state}`.trimEnd();
-      return { index: i, label, disabled: mon.currentHp <= 0 || i === this.activeIndex };
+      let disabled;
+      if (forItem) {
+        disabled = forItem.category === 'revive' ? !fainted : fainted;
+      } else {
+        disabled = fainted || i === this.activeIndex;
+      }
+      return { index: i, label, disabled };
     });
   }
 

@@ -6,36 +6,21 @@
 // La escena que la abre debe ignorar su propio input mientras la tienda esté abierta.
 import { GAME_W, GAME_H } from '../config.js';
 import {
-  drawBox, bmText, typewriterText, formatMoney, ITEM_NAMES, ITEM_DESCS,
+  drawBox, bmText, typewriterText, formatMoney,
 } from './theme.js';
+import {
+  itemName as catItemName, itemDesc as catItemDesc, itemPrice, DEFAULT_SHOP_STOCK,
+  buyItem, sellItem,
+} from '../core/items.js';
 
-// Precios de compra (en pesetas). Coherentes con la economía estilo FRLG.
-export const SHOP_PRICES = {
-  'poke-ball': 200,
-  'super-ball': 600,
-  potion: 300,
-  superpotion: 700,
-  antidote: 100,
-  repel: 350,
-  'poke-doll': 1000,
-};
+// Precios de compra (en pesetas) derivados del catálogo central (core/items.js).
+// Se mantiene exportado por compatibilidad con quien lo importaba.
+export const SHOP_PRICES = Object.fromEntries(
+  DEFAULT_SHOP_STOCK.map((id) => [id, itemPrice(id)]),
+);
 
 // Catálogo por defecto del tendero (orden de aparición en la lista).
-const DEFAULT_STOCK = ['poke-ball', 'super-ball', 'potion', 'superpotion', 'antidote', 'repel'];
-
-// Nombres locales para objetos que aún no están en theme.js (ITEM_NAMES tiene prioridad).
-const LOCAL_NAMES = {
-  'super-ball': 'SUPER BALL',
-  superpotion: 'SUPERPOCIÓN',
-  repel: 'REPELENTE',
-};
-
-// Descripciones locales (ITEM_DESCS de theme.js tiene prioridad).
-const LOCAL_DESCS = {
-  'super-ball': 'Más eficaz que la Poké Ball para capturar.',
-  superpotion: 'Restaura 50 PS de un Pokémon.',
-  repel: 'Aleja a los Pokémon salvajes un rato.',
-};
+const DEFAULT_STOCK = DEFAULT_SHOP_STOCK;
 
 const DEPTH = 9000;
 const SELL_RATIO = 0.5;     // precio de venta = mitad del de compra (suelo)
@@ -52,16 +37,16 @@ const CURSOR_X = 114;
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
 function itemName(id) {
-  return ITEM_NAMES[id] || LOCAL_NAMES[id] || String(id).toUpperCase();
+  return catItemName(id);
 }
 
 function itemDesc(id) {
-  return ITEM_DESCS[id] || LOCAL_DESCS[id] || '';
+  return catItemDesc(id);
 }
 
 function buyPrice(id, fallback) {
   if (fallback != null) return fallback;
-  return SHOP_PRICES[id] != null ? SHOP_PRICES[id] : 0;
+  return itemPrice(id);
 }
 
 function sellPrice(id, price) {
@@ -412,33 +397,34 @@ class ShopUI {
   // ---------- Operaciones ----------
 
   commitBuy() {
-    const cost = this.sel.price * this.qty;
-    const player = this.save.player;
-    if (player.money < cost) {
+    // Lógica de compra COMPARTIDA con los tests (core/items.js#buyItem): valida
+    // saldo, descuenta dinero y añade a la bolsa de forma pura; aquí se aplica.
+    const wallet = { money: this.save.player.money, bag: this.save.bag };
+    const res = buyItem(wallet, this.sel.id, this.qty, this.sel.price);
+    if (!res.ok) {
       this.exitQty();
       this.say('¡Que no te llega el parné, chaval!');
       return;
     }
-    player.money -= cost;
-    this.save.bag[this.sel.id] = (this.save.bag[this.sel.id] || 0) + this.qty;
+    this.save.player.money = res.money;
+    this.save.bag = res.bag;
     this.refreshMoney();
     this.exitQty();
     this.say('¡Aquí tienes! ¡Gracias, majo!');
   }
 
   commitSell() {
-    const bag = this.save.bag || {};
-    const owned = bag[this.sel.id] || 0;
-    const qty = Math.min(this.qty, owned);
-    if (qty <= 0) {
+    // Lógica de venta COMPARTIDA con los tests (core/items.js#sellItem).
+    const wallet = { money: this.save.player.money, bag: this.save.bag };
+    const res = sellItem(wallet, this.sel.id, this.qty, this.sel.price);
+    if (!res.ok) {
       this.exitQty();
       this.say('Si no llevas nada, poco puedo comprarte.');
       return;
     }
-    const gain = this.sel.price * qty;
-    bag[this.sel.id] = owned - qty;
-    if (bag[this.sel.id] <= 0) delete bag[this.sel.id];
-    this.save.player.money += gain;
+    const gain = res.gain;
+    this.save.player.money = res.money;
+    this.save.bag = res.bag;
     this.refreshMoney();
     // Reconstruir la lista de venta (cambió la mochila) y volver a ella.
     this.qtyBox.setVisible(false);
