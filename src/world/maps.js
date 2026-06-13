@@ -430,6 +430,38 @@ const TETUAN_NPCS = [
       'Si entras al bar, pídete las bravas. Y dile a Manoli la peluquera que ya me toca corte, que parezco un Pidgey despeinado.',
     ],
   },
+  // Gustavo — entrenador NPC de la Plaza de Tetuán. Cerebrito con cuerpo de
+  // gimnasio (atlético, gafas, rapado): hace pesas en la plaza. Parodia CARIÑOSA
+  // del gym-bro intelectual. Equipo Gen-1 temático Lucha + un guiño Dragón
+  // (Dratini, único dragón de Gen 1). Sin PII; nada sobre su vida íntima.
+  // BALANCE: 1.ª ciudad, equipo Nv.5-7 (entrenador opcional de plaza).
+  {
+    id: 'gustavo', sprite: 'gustavo', x: 28, y: 26, dir: 'left', roam: false,
+    trainer: {
+      name: 'GUSTAVO',
+      title: 'Cerebro con Cuerpo de Gimnasio',
+      party: [
+        { species: 66, level: 5 },   // Machop — disciplina marcial, hierro en la plaza
+        { species: 56, level: 6 },   // Mankey — cardio y mala leche de gimnasio
+        { species: 147, level: 6 },  // Dratini — el guiño "dragón" (escamas como piercings)
+      ],
+      intro: [
+        'Hombre, Marcelino. Espera, que termino la serie. *acaba unas dominadas en la rama del árbol y se ajusta las gafas* Diez más y soy todo tuyo.',
+        'La gente cree que por hacer pesas no leo. Pues mira: estoy con el doctorado, soy de los mejores de mi promoción Y levanto más que tú. Cuerpo Y cabeza, ¿eh?',
+        'Va, combatimos. Te aviso: aquí se entrena en serio. Calienta, hidrátate y no me lo pongas fácil, anda.',
+      ],
+      win: [
+        '¡Buah! Pues nada, hoy te toca el día de tu vida. Bien jugado, en serio. Eso se respeta.',
+        'Oye, cuando subas a la Liga pásate por la playa de Torrevieja, que monto un gimnasio en la arena. Allí combatimos otra vez, pero con chanclas. ¡Un abrazo, máquina!',
+      ],
+      defeat: [
+        'Lo dicho: cuerpo Y cabeza. *bebe de la botella sin perder la postura* No te frustres, que entrenar es esto, fallar y volver.',
+        'Anda, hazte unas series y vuelve. Y come proteína, que ese inicial lo veo flojo de bíceps.',
+      ],
+      prize: 360,
+      flag: 'gustavo_tetuan',
+    },
+  },
   // Niño de la plaza, sueña con ser entrenador como Marcelino (el jugador).
   {
     id: 'nino_plaza', sprite: 'youngster', x: 29, y: 30, dir: 'left', roam: true,
@@ -627,6 +659,38 @@ const RUTA2_NPCS = [
       ],
       prize: 420,
       flag: 'jesus_ruta2',
+    },
+  },
+  // David Guillén — HERMANO de Sergio Guillén (que está aquí mismo en la Ruta 2).
+  // Profesor de historia y "bienqueda" patológico: cambia de opinión tres veces en
+  // la misma frase para no quedar mal con nadie. Parodia CARIÑOSA del indeciso
+  // simpático. Equipo Gen-1 temático "variable/cambia de forma": Eevee (el que
+  // puede ser cualquier cosa) + Ditto (literalmente copia al de enfrente). Sin PII.
+  // BALANCE: ruta temprana, equipo Nv.6-7 (entrenador de paso).
+  {
+    id: 'david_guillen', sprite: 'david_guillen', x: 11, y: 20, dir: 'down', roam: false,
+    trainer: {
+      name: 'DAVID',
+      title: 'El Profesor Bienqueda',
+      party: [
+        { species: 133, level: 6 },  // Eevee — el que aún no sabe en qué evolucionar (indeciso)
+        { species: 132, level: 7 },  // Ditto — copia al rival para no llevarle la contraria
+      ],
+      intro: [
+        'Anda, ¡el compañero de piso de mi hermano Sergio! Oye, qué alegría... bueno, alegría a medias, que tampoco quiero exagerar, aunque sí, alegría plena, vamos.',
+        'Mira, yo de combatir... a favor totalmente. O sea, en contra no estoy, ¿eh? Bueno, depende de cómo lo veas. Tienes razón tú, y yo también. Los dos, vamos.',
+        'Soy profe de historia, ¿sabes? Y lo bonito de la historia es que cada uno tiene su versión y todas valen. Va, combatimos... si te parece. Si no, también. Tú dirás.',
+      ],
+      win: [
+        '¡Y has ganado! Qué bien, oye. O sea, yo quería ganar, claro, pero que ganes tú también me parece estupendo, no te creas.',
+        'Le diré a Sergio que eres un crack. Y al rival también le diré que es un crack, no vaya a ser. A todos crack, así nadie se enfada. ¡Un placer, de verdad de la buena!',
+      ],
+      defeat: [
+        'Vaya, gané yo. Lo siento mucho, ¿eh? O sea, no lo siento, que es un combate... pero sí lo siento, no quiero que te lo tomes a mal. ¿Estamos bien? Dime que estamos bien.',
+        'Entrena un poco y vuelves, que seguro que la próxima ganas tú. O yo. O empatamos, que sería lo más justo para todos, ¿no crees?',
+      ],
+      prize: 380,
+      flag: 'david_ruta2',
     },
   },
   // NPCs de charla del lore.
@@ -866,6 +930,41 @@ const CHAMBERI_NPCS = [
       ],
       prize: 1320,
       flag: 'pablo_gallo_chamberi',
+    },
+  },
+  // Álvaro Benito — entrenador NPC junto al Café del Modernismo (la tertulia diaria
+  // le viene de perlas para soltar sus chapas). Historiador interino, cenizo,
+  // agotado y con mala suerte; te endosa el combate más aburrido del barrio mientras
+  // te da la chapa con sus opiniones. Parodia CARIÑOSA del cenizo coñazo — SIN
+  // etiqueta política explícita ni nada hiriente. Equipo Gen-1 temático "muro de
+  // ACERO/defensa lenta y testaruda" (sustituto de su Bastiodon canónico): Geodude,
+  // Onix (la pared prehistórica) y Magnemite (toque metálico). Sin PII.
+  // BALANCE: 3.ª ciudad, equipo Nv.16-19, muy defensivo (combate largo y tostón).
+  {
+    id: 'alvaro_benito', sprite: 'alvaro_benito', x: 24, y: 11, dir: 'down', roam: false,
+    trainer: {
+      name: 'ÁLVARO BENITO',
+      title: 'El Historiador Cenizo',
+      party: [
+        { species: 74, level: 16 },  // Geodude — la cabezonería hecha roca
+        { species: 81, level: 17 },  // Magnemite — el toque metálico/acero
+        { species: 95, level: 19 },  // Onix — el muro prehistórico, lento y testarudo
+      ],
+      intro: [
+        '*suspira y se estira la espalda con cara de dolor* Ah, eres tú. Justo le decía a la tertulia del café que esto, en mi época, se hacía mejor. Todo iba mejor antes, fíjate.',
+        'Soy historiador, ¿sabes? Interino, eso sí, que la oposición es un cenizo total. Como yo. *anda un poco encorvado, casi de puntillas* La espalda me está matando, pero da igual, total, qué más da.',
+        'Te aviso de que combatir conmigo es un tostón. Mi equipo solo defiende; tú ataca, ataca, que ya te cansarás antes tú. Y mientras, te cuento por qué todo va a salir mal. Va, cuando quieras.',
+      ],
+      win: [
+        '...Pues claro. Si es que tengo una suerte malísima, oye. Hasta perdiendo soy un cenizo. *se frota los riñones* Era de esperar.',
+        'Anda, llévate el premio antes de que me arrepienta. Y un consejo de historiador: visita más museos, que la juventud no valora el patrimonio. Ale, a otra cosa. Qué cansancio.',
+      ],
+      defeat: [
+        'Lo ves. Ganó la defensa. Aburrido pero efectivo, como las clases de los lunes a primera hora. *bosteza* Te lo dije, ¿eh? Que era un tostón.',
+        'Vuelve cuando tengas más paciencia... y un par de ataques que peguen de verdad. Yo me quedo aquí, dándole vueltas a lo mal que va todo. Como siempre.',
+      ],
+      prize: 660,
+      flag: 'alvaro_benito_chamberi',
     },
   },
   // Flavor castizo conservado, mejorado.
