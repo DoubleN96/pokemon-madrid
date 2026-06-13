@@ -657,6 +657,78 @@ t('SHIFT desactivado (sin flag): el rival saca al siguiente inmediatamente (comp
   assert.notEqual(battle.state().phase, 'enemy-shift');
 });
 
+console.log('\n— Reparto de Experiencia (EXP Share) —');
+t('OFF (clásico): solo el participante activo gana experiencia', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng });
+  const { events, over } = playUntilOver(battle);
+  assert.equal(over.result, 'win');
+  const expEvents = events.filter((e) => e.t === 'exp');
+  assert.equal(expEvents.length, 1, 'solo un evento de exp');
+  assert.ok(expEvents.every((e) => e.index === 0 || e.index == null), 'la exp es del activo (índice 0)');
+  // El de la banca NO sube nivel ni gana exp.
+  assert.equal(banca.exp, expForLevel(pokedex[CHARM - 1].growthRate, 5), 'la banca conserva su exp');
+});
+t('ON (Reparto EXP): TODO el equipo consciente gana experiencia a la vez', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const expBancaBefore = banca.exp;
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events, over } = playUntilOver(battle);
+  assert.equal(over.result, 'win');
+  const expEvents = events.filter((e) => e.t === 'exp');
+  assert.equal(expEvents.length, 2, 'dos eventos de exp: activo y banca');
+  assert.ok(expEvents.some((e) => e.index === 0), 'el activo recibe exp');
+  assert.ok(expEvents.some((e) => e.index === 1), 'la banca recibe exp');
+  // El de la banca GANA exp de verdad.
+  assert.ok(banca.exp > expBancaBefore, 'la banca ha ganado experiencia');
+  // Misma cantidad para todos (modern gen): los dos eventos comparten amount.
+  assert.equal(expEvents[0].amount, expEvents[1].amount, 'mismo reparto para todos');
+});
+t('ON: la banca debilitada NO recibe experiencia', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  banca.currentHp = 0; // debilitado
+  const expBancaBefore = banca.exp;
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events } = playUntilOver(battle);
+  const expEvents = events.filter((e) => e.t === 'exp');
+  assert.ok(!expEvents.some((e) => e.index === 1), 'la banca debilitada no recibe exp');
+  assert.equal(banca.exp, expBancaBefore, 'su exp no cambia');
+});
+t('ON: los eventos de exp/nivel llegan etiquetados con índice y nombre', () => {
+  const rng = mulberry32(31);
+  const active = createMonster(pokedex, SQUIRT, 30, rng);
+  const banca = createMonster(pokedex, CHARM, 5, rng);
+  const wild = createMonster(pokedex, RATTATA, 3, rng);
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events } = playUntilOver(battle);
+  const tagged = events.filter((e) => e.t === 'exp' || e.t === 'levelup' || e.t === 'learn');
+  assert.ok(tagged.length > 0, 'hay eventos de exp/nivel');
+  assert.ok(tagged.every((e) => Number.isInteger(e.index) && typeof e.name === 'string'), 'todos llevan index + name');
+});
+t('ON: subidas de nivel y aprendizaje de movimientos de la banca siguen funcionando', () => {
+  const rng = mulberry32(7);
+  const active = createMonster(pokedex, SQUIRT, 50, rng); // garantiza el KO
+  // Banca a punto de subir y aprender: BULBASAUR a 5 exp del nivel 7 (aprende algo pronto).
+  const banca = createMonster(pokedex, BULBA, 6, rng);
+  banca.exp = expForLevel('medium-slow', 7) - 5;
+  const wild = createMonster(pokedex, RATTATA, 20, rng); // mucha exp
+  const battle = createBattle({ pokedex, movesData, party: [active, banca], enemyParty: [wild], rng, expShare: true });
+  const { events, over } = playUntilOver(battle);
+  assert.equal(over.result, 'win');
+  const bancaLevelups = events.filter((e) => e.t === 'levelup' && e.index === 1);
+  assert.ok(bancaLevelups.length >= 1, 'la banca subió al menos un nivel');
+  assert.ok(banca.level > 6, 'la banca subió de nivel de verdad');
+});
+
 // ---------- resumen ----------
 console.log(`\n${passed} pasados, ${failed} fallidos`);
 if (failed > 0) process.exit(1);

@@ -95,6 +95,8 @@ export default class BattleScene extends Phaser.Scene {
       bag: this.save.bag,
       // SHIFT (FRLG): ofrecer cambio al debilitar a un rival de entrenador.
       shiftPrompt: this.isTrainer,
+      // Reparto de Experiencia (activable en OPCIONES): exp para todo el equipo.
+      expShare: !!(this.save.options && this.save.options.expShare),
     });
     this.buildField();
     this.buildBoxes();
@@ -464,20 +466,43 @@ export default class BattleScene extends Phaser.Scene {
     await this.msg.type(text, { confirm: true });
   }
 
+  // ¿El evento de exp/nivel pertenece al Pokémon activo en combate? (con Reparto EXP
+  // los eventos llegan etiquetados con `index`; sin él, asumimos el activo).
+  isActiveExpEvent(ev) {
+    return ev.index == null || ev.index === this.activeIndex;
+  }
+
+  // Nombre del Pokémon al que pertenece un evento de exp (activo o de la banca).
+  expEventName(ev) {
+    if (this.isActiveExpEvent(ev)) return monName(this.playerMon, this.pokedex);
+    const mon = this.save.party[ev.index];
+    return mon ? monName(mon, this.pokedex) : (ev.name ? ev.name.toUpperCase() : 'TU POKéMON');
+  }
+
   async onExpEvent(ev) {
-    const name = monName(this.playerMon, this.pokedex);
+    const name = this.expEventName(ev);
     await this.msg.type(`¡${name} ha ganado ${ev.amount} puntos de experiencia!`);
-    await this.playerBox.tweenExp(this.expRatio(this.playerMon, this.shownLevel));
+    // Solo el Pokémon activo tiene barra de exp visible que animar.
+    if (this.isActiveExpEvent(ev)) {
+      await this.playerBox.tweenExp(this.expRatio(this.playerMon, this.shownLevel));
+    }
   }
 
   async onLevelUpEvent(ev) {
+    sfx(this, 'levelup', { volume: 0.7 });
+    const name = this.expEventName(ev);
+    // Pokémon de la banca (Reparto EXP): solo anuncio, sin tocar la caja del activo.
+    if (!this.isActiveExpEvent(ev)) {
+      this.leveledIndexes.add(ev.index);
+      await this.msg.type(`¡${name} ha subido al nivel ${ev.level}!`, { confirm: true });
+      return;
+    }
     this.leveledIndexes.add(this.activeIndex);
     this.shownLevel = ev.level;
-    sfx(this, 'levelup', { volume: 0.7 });
     this.playerBox.setExp(0);
     this.playerBox.setLevel(ev.level);
     if (ev.newStats) this.playerBox.updateHp(this.playerMon.currentHp, ev.newStats.hp);
-    await this.msg.type(`¡${monName(this.playerMon, this.pokedex)} ha subido al nivel ${ev.level}!`, { confirm: true });
+    await this.msg.type(`¡${name} ha subido al nivel ${ev.level}!`, { confirm: true });
     await this.showLevelStats(ev.newStats);
     await this.playerBox.tweenExp(this.expRatio(this.playerMon, ev.level));
   }
@@ -498,7 +523,7 @@ export default class BattleScene extends Phaser.Scene {
   }
 
   async onLearnEvent(ev) {
-    const name = monName(this.playerMon, this.pokedex);
+    const name = this.expEventName(ev);
     await this.msg.type(`¡${name} ha aprendido ${ev.moveName.toUpperCase()}!`, { confirm: true });
   }
 

@@ -14,6 +14,7 @@ const OPTIONS = [
   { id: 'bag', label: 'MOCHILA' },
   { id: 'moto', label: 'MOTO' },
   { id: 'dex', label: 'POKÉDEX' },
+  { id: 'opts', label: 'OPCIONES' },
   { id: 'save', label: 'GUARDAR' },
   { id: 'exit', label: 'SALIR' },
 ];
@@ -68,12 +69,14 @@ export default class MenuScene extends Phaser.Scene {
     else if (this.mode === 'detail' && dy) this.detailMove(dy);
     else if (this.mode === 'bag' && dy) this.moveBag(dy);
     else if (this.mode === 'dex') this.moveDex(dy, dx);
+    else if (this.mode === 'opts' && dy) this.moveOptions(dy);
   }
 
   onA() {
     if (this.mode === 'root') this.selectRoot();
     else if (this.mode === 'team') this.selectTeamSlot();
     else if (this.mode === 'bag') this.selectBagItem();
+    else if (this.mode === 'opts') this.selectOption();
   }
 
   onB() {
@@ -165,6 +168,7 @@ export default class MenuScene extends Phaser.Scene {
     else if (id === 'bag') this.showBag();
     else if (id === 'moto') this.toggleMoto();
     else if (id === 'dex') this.showDex();
+    else if (id === 'opts') this.showOptions();
     else if (id === 'save') this.doSave();
     else this.closeMenu();
   }
@@ -174,6 +178,61 @@ export default class MenuScene extends Phaser.Scene {
     if (!this.save.flags) this.save.flags = {};
     this.save.flags.riding = !this.save.flags.riding;
     this.closeMenu();
+  }
+
+  // ---------- Opciones ----------
+
+  // Garantiza que save.options exista (saves viejos no lo traen) y devuelve sus toggles.
+  optionDefs() {
+    if (!this.save.options) this.save.options = {};
+    return [
+      { key: 'expShare', label: 'Reparto EXP' },
+    ];
+  }
+
+  showOptions() {
+    this.mode = 'opts';
+    this.optsIdx = 0;
+    this.buildOptions();
+  }
+
+  buildOptions() {
+    const defs = this.optionDefs();
+    const c = this.setView();
+    const w = 132;
+    const x = (GAME_W - w) / 2;
+    const h = defs.length * 16 + 26;
+    c.add(drawBox(this, x, 14, w, h));
+    this.addText(c, x + 10, 20, 'OPCIONES', { color: TEXT_COLOR_DIM });
+    this.optRows = defs.map((d, i) => {
+      const y = 38 + i * 16;
+      const labelT = this.addText(c, x + 16, y, d.label);
+      const valT = this.addText(c, x + w - 42, y, this.optValueText(d.key));
+      return { labelT, valT, def: d, y };
+    });
+    this.optCursor = this.addText(c, x + 8, this.optRows[0].y, '▶');
+    this.moveOptions(0);
+  }
+
+  // Texto del valor del toggle ("SÍ"/"NO").
+  optValueText(key) {
+    return this.save.options[key] ? 'SÍ' : 'NO';
+  }
+
+  moveOptions(d) {
+    const n = this.optRows.length;
+    this.optsIdx = (this.optsIdx + d + n) % n;
+    this.optCursor.y = this.optRows[this.optsIdx].y;
+    if (d !== 0) sfx(this, 'select', { volume: 0.35 });
+  }
+
+  // A sobre un toggle: alterna SÍ/NO y refresca el valor en pantalla.
+  selectOption() {
+    const row = this.optRows[this.optsIdx];
+    const key = row.def.key;
+    this.save.options[key] = !this.save.options[key];
+    row.valT.setText(this.optValueText(key));
+    sfx(this, 'select', { volume: 0.5 });
   }
 
   // ---------- Equipo ----------

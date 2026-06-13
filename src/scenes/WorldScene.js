@@ -444,6 +444,7 @@ export default class WorldScene extends Phaser.Scene {
       bag: {},
       pokedex: { seen: [], caught: [] },
       flags: {},
+      options: { expShare: false },
       playTimeS: 0,
     };
     this.registry.set('save', save);

@@ -242,6 +242,8 @@ export default class IntroScene extends Phaser.Scene {
       bag: { 'poke-ball': 5, potion: 3, antidote: 1 },
       pokedex: { seen: [id], caught: [id] },
       flags: { introDone: true, rivalStarter: RIVAL_COUNTER[id] || 4 },
+      // Opciones de partida. Reparto de Experiencia arranca DESACTIVADO (clásico).
+      options: { expShare: false },
       playTimeS: 0,
     };
   }

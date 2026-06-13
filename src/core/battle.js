@@ -34,7 +34,7 @@ const STAT_NAME = {
  */
 export function createBattle({
   pokedex, movesData, party, enemyParty, isTrainer = false, bag = {}, rng = Math.random,
-  shiftPrompt = false,
+  shiftPrompt = false, expShare = false,
 }) {
   const b = {
     pokedex, moves: movesData, party, enemyParty,
@@ -44,6 +44,9 @@ export function createBattle({
     // el rival saque al siguiente. Solo lo activa BattleScene (la UI); el motor
     // puro y los tests sin el flag conservan el relevo enemigo inmediato.
     shiftPrompt: !!shiftPrompt,
+    // expShare: Reparto de Experiencia (activable en OPCIONES). ON → TODO el equipo
+    // consciente gana exp tras un KO; OFF (clásico) → solo el Pokémon en combate.
+    expShare: !!expShare,
     activeIndex: firstHealthy(party), enemyIndex: firstHealthy(enemyParty),
     stages: { player: freshStages(), enemy: freshStages() },
     flinched: { player: false, enemy: false },
@@ -792,15 +795,40 @@ function resolveShift(b, action) {
   return { events, over: false };
 }
 
-// Exp solo para el participante activo (MVP); ×1.5 contra entrenadores.
+// Reparto de experiencia tras un KO enemigo. ×1.5 contra entrenadores.
+// - Reparto EXP OFF (clásico): solo el participante activo.
+// - Reparto EXP ON: además, TODO Pokémon consciente del equipo gana exp (suben todas
+//   a la vez, estilo gen moderna). El participante activo va primero (su caja se anima
+//   en BattleScene); los demás se anuncian a continuación.
 function awardExp(b, events) {
-  const receiver = b.party[b.activeIndex];
-  if (!receiver || receiver.currentHp <= 0) return;
   const foe = activeMon(b, 'enemy');
   const amount = expGain(speciesOf(b, foe), foe.level, 1, b.isTrainer);
-  events.push({ t: 'exp', amount });
-  events.push(...gainExp(receiver, amount));
-  b.expReports.push({ index: b.activeIndex, amount });
+  if (amount <= 0) return;
+  // Receptores: el activo primero; con Reparto EXP, el resto del equipo consciente.
+  const receivers = [];
+  const active = b.party[b.activeIndex];
+  if (active && active.currentHp > 0) receivers.push(b.activeIndex);
+  if (b.expShare) {
+    b.party.forEach((m, i) => {
+      if (i !== b.activeIndex && m && m.currentHp > 0) receivers.push(i);
+    });
+  }
+  for (const index of receivers) {
+    grantExpTo(b, index, amount, events);
+  }
+}
+
+// Concede `amount` de exp al Pokémon `index`, etiquetando sus eventos (exp/levelup/
+// learn) con su índice y nombre para que BattleScene sepa a cuál pertenecen.
+function grantExpTo(b, index, amount, events) {
+  const mon = b.party[index];
+  if (!mon || mon.currentHp <= 0) return;
+  const name = nameOf(b, mon);
+  events.push({ t: 'exp', amount, index, name });
+  for (const ev of gainExp(mon, amount)) {
+    events.push({ ...ev, index, name });
+  }
+  b.expReports.push({ index, amount });
 }
 
 // ---------- fin de combate ----------
