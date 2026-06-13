@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { TILE, WALK_MS, ENCOUNTER_RATE, SAVE_VERSION, MONEY_START } from '../config.js';
 import { MAPS } from '../world/maps.js';
 import { createMonster, healFull } from '../core/monster.js';
+import { createPc, ensurePc } from '../core/pcStorage.js';
 import { openShop } from '../ui/shop.js';
 import { portraitForNpc } from '../data/portraits.js';
 import { playMusic, sfx } from '../audio/AudioManager.js';
@@ -11,6 +12,7 @@ import Npc from '../world/engine/Npc.js';
 import { rollEncounter } from '../world/engine/encounters.js';
 import { playGrassRustle } from '../world/grassRustle.js';
 import { whiteoutDestination, healPoint } from '../world/respawn.js';
+import PcScene from './PcScene.js';
 
 const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
 const BIKE_FACTOR = 0.35;   // moto = WALK_MS × 0.35 (mucho más rápido)
@@ -265,6 +267,7 @@ export default class WorldScene extends Phaser.Scene {
     const por = portraitForNpc(npc.def);
     if (npc.def.trainer && !this.isTrainerBeaten(npc.def.trainer)) this.startTrainerBattle(npc);
     else if (npc.def.heal) this.healInteraction(npc);
+    else if (npc.def.pcAccess) this.pcInteraction(npc);
     else if (npc.def.shop) this.shopInteraction(npc);
     else if (npc.def.trainer) this.talk(npc.def.trainer.win, () => this.endInteraction(npc), por);
     else this.talk(npc.def.dialog, () => this.endInteraction(npc), por);
@@ -354,6 +357,35 @@ export default class WorldScene extends Phaser.Scene {
     }, por);
   }
 
+  // PC DE FINTIPS: tras el diálogo del NPC, abre la escena overlay del PC (cajas
+  // de almacenamiento). Al cerrarla, se restaura el input del mundo.
+  pcInteraction(npc) {
+    const por = portraitForNpc(npc.def);
+    this.talk(npc.def.dialog, () => {
+      this.time.delayedCall(60, () => this.openPc(() => this.endInteraction(npc)));
+    }, por);
+  }
+
+  // Lanza la escena 'Pc' como overlay sobre World (mismo patrón que el menú: World
+  // sigue por debajo pero con inputLocked, así NO se dispara el onWake de combate).
+  // La escena se registra perezosamente para no tocar main.js (contrato del proyecto).
+  openPc(onClose) {
+    if (!this.scene.get('Pc')) this.scene.add('Pc', PcScene, false);
+    this.inputLocked = true;
+    this.player.idle();
+    sfx(this, 'door', { volume: 0.45 });
+    this.scene.launch('Pc');
+    const pc = this.scene.get('Pc');
+    const resume = () => {
+      pc.events.off('shutdown', resume);
+      pc.events.off('sleep', resume);
+      this.inputLocked = false;
+      if (onClose) onClose();
+    };
+    pc.events.once('shutdown', resume);
+    pc.events.once('sleep', resume);
+  }
+
   openMenu() {
     this.inputLocked = true;
     this.player.idle();
@@ -435,7 +467,12 @@ export default class WorldScene extends Phaser.Scene {
   // Red de seguridad para desarrollo en paralelo: Title/Intro son quienes crean el save.
   ensureSave() {
     let save = this.registry.get('save');
-    if (save) return save;
+    if (save) {
+      // Saves antiguos (cargados de la nube/local) no traen `pc`: lo añadimos
+      // vacío y bien formado sin subir versión (retrocompatible).
+      ensurePc(save);
+      return save;
+    }
     const spawn = (MAPS.tetuan && MAPS.tetuan.playerSpawn) || { x: 1, y: 1 };
     save = {
       version: SAVE_VERSION,
@@ -445,6 +482,7 @@ export default class WorldScene extends Phaser.Scene {
       pokedex: { seen: [], caught: [] },
       flags: {},
       options: { expShare: false },
+      pc: createPc(),
       playTimeS: 0,
     };
     this.registry.set('save', save);
