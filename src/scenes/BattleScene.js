@@ -8,7 +8,7 @@ import { evolve, createMonster } from '../core/monster.js';
 import { drawBox, bmText, ITEM_NAMES } from '../ui/theme.js';
 import { MessageBox } from '../ui/battle/typewriter.js';
 import { DataBox } from '../ui/battle/databoxes.js';
-import { mainMenu, fightMenu, bagMenu, partyMenu } from '../ui/battle/menus.js';
+import { mainMenu, fightMenu, bagMenu, partyMenu, yesNoMenu } from '../ui/battle/menus.js';
 import { STAT_ES, STATUS_MSG_ES, BALL_ESCAPE_ES, monName } from '../ui/battle/names.js';
 import { playMusic, sfx } from '../audio/AudioManager.js';
 import { waitForButton } from '../ui/battle/keys.js';
@@ -93,6 +93,8 @@ export default class BattleScene extends Phaser.Scene {
       enemyParty: this.enemyParty,
       isTrainer: this.isTrainer,
       bag: this.save.bag,
+      // SHIFT (FRLG): ofrecer cambio al debilitar a un rival de entrenador.
+      shiftPrompt: this.isTrainer,
     });
     this.buildField();
     this.buildBoxes();
@@ -164,8 +166,17 @@ export default class BattleScene extends Phaser.Scene {
       learn: (ev) => this.onLearnEvent(ev),
       ball: (ev) => this.onBallEvent(ev),
       switch: (ev) => this.onSwitchEvent(ev),
+      'shift-offer': (ev) => this.onShiftOfferEvent(ev),
       end: () => Promise.resolve(),
     };
+  }
+
+  // El motor anuncia que el rival va a relevar (estilo SHIFT de FRLG). Guardamos
+  // a quién sacará y precargamos su sprite para poder mostrarlo en el prompt.
+  async onShiftOfferEvent(ev) {
+    this.pendingEnemy = ev.monster;
+    this.markSeen(ev.monster.species);
+    await this.ensureFrontLoaded([ev.monster.species]);
   }
 
   refreshBox(side) {
@@ -269,8 +280,38 @@ export default class BattleScene extends Phaser.Scene {
         await this.finishBattle(result.over);
         return;
       }
+      // SHIFT (FRLG): el rival va a relevar; ofrecemos cambiar al jugador.
+      if (this.battle.state().phase === 'enemy-shift' && await this.handleEnemyShift()) return;
       if (this.playerMon.currentHp <= 0 && await this.forcedSwitch()) return;
     }
+  }
+
+  // Flujo SHIFT: muestra "El rival va a sacar a X. ¿Quieres cambiar?", deja elegir
+  // SÍ/NO y, si procede, abre el menú de equipo. Devuelve true si el combate acaba.
+  async handleEnemyShift() {
+    if (typeof window !== 'undefined') window.__shiftPromptShown = (window.__shiftPromptShown || 0) + 1;
+    const nextName = this.pendingEnemy
+      ? monName(this.pendingEnemy, this.pokedex)
+      : (this.battle.state().pendingEnemy ? monName(this.battle.state().pendingEnemy, this.pokedex) : 'su Pokémon');
+    const sender = this.trainer ? this.trainer.name : 'El rival';
+    await this.msg.type(`${sender} va a sacar a ${nextName}.`, { holdMs: 300 });
+    // ¿Quedan reservas sanas distintas del activo? Si no, no tiene sentido preguntar.
+    const hasReserve = this.save.party.some((m, i) => i !== this.activeIndex && m.currentHp > 0);
+    let decision = { type: 'shift-decision', switch: false };
+    if (hasReserve) {
+      this.msg.setInstant('¿Quieres cambiar de POKéMON?');
+      const wantsSwitch = await yesNoMenu(this);
+      if (wantsSwitch) {
+        const index = await this.openPartyMenu(false);
+        if (index !== null) decision = { type: 'shift-decision', switch: true, index };
+      }
+    }
+    this.pendingEnemy = null;
+    const result = this.battle.act(decision);
+    await this.playEvents(result.events || []);
+    if (result.over) { await this.finishBattle(result.over); return true; }
+    if (this.playerMon.currentHp <= 0 && await this.forcedSwitch()) return true;
+    return false;
   }
 
   // Cambio obligatorio cuando el Pokémon activo se debilita y quedan más.

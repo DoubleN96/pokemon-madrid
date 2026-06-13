@@ -113,6 +113,41 @@ export function bagMenu(scene, items) {
   return runMenu(scene, { entries, cols: 1, canCancel: true, cleanup });
 }
 
+// Menú SÍ/NO estilo FRLG (esquina inferior derecha, sobre el bocadillo). Resuelve
+// true (SÍ) o false (NO). Con B equivale a NO (no se puede dejar sin responder).
+export function yesNoMenu(scene) {
+  const frame = drawBox(scene, 190, 78, 48, 30, { depth: 12 });
+  const cleanup = [frame];
+  const defs = [['SÍ', true, 204, 84], ['NO', false, 204, 96]];
+  const entries = defs.map(([label, value, x, y]) => {
+    cleanup.push(bmText(scene, x, y, label, { small: true, depth: 13 }));
+    return { value, x, y };
+  });
+  return new Promise((resolve) => {
+    let index = 0;
+    const cursor = bmText(scene, 0, 0, '▶', { small: true, color: '#d04040', depth: 13 });
+    const place = () => cursor.setPosition(entries[index].x - 8, entries[index].y);
+    const finish = (value) => {
+      scene.input.keyboard.off('keydown', handler);
+      cursor.destroy();
+      cleanup.forEach((o) => o && o.destroy && o.destroy());
+      resolve(value);
+    };
+    const handler = (event) => {
+      const button = buttonFromEvent(event);
+      if (!button) return;
+      if (button === 'a') { finish(entries[index].value); return; }
+      if (button === 'b') { finish(false); return; }
+      if (button === 'up' || button === 'down') {
+        index = index === 0 ? 1 : 0;
+        place();
+      }
+    };
+    place();
+    scene.input.keyboard.on('keydown', handler);
+  });
+}
+
 // Lista del equipo para cambiar de Pokémon. rows = [{ index, label, disabled }].
 // Con forced=true no se puede cancelar (cambio obligatorio tras debilitarse).
 export function partyMenu(scene, rows, { forced = false } = {}) {

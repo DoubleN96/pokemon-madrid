@@ -32,13 +32,27 @@ const STAT_NAME = {
  * Crea un combate. Devuelve { state, act } según el contrato.
  * `rng` inyectable (devuelve [0,1)) para tests deterministas.
  */
-export function createBattle({ pokedex, movesData, party, enemyParty, isTrainer = false, bag = {}, rng = Math.random }) {
+export function createBattle({
+  pokedex, movesData, party, enemyParty, isTrainer = false, bag = {}, rng = Math.random,
+  shiftPrompt = false,
+}) {
   const b = {
     pokedex, moves: movesData, party, enemyParty,
     isTrainer: !!isTrainer, bag, rng,
+    // shiftPrompt: estilo SHIFT de FRLG. Cuando el jugador debilita a un Pokémon
+    // del entrenador rival y a este le quedan más, se ofrece cambiar antes de que
+    // el rival saque al siguiente. Solo lo activa BattleScene (la UI); el motor
+    // puro y los tests sin el flag conservan el relevo enemigo inmediato.
+    shiftPrompt: !!shiftPrompt,
     activeIndex: firstHealthy(party), enemyIndex: firstHealthy(enemyParty),
     stages: { player: freshStages(), enemy: freshStages() },
     flinched: { player: false, enemy: false },
+    // Crítico aumentado por Foco Energía (Gen 3: +2 niveles de prob.). Por bando.
+    focused: { player: false, enemy: false },
+    // Último daño DIRECTO recibido este turno por bando (para Contraataque/Manto Espejo).
+    lastDamage: { player: null, enemy: null },
+    // Relevo pendiente del rival cuando shiftPrompt está activo.
+    pendingEnemyIndex: -1,
     runAttempts: 0, turn: 0, phase: 'choice', over: false,
     expReports: [],
   };
@@ -101,6 +115,8 @@ function snapshot(b) {
     bag: b.bag,
     isTrainer: b.isTrainer,
     canRun: !b.isTrainer,
+    // Relevo pendiente del rival (solo válido en fase 'enemy-shift').
+    pendingEnemy: b.pendingEnemyIndex >= 0 ? b.enemyParty[b.pendingEnemyIndex] : null,
     over: b.over,
   };
 }
@@ -110,6 +126,7 @@ function snapshot(b) {
 function act(b, action) {
   if (b.over) return { events: [], over: b.over };
   if (b.phase === 'switch') return forcedSwitch(b, action);
+  if (b.phase === 'enemy-shift') return resolveShift(b, action);
   const events = [];
   if (validateAction(b, action, events)) return { events, over: false, invalid: true };
   b.turn += 1;
@@ -120,6 +137,7 @@ function act(b, action) {
 
 function runTurn(b, action, events) {
   b.flinched = { player: false, enemy: false };
+  b.lastDamage = { player: null, enemy: null };
   if (action.type === 'move') {
     moveVsMove(b, action.index, events);
   } else {
@@ -259,6 +277,7 @@ function doSwitch(b, index, events, voluntary) {
   b.activeIndex = index;
   b.stages.player = freshStages();
   b.flinched.player = false;
+  b.focused.player = false;
   events.push({ t: 'switch', side: 'player', monster: b.party[index] });
 }
 
@@ -345,9 +364,185 @@ function performMove(b, side, moveIndex, events) {
   if (isStruggle) events.push({ t: 'text', msg: `¡A ${displayName(b, side)} no le quedan PP!` });
   events.push({ t: 'move', side, moveName: data.name });
   const defSide = other(side);
+  // Mecánicas especiales (datos PokeAPI normalizados a `mechanic`). Algunas se
+  // resuelven aquí por completo (daño fijo, KO directo, auto-curación); otras
+  // ajustan el movimiento y dejan que el flujo normal continúe.
+  if (data.mechanic && handleMechanic(b, side, defSide, data, isStruggle, events)) return;
   if (!hitCheck(b, side, defSide, data, events)) return;
   if (data.power) dealDamage(b, side, defSide, data, isStruggle, events);
   else statusMove(b, side, defSide, data, events);
+}
+
+// Tabla de potencia variable Flail/Reversal según fracción de PS (Gen 3).
+function lowHpPower(ratio) {
+  if (ratio <= 0.0417) return 200;
+  if (ratio <= 0.1042) return 150;
+  if (ratio <= 0.2083) return 100;
+  if (ratio <= 0.3542) return 80;
+  if (ratio <= 0.6875) return 40;
+  return 20;
+}
+
+// Resuelve movimientos con `mechanic`. Devuelve true si la ejecución TERMINA aquí
+// (no debe seguir el flujo normal de daño/estado). Cualquier rama produce un
+// efecto coherente: nunca "no pasa nada" silencioso.
+function handleMechanic(b, side, defSide, move, isStruggle, events) {
+  const mech = move.mechanic;
+  const atk = activeMon(b, side);
+  const def = activeMon(b, defSide);
+
+  // --- Daño fijo / proporcional / nivel / KO: requieren acierto y no-inmunidad ---
+  const damageMechs = new Set([
+    'self-faint', 'ohko', 'fixed-40', 'fixed-20', 'level-damage', 'half-hp', 'endeavor',
+    'counter-physical', 'counter-special',
+  ]);
+  if (damageMechs.has(mech)) {
+    // Inmunidad por tipo (un Fantasma ignora Golpe Bajo normal, etc.).
+    if (effectiveness(move.type, speciesOf(b, def).types) === 0) {
+      events.push({ t: 'text', msg: `No afecta a ${displayName(b, defSide)}...` });
+      return true;
+    }
+  }
+
+  switch (mech) {
+    case 'self-faint': {
+      // Autodestrucción/Explosión: golpe normal (en Gen 3 además parte la Defensa),
+      // y el usuario SE DEBILITA siempre tras usarlo, acierte o falle el KO.
+      const halfDef = { ...move, _halveDef: true };
+      if (hitCheck(b, side, defSide, move, events)) {
+        dealDamage(b, side, defSide, halfDef, false, events);
+      }
+      if (!b.over && atk.currentHp > 0) {
+        applyHp(b, side, -atk.currentHp, events);
+        handleFaint(b, side, events);
+      }
+      return true;
+    }
+    case 'ohko': {
+      // KO de un golpe: precisión Gen 3 = 30 + (nivel atacante - nivel defensor);
+      // falla siempre si el defensor es de mayor nivel.
+      if (def.level > atk.level) {
+        events.push({ t: 'miss' });
+        events.push({ t: 'text', msg: `¡${displayName(b, defSide)} es demasiado fuerte para un KO fulminante!` });
+        return true;
+      }
+      const acc = 30 + (atk.level - def.level);
+      if (b.rng() * 100 >= acc) { events.push({ t: 'miss' }); return true; }
+      applyHp(b, defSide, -def.currentHp, events);
+      events.push({ t: 'text', msg: '¡KO de un solo golpe!' });
+      handleFaint(b, defSide, events);
+      return true;
+    }
+    case 'fixed-40': return fixedDamage(b, side, defSide, move, 40, events);
+    case 'fixed-20': return fixedDamage(b, side, defSide, move, 20, events);
+    case 'level-damage': return fixedDamage(b, side, defSide, move, atk.level, events);
+    case 'half-hp': return fixedDamage(b, side, defSide, move, Math.max(1, Math.floor(def.currentHp / 2)), events);
+    case 'endeavor': {
+      if (atk.currentHp >= def.currentHp) { events.push({ t: 'text', msg: '¡Pero ha fallado!' }); return true; }
+      if (!hitCheck(b, side, defSide, move, events)) return true;
+      return fixedDamage(b, side, defSide, move, def.currentHp - atk.currentHp, events);
+    }
+    case 'counter-physical':
+    case 'counter-special': {
+      const want = mech === 'counter-physical' ? 'physical' : 'special';
+      const last = b.lastDamage[side];
+      if (!last || last.class !== want || last.amount <= 0) {
+        events.push({ t: 'text', msg: '¡Pero ha fallado!' });
+        return true;
+      }
+      return fixedDamage(b, side, defSide, move, last.amount * 2, events);
+    }
+    // --- Potencia variable: ajustan move.power y SIGUEN al flujo normal de daño ---
+    case 'low-hp-power': {
+      move = { ...move, power: lowHpPower(atk.currentHp / maxHpOf(b, atk)) };
+      return finishVariablePower(b, side, defSide, move, isStruggle, events);
+    }
+    case 'fixed-power-50':
+      return finishVariablePower(b, side, defSide, { ...move, power: 50 }, isStruggle, events);
+    case 'fixed-power-70':
+      return finishVariablePower(b, side, defSide, { ...move, power: 70 }, isStruggle, events);
+    case 'fixed-power-100':
+      return finishVariablePower(b, side, defSide, { ...move, power: 100 }, isStruggle, events);
+    // --- Estado / utilidad con degradación elegante ---
+    case 'rest': {
+      const max = maxHpOf(b, atk);
+      if (atk.currentHp >= max && !atk.status) {
+        events.push({ t: 'text', msg: '¡Pero ha fallado!' });
+        return true;
+      }
+      applyHp(b, side, max - atk.currentHp, events);
+      atk.status = 'slp';
+      atk.sleepTurns = 2;
+      events.push({ t: 'status', side, status: 'slp' });
+      events.push({ t: 'text', msg: `¡${displayName(b, side)} se ha dormido y ha recuperado toda su salud!` });
+      return true;
+    }
+    case 'refresh': {
+      if (!atk.status) { events.push({ t: 'text', msg: '¡Pero ha fallado!' }); return true; }
+      atk.status = null;
+      events.push({ t: 'status', side, status: null });
+      events.push({ t: 'text', msg: `¡${displayName(b, side)} se ha curado!` });
+      return true;
+    }
+    case 'haze': {
+      b.stages.player = freshStages();
+      b.stages.enemy = freshStages();
+      events.push({ t: 'text', msg: '¡Una neblina ha borrado todos los cambios de estadísticas!' });
+      return true;
+    }
+    case 'focus-energy': {
+      if (b.focused[side]) { events.push({ t: 'text', msg: '¡Pero ha fallado!' }); return true; }
+      b.focused[side] = true;
+      events.push({ t: 'text', msg: `¡${displayName(b, side)} se concentra y aumenta su puntería para golpes críticos!` });
+      return true;
+    }
+    case 'belly-drum': {
+      const max = maxHpOf(b, atk);
+      if (atk.currentHp <= Math.floor(max / 2) || b.stages[side].atk >= 6) {
+        events.push({ t: 'text', msg: '¡Pero ha fallado!' });
+        return true;
+      }
+      applyHp(b, side, -Math.floor(max / 2), events);
+      b.stages[side].atk = 6;
+      events.push({ t: 'stat', side, stat: 'atk', change: 6 });
+      events.push({ t: 'text', msg: `¡${displayName(b, side)} sacrifica salud y maximiza su Ataque!` });
+      return true;
+    }
+    case 'splash':
+      events.push({ t: 'text', msg: '¡Pero no pasó nada en absoluto!' });
+      return true;
+    case 'protect-degrade':
+      // Protección/Detección/Aguante: aún no hay turno de "intención"; degradamos a
+      // un mensaje coherente de que el Pokémon se pone en guardia (sin efecto real).
+      events.push({ t: 'text', msg: `¡${displayName(b, side)} se pone en guardia!` });
+      return true;
+    case 'force-switch': {
+      // Rugido/Remolino: forzar cambio rival no encaja en el motor 1-a-1 actual;
+      // degradamos a un mensaje coherente sin romper el combate.
+      events.push({ t: 'text', msg: `¡${displayName(b, side)} ruge, pero ${displayName(b, defSide)} no se inmuta!` });
+      return true;
+    }
+    default:
+      return false; // mecánica desconocida: que siga el flujo normal
+  }
+}
+
+// Continúa el flujo normal de daño con un movimiento de potencia ya ajustada.
+function finishVariablePower(b, side, defSide, move, isStruggle, events) {
+  if (!hitCheck(b, side, defSide, move, events)) return true;
+  dealDamage(b, side, defSide, move, isStruggle, events);
+  return true;
+}
+
+// Aplica una cantidad fija de daño (respeta inmunidad ya comprobada arriba) con
+// precisión. Gestiona el debilitamiento resultante.
+function fixedDamage(b, side, defSide, move, amount, events) {
+  if (!hitCheck(b, side, defSide, move, events)) return true;
+  const def = activeMon(b, defSide);
+  const dmg = Math.max(1, Math.min(def.currentHp, Math.floor(amount)));
+  applyHp(b, defSide, -dmg, events);
+  if (def.currentHp <= 0) handleFaint(b, defSide, events);
+  return true;
 }
 
 // Estados que impiden actuar: amedrentado, dormido, congelado, paralizado.
@@ -396,7 +591,9 @@ function hitCheck(b, side, defSide, move, events) {
 function dealDamage(b, side, defSide, move, isStruggle, events) {
   const atk = activeMon(b, side);
   const def = activeMon(b, defSide);
-  const crit = b.rng() < 1 / 16;
+  // Foco Energía sube la probabilidad de crítico (Gen 3 simplificado: 1/16 → 1/4).
+  const critChance = b.focused[side] ? 1 / 4 : 1 / 16;
+  const crit = b.rng() < critChance;
   const res = damage({
     attacker: atk, defender: def,
     attackerSpecies: speciesOf(b, atk), defenderSpecies: speciesOf(b, def),
@@ -407,6 +604,8 @@ function dealDamage(b, side, defSide, move, isStruggle, events) {
     events.push({ t: 'text', msg: `No afecta a ${displayName(b, defSide)}...` });
     return;
   }
+  // Registra el daño directo recibido por el defensor (Contraataque/Manto Espejo).
+  b.lastDamage[defSide] = { amount: res.dmg, class: move.class };
   applyHp(b, defSide, -res.dmg, events);
   if (res.crit) events.push({ t: 'crit' });
   if (res.effectiveness !== 1) events.push({ t: 'eff', mult: res.effectiveness });
@@ -539,11 +738,58 @@ function handleEnemyFaint(b, events) {
     b.over = { result: 'win', expReports: b.expReports };
     return;
   }
+  // Estilo SHIFT (FRLG): en combate de ENTRENADOR, antes de que el rival saque al
+  // siguiente, se ofrece al jugador cambiar de Pokémon viendo a quién sacará el
+  // rival. Solo si shiftPrompt está activo y el jugador tiene un relevo sano y no
+  // está obligado a cambiar él mismo (su activo sigue en pie).
+  if (b.shiftPrompt && b.isTrainer && activeMon(b, 'player').currentHp > 0
+      && b.party.some((m, i) => i !== b.activeIndex && m.currentHp > 0)) {
+    b.pendingEnemyIndex = next;
+    b.phase = 'enemy-shift';
+    const nextMon = b.enemyParty[next];
+    events.push({
+      t: 'shift-offer', enemyIndex: next, monster: nextMon, species: nextMon.species,
+    });
+    return;
+  }
+  bringInEnemy(b, next, events);
+}
+
+// Saca al siguiente Pokémon del rival (relevo). Resetea sus stages/foco.
+function bringInEnemy(b, next, events) {
   b.enemyIndex = next;
   b.stages.enemy = freshStages();
   b.flinched.enemy = false;
+  b.focused.enemy = false;
   events.push({ t: 'switch', side: 'enemy', monster: activeMon(b, 'enemy') });
   events.push({ t: 'text', msg: `¡El rival saca a ${nameOf(b, activeMon(b, 'enemy'))}!` });
+}
+
+// Resuelve la decisión del jugador ante el relevo del rival (fase enemy-shift).
+// action: { type:'shift-decision', switch:boolean, index?:number }
+// Si switch=true, el jugador entra con el Pokémon `index` ANTES de que el rival
+// saque al suyo. En cualquier caso, el rival saca a su siguiente Pokémon.
+function resolveShift(b, action) {
+  const events = [];
+  const next = b.pendingEnemyIndex;
+  if (next < 0 || b.enemyParty[next]?.currentHp <= 0) {
+    // Estado inconsistente: degradar con elegancia recalculando el relevo.
+    const fallback = b.enemyParty.findIndex((m) => m.currentHp > 0);
+    if (fallback < 0) { b.phase = 'choice'; b.over = { result: 'win', expReports: b.expReports }; finishBattle(b, events); return { events, over: b.over }; }
+    b.pendingEnemyIndex = fallback;
+    return resolveShift(b, { ...action, _retry: true });
+  }
+  if (action && action.type === 'shift-decision' && action.switch) {
+    if (validateSwitch(b, action, events)) {
+      // Índice inválido: ignorar el cambio pero seguir sacando al rival.
+    } else {
+      doSwitch(b, action.index, events, true);
+    }
+  }
+  bringInEnemy(b, next, events);
+  b.pendingEnemyIndex = -1;
+  b.phase = 'choice';
+  return { events, over: false };
 }
 
 // Exp solo para el participante activo (MVP); ×1.5 contra entrenadores.

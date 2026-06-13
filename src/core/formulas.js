@@ -96,8 +96,10 @@ export function damage({
   const defStats = calcStats(defenderSpecies, defender);
   const A = Math.floor((physical ? atkStats.atk : atkStats.spa)
     * offensiveMult(attackerStages, physical ? 'atk' : 'spa', crit));
+  // Autodestrucción/Explosión (Gen 3) parten a la mitad la Defensa del objetivo.
+  const halveDef = move._halveDef ? 0.5 : 1;
   const D = Math.max(1, Math.floor((physical ? defStats.def : defStats.spd)
-    * defensiveMult(defenderStages, physical ? 'def' : 'spd', crit)));
+    * defensiveMult(defenderStages, physical ? 'def' : 'spd', crit) * halveDef));
 
   let base = Math.floor(Math.floor((Math.floor((2 * attacker.level) / 5) + 2) * move.power * A / D) / 50);
   if (physical && attacker.status === 'brn') base = Math.floor(base / 2);
