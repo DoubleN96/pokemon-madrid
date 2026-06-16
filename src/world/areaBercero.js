@@ -434,6 +434,37 @@ const BERCERO_NPCS = [
       'Mi prima dice que en la hierba de las eras salen bichos. Yo solo he visto un Pidgey robándole la merienda a mi abuelo. ¡Casi le da algo!',
     ],
   },
+  // Luisan "el Mago" — Luis Ángel. Hombre-orquesta del pueblo: mago, fotógrafo,
+  // cura, pastor y alguacil. Su presentación clava el meme "¡Bienvenido Luis Ángel!!!"
+  // (lo que le gritaban cuando venía a echarlos de la piscina de noche). Entrenador:
+  // equipo temático de sus cinco oficios. Frases ligadas a sus profesiones.
+  {
+    id: 'luisan_mago', sprite: 'gentleman', x: 14, y: 17, dir: 'down', roam: false,
+    trainer: {
+      name: 'LUISAN',
+      title: 'El Mago del Pueblo (y otros 4 oficios)',
+      party: [
+        { species: 65, level: 12 },   // Alakazam — el MAGO (psíquico, trucos)
+        { species: 122, level: 11 },  // Mr. Mime — el FOTÓGRAFO/showman (barrera, luz)
+        { species: 113, level: 11 },  // Chansey — el CURA/PASTOR (sana al rebaño)
+        { species: 59, level: 13 },   // Arcanine — el ALGUACIL (perro de la ley)
+      ],
+      intro: [
+        '¡¡¡BIENVENIDO LUIS ÁNGEL!!! 🪄 ...Ah, no: ése es MI saludo. Soy Luisan: mago, fotógrafo, cura, pastor y alguacil. En Bercero hago de todo, hasta de árbitro en la caldereta.',
+        'Como alguacil te pediría el permiso de entrenador... pero como mago prefiero un truco. ¡Saca a tus bichos, que les hago una foto de recuerdo antes de ganarte!',
+      ],
+      win: [
+        '¡Magia de la buena! Ni con mis cinco oficios te paro. Te haría una foto, pero esta derrota mejor no la inmortalizo, jajaja.',
+        'Pásate por la piscina esta noche... pero pronto, que luego como alguacil os tengo que echar a todos. ¡Bienvenido al pueblo, crack!',
+      ],
+      defeat: [
+        'Que conste en acta del alguacil: el forastero ha perdido. Como cura te absuelvo, pero como pastor te digo que vuelvas al redil a entrenar.',
+        'Hazte la foto del recuerdo y vuelve cuando estés a la altura. ¡El espectáculo de Luisan no se gana a la primera!',
+      ],
+      prize: 520,
+      flag: 'luisan_mago_bercero',
+    },
+  },
 ];
 
 // ---------- BERCERO — interiores ----------
