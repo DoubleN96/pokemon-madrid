@@ -240,10 +240,11 @@ function buildBercero() {
   stampBuilding(m, 4, 20, HOUSE);        // bar/tienda del pueblo
   addSign(m, 5, 23, 'BAR DEL PUEBLO. "Vermú de grifo, gambas y la quiniela. Aquí se arreglan las medidas de la barra de la peña y el mundo entero."');
 
-  // Caseta del cura/jardinero como punto de CURACIÓN (la madre del pueblo cura).
-  // Reutiliza la fachada del Centro Pokémon; su interior es `consultorio_bercero`.
-  stampBuilding(m, 24, 19, PKMN_CENTER); // Consultorio del pueblo (puerta 25,22)
-  addSign(m, 24, 22, 'CONSULTORIO MÉDICO DE BERCERO. "El médico viene los martes. El resto de la semana, te cura a los bichos doña Visi. Gratis y con conversación."');
+  // CENTRO SOCIAL IBAI — el "Centro Pokémon" de Bercero. Curas al equipo a base de
+  // "sol y sombra" (coñac + anís), la copa marca de la casa (y de Laureano).
+  // Reutiliza la fachada del Centro Pokémon; su interior es `centro_social_ibai`.
+  stampBuilding(m, 24, 19, PKMN_CENTER); // Centro Social Ibai (puerta 25,22)
+  addSign(m, 24, 22, 'CENTRO SOCIAL IBAI — el alma del pueblo. "Aquí se cura a los bichos con un SOL Y SOMBRA (coñac y anís), la copa que inventó Laureano. Pasa, que invita la casa... la primera."');
 
   // Vallas de huerta + chopos sueltos para sabor rural.
   fenceH(m, 2, 8, 4);
@@ -483,7 +484,7 @@ const BERCERO_NPCS = [
         'Mis patatas son las mejores de Valladolid y mis fiestas, legendarias. ¿Un combate antes de la caldereta? ¡Que corra el vino y los Pokémon!',
       ],
       win: [
-        '¡Recórcholis! Me has ganado... habrá que invitarte a unas patatas y a una copa, que un buen rival se celebra. ¡Arre, Popeye, que nos vamos de fiesta!',
+        '¡Recórcholis! Me has ganado... habrá que invitarte a unas patatas y a un SOL Y SOMBRA, mi copa (coñac y anís), que un buen rival se celebra. La sirven en el Centro Social Ibai. ¡Arre, Popeye, que nos vamos de fiesta!',
       ],
       defeat: [
         '¡Jajaja! En mis tierras mando yo y mi ganado. Vuelve cuando aguantes el ritmo de un disfrutón de época, muchacho.',
@@ -593,6 +594,33 @@ function buildCasaPadre(exit) {
     ],
   });
   iAddSign(m, 7, 2, 'FOTOS DEL PUEBLO — viajes de la pandilla (París, Lisboa, Cuba), San Isidro, calderetas... y una de Marcelino dormido en el reservado. "Esa la quito cuando quiera." — el padre.');
+  return m;
+}
+
+// CENTRO SOCIAL IBAI — el "Centro Pokémon" de Bercero. El camarero te cura el equipo
+// sirviéndole un "sol y sombra" (coñac + anís), la copa marca de la casa y de Laureano.
+function buildCentroSocialIbai(exit) {
+  const { m, matX, matY } = makeRoom('centro_social_ibai', 'CENTRO SOCIAL IBAI', 9, 8, I_FLOOR_TILE);
+  iLinkExit(m, matX, matY, exit);
+
+  // BARRA del centro social con su botellero (coñac + anís para el sol y sombra).
+  for (let i = 0; i < 4; i++) iSetSolid(m, 2 + i, 3, I_TABLE);  // barra
+  iSetSolid(m, 6, 2, I_SHELF);     // botellero (coñac/anís)
+  iSetSolid(m, 1, 2, I_CABINET);   // nevera de bebidas
+  m.layers.deco[5][4] = I_CARPET;
+  m.layers.deco[5][5] = I_CARPET;
+  m.layers.deco[4][7] = I_PLANT;
+
+  // EL CAMARERO — cura el equipo (heal) sirviendo un "sol y sombra".
+  m.npcs.push({
+    id: 'camarero_ibai', sprite: 'shopkeeper_m', x: 4, y: 4, dir: 'down', roam: false, heal: true,
+    dialog: [
+      'Bienvenido al CENTRO SOCIAL IBAI, el alma de Bercero. ¿Los bichos hechos polvo? Eso aquí se arregla con un buen SOL Y SOMBRA: coñac y anís a partes iguales, receta de la casa.',
+      '...¡Hala! Un sol y sombra para cada Pokémon y como nuevos. (Ellos lo huelen y reviven, no preguntes.) La copa la puso de moda Laureano, que de disfrutar sabe un rato.',
+      'Si te cruzas a Laureano con la calesa y Popeye, dile que su sol y sombra cura hasta la resaca de los Tauros. ¡Que aproveche, y a ganar gimnasios!',
+    ],
+  });
+  iAddSign(m, 7, 2, 'CARTA DEL IBAI — Sol y sombra (coñac+anís), vermú de grifo, gambas y la quiniela. "El sol y sombra es de Laureano; aquí solo lo servimos bien frío."');
   return m;
 }
 
@@ -709,10 +737,14 @@ export function wireBerceroEntry(maps) {
   if (!maps.pena_escuelas) {
     maps.pena_escuelas = buildPenaEscuelas({ map: 'bercero', x: 21, y: 9, dir: 'down' });
   }
+  if (!maps.centro_social_ibai) {
+    maps.centro_social_ibai = buildCentroSocialIbai({ map: 'bercero', x: 25, y: 23, dir: 'down' });
+  }
   // Puertas de Bercero (pisable + warp de ida al interior). Idempotente.
   const berceroDoors = [
     { x: 8, y: 8, interior: 'casa_padre' },     // puerta de la casa del padre
     { x: 21, y: 8, interior: 'pena_escuelas' },  // puerta de la Peña "Las Escuelas"
+    { x: 25, y: 22, interior: 'centro_social_ibai' }, // puerta del Centro Social Ibai
   ];
   if (ber) {
     for (const door of berceroDoors) {
