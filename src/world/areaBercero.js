@@ -465,6 +465,33 @@ const BERCERO_NPCS = [
       flag: 'luisan_mago_bercero',
     },
   },
+  // Laureano "El tío de Bercero" — terrateniente patatero y disfrutón de época.
+  // Se pasea en su calesa tirada por su caballo Popeye (= su Rapidash). Pedido por Adrián.
+  {
+    id: 'laureano_bercero', sprite: 'hiker', x: 10, y: 18, dir: 'down', roam: false,
+    trainer: {
+      name: 'LAUREANO',
+      title: 'El Tío de Bercero (terrateniente patatero)',
+      party: [
+        { species: 128, level: 12 },  // Tauros — el ganado del terrateniente
+        { species: 51, level: 11 },   // Dugtrio — las patatas (excava la tierra)
+        { species: 143, level: 13 },  // Snorlax — el DISFRUTÓN de época
+        { species: 78, level: 14 },   // Rapidash — POPEYE, su caballo de la calesa
+      ],
+      intro: [
+        '¡Ahá, forastero! Soy Laureano, el tío de Bercero: terrateniente, patatero mayor del reino y disfrutón de época. La calesa de ahí con el caballo Popeye es mía, que uno se pasea como un señor.',
+        'Mis patatas son las mejores de Valladolid y mis fiestas, legendarias. ¿Un combate antes de la caldereta? ¡Que corra el vino y los Pokémon!',
+      ],
+      win: [
+        '¡Recórcholis! Me has ganado... habrá que invitarte a unas patatas y a una copa, que un buen rival se celebra. ¡Arre, Popeye, que nos vamos de fiesta!',
+      ],
+      defeat: [
+        '¡Jajaja! En mis tierras mando yo y mi ganado. Vuelve cuando aguantes el ritmo de un disfrutón de época, muchacho.',
+      ],
+      prize: 560,
+      flag: 'laureano_bercero',
+    },
+  },
 ];
 
 // ---------- BERCERO — interiores ----------
