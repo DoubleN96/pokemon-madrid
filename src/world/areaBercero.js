@@ -548,7 +548,7 @@ const BERCERO_NPCS = [
   {
     id: 'ama_presidenta', sprite: 'expert_f', x: 12, y: 22, dir: 'down', roam: false,
     trainer: {
-      name: 'DOÑA REME',
+      name: 'DOÑA NIEVES',
       title: 'PRESIDENTA — Asociación de Amas de Casa',
       party: [
         { species: 122, level: 13 }, // Mr. Mime (la barrera: "aquí no entran hombres")
@@ -556,7 +556,7 @@ const BERCERO_NPCS = [
         { species: 36, level: 14 },  // Clefable (la matriarca)
       ],
       intro: [
-        'Así que has derrotado a mis socias para llegar hasta mí. Tienes agallas, hijo. Soy Doña Reme, PRESIDENTA de la Asociación de Amas de Casa.',
+        'Así que has derrotado a mis socias para llegar hasta mí. Tienes agallas, hijo. Soy Doña Nieves, PRESIDENTA de la Asociación de Amas de Casa.',
         'Nosotras movemos los hilos de este pueblo: las fiestas, las comidas, las habladurías y hasta quién se sienta con quién en la verbena. El poder REAL de Bercero.',
         'Pero hoy te has colado en nuestra comida de mujeres. Eso se paga con un combate. ¡Por la Asociación!',
       ],
