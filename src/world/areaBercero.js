@@ -240,10 +240,11 @@ function buildBercero() {
   stampBuilding(m, 4, 20, HOUSE);        // bar/tienda del pueblo
   addSign(m, 5, 23, 'BAR DEL PUEBLO. "Vermú de grifo, gambas y la quiniela. Aquí se arreglan las medidas de la barra de la peña y el mundo entero."');
 
-  // Caseta del cura/jardinero como punto de CURACIÓN (la madre del pueblo cura).
-  // Reutiliza la fachada del Centro Pokémon; su interior es `consultorio_bercero`.
-  stampBuilding(m, 24, 19, PKMN_CENTER); // Consultorio del pueblo (puerta 25,22)
-  addSign(m, 24, 22, 'CONSULTORIO MÉDICO DE BERCERO. "El médico viene los martes. El resto de la semana, te cura a los bichos doña Visi. Gratis y con conversación."');
+  // CENTRO SOCIAL IBAI — el "Centro Pokémon" de Bercero. Curas al equipo a base de
+  // "sol y sombra" (coñac + anís), la copa marca de la casa (y de Laureano).
+  // Reutiliza la fachada del Centro Pokémon; su interior es `centro_social_ibai`.
+  stampBuilding(m, 24, 19, PKMN_CENTER); // Centro Social Ibai (puerta 25,22)
+  addSign(m, 24, 22, 'CENTRO SOCIAL IBAI — el alma del pueblo. "Aquí se cura a los bichos con un SOL Y SOMBRA (coñac y anís), la copa que inventó Laureano. Pasa, que invita la casa... la primera."');
 
   // Vallas de huerta + chopos sueltos para sabor rural.
   fenceH(m, 2, 8, 4);
@@ -434,6 +435,64 @@ const BERCERO_NPCS = [
       'Mi prima dice que en la hierba de las eras salen bichos. Yo solo he visto un Pidgey robándole la merienda a mi abuelo. ¡Casi le da algo!',
     ],
   },
+  // Luisan "el Mago" — Luis Ángel. Hombre-orquesta del pueblo: mago, fotógrafo,
+  // cura, pastor y alguacil. Su presentación clava el meme "¡Bienvenido Luis Ángel!!!"
+  // (lo que le gritaban cuando venía a echarlos de la piscina de noche). Entrenador:
+  // equipo temático de sus cinco oficios. Frases ligadas a sus profesiones.
+  {
+    id: 'luisan_mago', sprite: 'gentleman', x: 14, y: 17, dir: 'down', roam: false,
+    trainer: {
+      name: 'LUISAN',
+      title: 'El Mago del Pueblo (y otros 4 oficios)',
+      party: [
+        { species: 65, level: 12 },   // Alakazam — el MAGO (psíquico, trucos)
+        { species: 122, level: 11 },  // Mr. Mime — el FOTÓGRAFO/showman (barrera, luz)
+        { species: 113, level: 11 },  // Chansey — el CURA/PASTOR (sana al rebaño)
+        { species: 59, level: 13 },   // Arcanine — el ALGUACIL (perro de la ley)
+      ],
+      intro: [
+        '¡¡¡BIENVENIDO LUIS ÁNGEL!!! 🪄 ...Ah, no: ése es MI saludo. Soy Luisan: mago, fotógrafo, cura, pastor y alguacil. En Bercero hago de todo, hasta de árbitro en la caldereta.',
+        'Como alguacil te pediría el permiso de entrenador... pero como mago prefiero un truco. ¡Saca a tus bichos, que les hago una foto de recuerdo antes de ganarte!',
+      ],
+      win: [
+        '¡Magia de la buena! Ni con mis cinco oficios te paro. Te haría una foto, pero esta derrota mejor no la inmortalizo, jajaja.',
+        'Pásate por la piscina esta noche... pero pronto, que luego como alguacil os tengo que echar a todos. ¡Bienvenido al pueblo, crack!',
+      ],
+      defeat: [
+        'Que conste en acta del alguacil: el forastero ha perdido. Como cura te absuelvo, pero como pastor te digo que vuelvas al redil a entrenar.',
+        'Hazte la foto del recuerdo y vuelve cuando estés a la altura. ¡El espectáculo de Luisan no se gana a la primera!',
+      ],
+      prize: 520,
+      flag: 'luisan_mago_bercero',
+    },
+  },
+  // Laureano "El tío de Bercero" — terrateniente patatero y disfrutón de época.
+  // Se pasea en su calesa tirada por su caballo Popeye (= su Rapidash). Pedido por Adrián.
+  {
+    id: 'laureano_bercero', sprite: 'hiker', x: 10, y: 18, dir: 'down', roam: false,
+    trainer: {
+      name: 'LAUREANO',
+      title: 'El Tío de Bercero (terrateniente patatero)',
+      party: [
+        { species: 128, level: 12 },  // Tauros — el ganado del terrateniente
+        { species: 51, level: 11 },   // Dugtrio — las patatas (excava la tierra)
+        { species: 143, level: 13 },  // Snorlax — el DISFRUTÓN de época
+        { species: 78, level: 14 },   // Rapidash — POPEYE, su caballo de la calesa
+      ],
+      intro: [
+        '¡Ahá, forastero! Soy Laureano, el tío de Bercero: terrateniente, patatero mayor del reino y disfrutón de época. La calesa de ahí con el caballo Popeye es mía, que uno se pasea como un señor.',
+        'Mis patatas son las mejores de Valladolid y mis fiestas, legendarias. ¿Un combate antes de la caldereta? ¡Que corra el vino y los Pokémon!',
+      ],
+      win: [
+        '¡Recórcholis! Me has ganado... habrá que invitarte a unas patatas y a un SOL Y SOMBRA, mi copa (coñac y anís), que un buen rival se celebra. La sirven en el Centro Social Ibai. ¡Arre, Popeye, que nos vamos de fiesta!',
+      ],
+      defeat: [
+        '¡Jajaja! En mis tierras mando yo y mi ganado. Vuelve cuando aguantes el ritmo de un disfrutón de época, muchacho.',
+      ],
+      prize: 560,
+      flag: 'laureano_bercero',
+    },
+  },
 ];
 
 // ---------- BERCERO — interiores ----------
@@ -535,6 +594,33 @@ function buildCasaPadre(exit) {
     ],
   });
   iAddSign(m, 7, 2, 'FOTOS DEL PUEBLO — viajes de la pandilla (París, Lisboa, Cuba), San Isidro, calderetas... y una de Marcelino dormido en el reservado. "Esa la quito cuando quiera." — el padre.');
+  return m;
+}
+
+// CENTRO SOCIAL IBAI — el "Centro Pokémon" de Bercero. El camarero te cura el equipo
+// sirviéndole un "sol y sombra" (coñac + anís), la copa marca de la casa y de Laureano.
+function buildCentroSocialIbai(exit) {
+  const { m, matX, matY } = makeRoom('centro_social_ibai', 'CENTRO SOCIAL IBAI', 9, 8, I_FLOOR_TILE);
+  iLinkExit(m, matX, matY, exit);
+
+  // BARRA del centro social con su botellero (coñac + anís para el sol y sombra).
+  for (let i = 0; i < 4; i++) iSetSolid(m, 2 + i, 3, I_TABLE);  // barra
+  iSetSolid(m, 6, 2, I_SHELF);     // botellero (coñac/anís)
+  iSetSolid(m, 1, 2, I_CABINET);   // nevera de bebidas
+  m.layers.deco[5][4] = I_CARPET;
+  m.layers.deco[5][5] = I_CARPET;
+  m.layers.deco[4][7] = I_PLANT;
+
+  // EL CAMARERO — cura el equipo (heal) sirviendo un "sol y sombra".
+  m.npcs.push({
+    id: 'camarero_ibai', sprite: 'shopkeeper_m', x: 4, y: 4, dir: 'down', roam: false, heal: true,
+    dialog: [
+      'Bienvenido al CENTRO SOCIAL IBAI, el alma de Bercero. ¿Los bichos hechos polvo? Eso aquí se arregla con un buen SOL Y SOMBRA: coñac y anís a partes iguales, receta de la casa.',
+      '...¡Hala! Un sol y sombra para cada Pokémon y como nuevos. (Ellos lo huelen y reviven, no preguntes.) La copa la puso de moda Laureano, que de disfrutar sabe un rato.',
+      'Si te cruzas a Laureano con la calesa y Popeye, dile que su sol y sombra cura hasta la resaca de los Tauros. ¡Que aproveche, y a ganar gimnasios!',
+    ],
+  });
+  iAddSign(m, 7, 2, 'CARTA DEL IBAI — Sol y sombra (coñac+anís), vermú de grifo, gambas y la quiniela. "El sol y sombra es de Laureano; aquí solo lo servimos bien frío."');
   return m;
 }
 
@@ -651,10 +737,14 @@ export function wireBerceroEntry(maps) {
   if (!maps.pena_escuelas) {
     maps.pena_escuelas = buildPenaEscuelas({ map: 'bercero', x: 21, y: 9, dir: 'down' });
   }
+  if (!maps.centro_social_ibai) {
+    maps.centro_social_ibai = buildCentroSocialIbai({ map: 'bercero', x: 25, y: 23, dir: 'down' });
+  }
   // Puertas de Bercero (pisable + warp de ida al interior). Idempotente.
   const berceroDoors = [
     { x: 8, y: 8, interior: 'casa_padre' },     // puerta de la casa del padre
     { x: 21, y: 8, interior: 'pena_escuelas' },  // puerta de la Peña "Las Escuelas"
+    { x: 25, y: 22, interior: 'centro_social_ibai' }, // puerta del Centro Social Ibai
   ];
   if (ber) {
     for (const door of berceroDoors) {
