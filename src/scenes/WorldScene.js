@@ -481,6 +481,7 @@ export default class WorldScene extends Phaser.Scene {
     else if (npc.def.pcAccess) this.pcInteraction(npc);
     else if (npc.def.shop) this.shopInteraction(npc);
     else if (npc.def.gift) this.giftInteraction(npc);
+    else if (npc.def.barter) this.barterInteraction(npc);
     else if (npc.def.trainer) this.talk(npc.def.trainer.win, () => this.endInteraction(npc), por);
     else this.talk(npc.def.dialog, () => this.endInteraction(npc), por);
   }
@@ -510,6 +511,107 @@ export default class WorldScene extends Phaser.Scene {
       const itemName = (ITEM_NAMES[g.item] || g.item);
       this.chainTalk([`¡Has recibido ${itemName}!`], () => this.endInteraction(npc), por);
     }, por);
+  }
+
+  // NPC de ENTREGA/TRUEQUE: el jugador le DA un objeto y, a cambio, recibe una
+  // recompensa (objeto o dinero) UNA sola vez (flag único en save.flags). Es el
+  // inverso de giftInteraction (aquí el NPC PIDE, no regala). Estructura:
+  //   def.barter = {
+  //     need:'cigarros', qty?:1, flag:'june_reward',
+  //     askLines:[...],            // no llevas el objeto (June solo lo pide)
+  //     haveLines?:[...],          // sí lo llevas, antes de la decisión SÍ/NO
+  //     reward:{ item, qty? } | { money },
+  //     rewardLines:[...],         // al aceptar y entregar
+  //     declineLines?:[...],       // al rechazar la entrega
+  //     doneLines?:[...],          // ya canjeado (flag ya true)
+  //   }
+  barterInteraction(npc) {
+    const por = portraitForNpc(npc.def);
+    const b = npc.def.barter || {};
+    const save = this.registry.get('save');
+    if (!save.flags) save.flags = {};
+    if (!save.bag || typeof save.bag !== 'object') save.bag = {};
+    const need = b.need;
+    const qty = Math.max(1, b.qty || 1);
+
+    // Ya canjeado: solo charla de "ya hecho".
+    if (b.flag && save.flags[b.flag] === true) {
+      const lines = (b.doneLines && b.doneLines.length) ? b.doneLines : (npc.def.dialog || ['...']);
+      this.talk(lines, () => this.endInteraction(npc), por);
+      return;
+    }
+
+    // No lleva (suficiente) del objeto pedido: June SOLO lo pide (sin pistas).
+    const owned = save.bag[need] || 0;
+    if (owned < qty) {
+      this.talk(b.askLines || ['¿Me das uno?'], () => this.endInteraction(npc), por);
+      return;
+    }
+
+    // Sí lo lleva: charla previa (opcional) + decisión SÍ/NO en el overworld
+    // reutilizando el modo `prompt` de DialogScene (cursor ▶, A confirma, B = NO).
+    // Si no hay haveLines, aseguramos al menos una línea para que la pregunta NO
+    // salga "a pelo" (DialogScene abre el prompt directo cuando lines está vacío).
+    const intro = (b.haveLines && b.haveLines.length) ? b.haveLines : ['¿Me lo das?'];
+    this.scene.launch('Dialog', {
+      lines: intro,
+      portrait: por,
+      prompt: {
+        options: ['SÍ', 'NO'],
+        defaultIndex: 1,
+        onSelect: (i) => {
+          if (i !== 0) { // NO
+            const dec = (b.declineLines && b.declineLines.length)
+              ? b.declineLines : ['Anda, no seas rácano. Otro día será.'];
+            this.chainTalk(dec, () => this.endInteraction(npc), por);
+            return;
+          }
+          this.completeBarter(npc, b, need, qty, por);
+        },
+      },
+      onClose: null,
+    });
+  }
+
+  // Aplica el trueque: descuenta el objeto pedido y entrega la recompensa.
+  // Idempotente respecto al flag (se marca tras entregar). SFX 'heal' como acuse.
+  completeBarter(npc, b, need, qty, por) {
+    const save = this.registry.get('save');
+    if (!save.bag || typeof save.bag !== 'object') save.bag = {};
+    if (!save.flags) save.flags = {};
+
+    // Salvaguarda anti-soft-lock: si el trueque está mal configurado (sin recompensa
+    // válida) NO descontamos el objeto ni marcamos el flag; solo cerramos la charla.
+    const reward = b.reward || {};
+    const hasReward = !!reward.item || (typeof reward.money === 'number' && reward.money > 0);
+    if (!hasReward) {
+      this.chainTalk(['...'], () => this.endInteraction(npc), por);
+      return;
+    }
+
+    // Descuenta el objeto entregado (limpia la entrada si llega a 0).
+    const left = (save.bag[need] || 0) - qty;
+    if (left > 0) save.bag[need] = left; else delete save.bag[need];
+
+    // Entrega la recompensa: objeto (suma a la bolsa) o dinero (suma a la cartera).
+    let gotMsg = '';
+    if (reward.item) {
+      const rqty = Math.max(1, reward.qty || 1);
+      save.bag[reward.item] = (save.bag[reward.item] || 0) + rqty;
+      const rName = ITEM_NAMES[reward.item] || reward.item;
+      gotMsg = rqty > 1 ? `¡Has recibido ${rName} ×${rqty}!` : `¡Has recibido ${rName}!`;
+    } else if (typeof reward.money === 'number' && reward.money > 0) {
+      ensureWallet(save, MONEY_START);
+      save.player.money += reward.money;
+      gotMsg = `¡Has recibido ${reward.money}₧!`;
+    }
+
+    if (b.flag) save.flags[b.flag] = true;
+    sfx(this, 'heal', { volume: 0.6 });
+
+    const lines = (b.rewardLines && b.rewardLines.length) ? b.rewardLines.slice() : [];
+    if (gotMsg) lines.push(gotMsg);
+    this.chainTalk(lines.length ? lines : ['...'], () => this.endInteraction(npc), por);
   }
 
   // ¿Ya derrotado este entrenador? (bandera única en save.flags).
@@ -589,9 +691,14 @@ export default class WorldScene extends Phaser.Scene {
 
   shopInteraction(npc) {
     const por = portraitForNpc(npc.def);
+    // Catálogo del tendero: si el NPC declara `def.shopItems` (array de ids o
+    // {id,price}), se le pasa a la tienda; si no, openShop usa DEFAULT_SHOP_STOCK.
+    const items = Array.isArray(npc.def.shopItems) && npc.def.shopItems.length
+      ? npc.def.shopItems
+      : undefined;
     this.talk(npc.def.dialog, () => {
       this.time.delayedCall(60, () => {
-        openShop(this, { onClose: () => this.endInteraction(npc) });
+        openShop(this, { items, onClose: () => this.endInteraction(npc) });
       });
     }, por);
   }

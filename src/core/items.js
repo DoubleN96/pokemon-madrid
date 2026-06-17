@@ -30,6 +30,10 @@ export const ITEMS = {
     name: 'ULTRA BALL', desc: 'Aún más eficaz que la Super Ball.',
     price: 1200, category: 'ball', ball: 2, usableInBattle: true, usableInField: false,
   },
+  'master-ball': {
+    name: 'MASTER BALL', desc: 'La mejor Ball: captura a cualquier Pokémon sin fallar.',
+    price: 0, category: 'ball', ball: 255, usableInBattle: true, usableInField: false,
+  },
   potion: {
     name: 'POCIÓN', desc: 'Restaura 20 PS de un Pokémon.',
     price: 300, category: 'heal', heal: 20, usableInBattle: true, usableInField: true,
@@ -77,6 +81,10 @@ export const ITEMS = {
   card: {
     name: 'CARTA', desc: 'Coleccionable castizo. No hace nada... aún.',
     price: 0, category: 'key', usableInBattle: false, usableInField: false,
+  },
+  cigarros: {
+    name: 'CIGARROS INDUS', desc: 'Tabaco de liar de la marca buena. A June le pirran.',
+    price: 200, category: 'key', usableInBattle: false, usableInField: false,
   },
   // ─── OBJETOS MO (HM, estilo FRLG) ──────────────────────────────────────────
   // Objetos clave que DESBLOQUEAN un movimiento de campo. No se venden (price 0,

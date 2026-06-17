@@ -493,6 +493,55 @@ const BERCERO_NPCS = [
       flag: 'laureano_bercero',
     },
   },
+  // JUNE — "la pitillera suprema" del pueblo. NO combate: te PIDE un cigarro de
+  // liar de los buenos (CIGARROS INDUS) y, si se lo das, te suelta su tesoro: una
+  // MASTER BALL que guardaba "pa una ocasión". Trueque único (flag june_reward).
+  // Si no llevas tabaco, solo te lo pide (con retranca), sin decir dónde comprarlo.
+  // Los CIGARROS INDUS se venden en el Estanco de Bercero (NPC tendero, abajo).
+  {
+    id: 'june_pitillera', sprite: 'expert_f', x: 17, y: 18, dir: 'down', roam: false,
+    barter: {
+      need: 'cigarros', qty: 1, flag: 'june_reward',
+      reward: { item: 'master-ball', qty: 1 },
+      // No llevas CIGARROS INDUS: June SOLO te los pide (sin pista de dónde comprarlos).
+      askLines: [
+        'Me das un piti.',
+        'Si yo tengo de liar, pero me gustan los indus, que el de liar me sabe a chamusquina.',
+        'Anda, no seas agarrao, que un cigarro no se le niega a una señora. Vuelve cuando lleves de los buenos.',
+      ],
+      // Sí los llevas: charla previa antes de la decisión SÍ/NO.
+      haveLines: [
+        '¡Ahí va, indus! Esos sí. Me los hueles a la legua, criatura.',
+        '¿Me das uno? Te lo cambio por una cosa que guardo pa una ocasión... y tú tienes pinta de ocasión.',
+      ],
+      // Al aceptar: entrega la Master Ball con retranca de pitillera.
+      rewardLines: [
+        'Toma, pa ti. Es de las gordas, no la malgastes en un Rattata, no seas manta.',
+        'Con esa cazas hasta al lucero del alba. Yo me fumo este a tu salud, hala.',
+      ],
+      // Al rechazar la entrega.
+      declineLines: [
+        'Anda que... me dejas con el ansia. Tú te lo pierdes, que lo que guardo es bueno.',
+      ],
+      // Ya canjeado.
+      doneLines: [
+        'Qué, ¿echando humo por ahí? Gracias por el piti, majo, eres un señor.',
+        'La bola esa cuídamela, que no se ven muchas. Y si pillas más indus, ya sabes dónde vivo.',
+      ],
+    },
+  },
+  // ESTANCO de Bercero — el tendero que vende los CIGARROS INDUS (y básicos del
+  // pueblo). Tienda overworld (shop:true) con catálogo explícito vía shopItems.
+  {
+    id: 'estanquero_bercero', sprite: 'shopkeeper_m', x: 5, y: 19, dir: 'down', roam: false,
+    shop: true,
+    shopItems: ['cigarros', 'poke-ball', 'potion', 'antidote'],
+    dialog: [
+      'Estanco y ultramarinos de Bercero, dígame usted. Tabaco, sellos, pipas y lo que haga falta.',
+      'Los CIGARROS INDUS son lo más vendido, sobre todo desde que June se aficionó. Esa mujer fuma más que la chimenea de la caldereta.',
+      '¿Le pongo algo? Que tengo que cerrar pa ir a la partida, no se me eternice.',
+    ],
+  },
   // ====== "ASOCIACIÓN DE AMAS DE CASA" — organización estilo Team Rocket ======
   // Banda de mujeres del pueblo que controla las festividades y las comidas
   // "solo para ellas". Pedida por Adrián. Lema, jerarquía (grunts + presidenta)
