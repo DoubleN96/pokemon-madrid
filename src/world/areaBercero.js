@@ -493,6 +493,84 @@ const BERCERO_NPCS = [
       flag: 'laureano_bercero',
     },
   },
+  // ====== "ASOCIACIÓN DE AMAS DE CASA" — organización estilo Team Rocket ======
+  // Banda de mujeres del pueblo que controla las festividades y las comidas
+  // "solo para ellas". Pedida por Adrián. Lema, jerarquía (grunts + presidenta)
+  // y combates al estilo de las organizaciones malvadas Pokémon.
+  {
+    id: 'ama_grunt_1', sprite: 'shopkeeper_f', x: 7, y: 15, dir: 'down', roam: true,
+    trainer: {
+      name: 'AMA DE CASA',
+      title: 'Asociación de Amas de Casa',
+      party: [ { species: 39, level: 9 }, { species: 35, level: 10 } ], // Jigglypuff + Clefairy
+      intro: [
+        '¡Alto ahí! Esta plaza la tenemos RESERVADA para la comida de la Asociación. Hoy es "solo mujeres", así que circulando, guapo.',
+        '¿Que quién manda aquí? La ASOCIACIÓN DE AMAS DE CASA. Nosotras decidimos las fiestas, los menús y quién barre el merendero. ¡A combatir!',
+      ],
+      win: ['Bah, suerte tienes. Pero a la caldereta de mañana NO estás invitado.'],
+      defeat: ['¡Ja! Vuelve a tu casa, anda. Y dile a tu madre que se apunte a la Asociación.'],
+      prize: 300,
+      flag: 'ama_grunt_1_bercero',
+    },
+  },
+  {
+    id: 'ama_grunt_2', sprite: 'elder_f', x: 23, y: 16, dir: 'left', roam: true,
+    trainer: {
+      name: 'AMA DE CASA',
+      title: 'Asociación de Amas de Casa',
+      party: [ { species: 113, level: 10 }, { species: 108, level: 10 } ], // Chansey + Lickitung
+      intro: [
+        'Lema de la Asociación: "¡Por las fiestas del pueblo! ¡Por las comidas sin maridos! ¡Y por el bingo de los jueves!".',
+        'Llevo 40 años organizando San Isidro. ¿Y tú vienes a darme lecciones? Saca los bichos, criatura.',
+      ],
+      win: ['Está bien, está bien... pero la receta de la caldereta NO te la doy.'],
+      defeat: ['En mis tiempos los jóvenes respetaban a la Asociación. ¡A fregar!'],
+      prize: 340,
+      flag: 'ama_grunt_2_bercero',
+    },
+  },
+  {
+    id: 'ama_grunt_3', sprite: 'swimmer_f', x: 12, y: 20, dir: 'up', roam: false,
+    trainer: {
+      name: 'AMA DE CASA',
+      title: 'Asociación de Amas de Casa',
+      party: [ { species: 40, level: 11 }, { species: 44, level: 11 } ], // Wigglytuff + Gloom
+      intro: [
+        'La piscina del pueblo, las verbenas, la matanza... TODO lo organizamos nosotras. Y tú ni te enteras.',
+        'Si quieres pasar a ver a la Presidenta, primero me ganas a mí. Reglas de la Asociación.',
+      ],
+      win: ['Pasa, pasa... pero como toques el bizcocho de la mesa te las ves conmigo.'],
+      defeat: ['¡Ni hablar! Hoy no entra ningún hombre a la comida. ¡Hala, fuera!'],
+      prize: 380,
+      flag: 'ama_grunt_3_bercero',
+    },
+  },
+  {
+    id: 'ama_presidenta', sprite: 'expert_f', x: 12, y: 22, dir: 'down', roam: false,
+    trainer: {
+      name: 'DOÑA REME',
+      title: 'PRESIDENTA — Asociación de Amas de Casa',
+      party: [
+        { species: 122, level: 13 }, // Mr. Mime (la barrera: "aquí no entran hombres")
+        { species: 45, level: 13 },  // Vileplume
+        { species: 36, level: 14 },  // Clefable (la matriarca)
+      ],
+      intro: [
+        'Así que has derrotado a mis socias para llegar hasta mí. Tienes agallas, hijo. Soy Doña Reme, PRESIDENTA de la Asociación de Amas de Casa.',
+        'Nosotras movemos los hilos de este pueblo: las fiestas, las comidas, las habladurías y hasta quién se sienta con quién en la verbena. El poder REAL de Bercero.',
+        'Pero hoy te has colado en nuestra comida de mujeres. Eso se paga con un combate. ¡Por la Asociación!',
+      ],
+      win: [
+        '...Está bien. Te lo has ganado, muchacho. Quedas nombrado "amigo honorario" de la Asociación. Es el mayor honor del pueblo, que lo sepas.',
+        'Anda, siéntate y come algo. Pero como cuentes lo que se habla en estas comidas... te buscamos. Jajaja.',
+      ],
+      defeat: [
+        '¡La Asociación no se derrota tan fácil! Vuelve a casa, repón fuerzas, y que tu abuela te enseñe a pelear.',
+      ],
+      prize: 720,
+      flag: 'ama_presidenta_bercero',
+    },
+  },
 ];
 
 // ---------- BERCERO — interiores ----------
