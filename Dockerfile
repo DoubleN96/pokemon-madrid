@@ -6,7 +6,7 @@ RUN npm ci
 COPY . .
 # CACHE_BUST: cambiar este valor fuerza un rebuild limpio del bundle.
 # (Coolify reusaba una imagen Docker cacheada y servía código viejo — 2026-06-13)
-ARG CACHE_BUST=2026-06-13-bercero
+ARG CACHE_BUST=2026-06-13-fix-menupc
 RUN echo "build $CACHE_BUST" && npm run build
 
 FROM nginx:alpine

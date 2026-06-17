@@ -9,6 +9,10 @@ import {
 import { calcStats } from '../core/formulas.js';
 import { saveGame } from '../services/saves.js';
 import { itemDef } from '../core/items.js';
+import {
+  FIELD_MOVES, usableMovesForMon, canUseFieldMove,
+} from '../world/fieldMoves.js';
+import MapScene from './MapScene.js';
 
 // Texto del efecto de cada objeto de estado/revivir en el menú de mochila.
 const FIELD_CURE_MSG = {
@@ -22,6 +26,7 @@ const FIELD_CURE_MSG = {
 const OPTIONS = [
   { id: 'team', label: 'EQUIPO' },
   { id: 'bag', label: 'MOCHILA' },
+  { id: 'map', label: 'MAPA' },
   { id: 'moto', label: 'MOTO' },
   { id: 'dex', label: 'POKÉDEX' },
   { id: 'opts', label: 'OPCIONES' },
@@ -77,6 +82,7 @@ export default class MenuScene extends Phaser.Scene {
     if (this.mode === 'root' && dy) this.moveRoot(dy);
     else if (this.mode === 'team' && dy) this.moveTeam(dy);
     else if (this.mode === 'detail' && dy) this.detailMove(dy);
+    else if (this.mode === 'momenu' && dy) this.moveMoMenu(dy);
     else if (this.mode === 'bag' && dy) this.moveBag(dy);
     else if (this.mode === 'dex') this.moveDex(dy, dx);
     else if (this.mode === 'opts' && dy) this.moveOptions(dy);
@@ -85,6 +91,8 @@ export default class MenuScene extends Phaser.Scene {
   onA() {
     if (this.mode === 'root') this.selectRoot();
     else if (this.mode === 'team') this.selectTeamSlot();
+    else if (this.mode === 'detail') this.openMoMenu();
+    else if (this.mode === 'momenu') this.selectMoMove();
     else if (this.mode === 'bag') this.selectBagItem();
     else if (this.mode === 'opts') this.selectOption();
   }
@@ -93,6 +101,7 @@ export default class MenuScene extends Phaser.Scene {
     if (this.mode === 'root') this.closeMenu();
     else if (this.mode === 'team' && this.pendingItem) { this.pendingItem = null; this.showBag(); }
     else if (this.mode === 'team') this.showRoot();
+    else if (this.mode === 'momenu') this.showDetail(this.detailIdx);
     else if (this.mode === 'detail') this.showTeam();
     else this.showRoot();
   }
@@ -176,6 +185,7 @@ export default class MenuScene extends Phaser.Scene {
     const id = OPTIONS[this.rootIdx].id;
     if (id === 'team') this.showTeam();
     else if (id === 'bag') this.showBag();
+    else if (id === 'map') this.openMap();
     else if (id === 'moto') this.toggleMoto();
     else if (id === 'dex') this.showDex();
     else if (id === 'opts') this.showOptions();
@@ -188,6 +198,38 @@ export default class MenuScene extends Phaser.Scene {
     if (!this.save.flags) this.save.flags = {};
     this.save.flags.riding = !this.save.flags.riding;
     this.closeMenu();
+  }
+
+  // Abre el MAPA (Town Map estilo FRLG) como overlay sobre el menú. Registro
+  // PEREZOSO de la escena 'Map' (mismo contrato que PcScene: no se toca main.js).
+  // El menú se DUERME mientras el mapa está abierto (así sus listeners no compiten)
+  // y se DESPIERTA al cerrar el mapa. World sigue pausado por debajo de ambos.
+  openMap() {
+    if (!this.scene.get('Map')) this.scene.add('Map', MapScene, false);
+    this.busy = true;
+    sfx(this, 'select', { volume: 0.4 });
+    // Si el jugador puede usar VUELO (tiene MO02 + Pokémon volador + medallas), el
+    // MAPA se abre en MODO VUELO: elegir un destino volable VISITADO viaja allí. El
+    // viaje se delega a WorldScene vía registry.pendingFly (el menú no puede mover al
+    // jugador, World sí). Si no puede volar, el mapa es solo informativo (como antes).
+    const canFly = canUseFieldMove(this.registry.get('pokedex'), this.save, 'fly');
+    const launchData = canFly
+      ? { flyMode: true, onFly: (dest) => { this.registry.set('pendingFly', dest); } }
+      : {};
+    this.scene.launch('Map', launchData);
+    const map = this.scene.get('Map');
+    const onClose = () => {
+      map.events.off('shutdown', onClose);
+      map.events.off('sleep', onClose);
+      this.busy = false;
+      // Si el mapa devolvió un destino de vuelo, cierra TODO el menú para que World
+      // (al despertar) ejecute el viaje. Si no, simplemente reabre el menú.
+      if (this.registry.get('pendingFly')) { this.closeMenu(); return; }
+      this.scene.wake();
+    };
+    map.events.once('shutdown', onClose);
+    map.events.once('sleep', onClose);
+    this.scene.sleep();
   }
 
   // ---------- Opciones ----------
@@ -356,7 +398,10 @@ export default class MenuScene extends Phaser.Scene {
     this.buildDetailHeader(c, mon);
     this.buildDetailStats(c, mon);
     this.buildDetailMoves(c, mon);
-    this.addText(c, 8, 149, '↑↓ cambiar · B volver', { color: TEXT_COLOR_DIM });
+    // Si este Pokémon puede usar alguna MO desbloqueada, ofrece "A: USAR MO".
+    const mos = usableMovesForMon(this.dexData, this.save, mon);
+    const hint = mos.length ? '↑↓ cambiar · A USAR MO · B volver' : '↑↓ cambiar · B volver';
+    this.addText(c, 8, 149, hint, { color: TEXT_COLOR_DIM });
   }
 
   buildDetailHeader(c, mon) {
@@ -428,6 +473,65 @@ export default class MenuScene extends Phaser.Scene {
     }
   }
 
+  // ---------- Submenú USAR MO (desde el detalle de un Pokémon) ----------
+
+  // Abre la lista de MOs que ESTE Pokémon puede usar y están desbloqueadas. Si no
+  // hay ninguna, avisa y no entra al submenú.
+  openMoMenu() {
+    const mon = (this.save.party || [])[this.detailIdx];
+    if (!mon) return;
+    this.moMoves = usableMovesForMon(this.dexData, this.save, mon);
+    if (!this.moMoves.length) {
+      this.openDialog(['Este Pokémon no puede usar ninguna MO ahora mismo.']);
+      return;
+    }
+    this.mode = 'momenu';
+    this.moIdx = 0;
+    this.buildMoMenu(mon);
+  }
+
+  buildMoMenu(mon) {
+    const c = this.setView();
+    c.add(drawBox(this, 0, 0, GAME_W, GAME_H, { fill: BOX_COLORS.panelDetail }));
+    this.addText(c, 8, 6, `MOs DE ${this.displayName(mon)}`);
+    const x = 24; const top = 30;
+    c.add(drawBox(this, 12, 22, GAME_W - 24, this.moMoves.length * 16 + 14));
+    this.moRows = this.moMoves.map((id, i) => {
+      const def = FIELD_MOVES[id];
+      const y = top + i * 16;
+      this.addText(c, x, y, def.name);
+      this.addText(c, x + 96, y, def.move, { color: TEXT_COLOR_DIM });
+      return { id, y };
+    });
+    this.moCursor = this.addText(c, 14, top, '▶');
+    c.add(drawBox(this, 4, GAME_H - 24, GAME_W - 8, 22));
+    this.moDesc = this.addText(c, 10, GAME_H - 18, '', { wordWrap: { width: GAME_W - 24 } });
+    this.moveMoMenu(0);
+  }
+
+  moveMoMenu(d) {
+    const n = this.moRows.length;
+    this.moIdx = (this.moIdx + d + n) % n;
+    this.moCursor.y = this.moRows[this.moIdx].y;
+    const id = this.moRows[this.moIdx].id;
+    this.moDesc.setText(FIELD_MOVES[id].desc || '');
+    if (d !== 0) sfx(this, 'select', { volume: 0.35 });
+  }
+
+  // Elige una MO: deja el handoff en el registry (pendingFieldMove) y cierra el menú
+  // ENTERO. WorldScene, al despertar, aplica la MO a la casilla de enfrente (o, para
+  // Vuelo, abre el mapa de Vuelo). El menú no mueve al jugador; World sí.
+  selectMoMove() {
+    const id = this.moRows[this.moIdx].id;
+    sfx(this, 'select', { volume: 0.5 });
+    if (!canUseFieldMove(this.dexData, this.save, id)) {
+      this.openDialog(['No puedes usar esa MO ahora mismo.']);
+      return;
+    }
+    this.registry.set('pendingFieldMove', id);
+    this.closeMenu();
+  }
+
   // ---------- Mochila ----------
 
   showBag() {
@@ -465,7 +569,16 @@ export default class MenuScene extends Phaser.Scene {
   selectBagItem() {
     if (!this.bagItems.length) return;
     const { id } = this.bagItems[this.bagIdx];
-    if (itemDef(id).usableInField) {
+    const def = itemDef(id);
+    // Objetos MO (HM): no se "dan" a un Pokémon como una poción. Se usan desde el
+    // detalle del Pokémon (USAR MO) o al chocar con un obstáculo. Aquí solo se
+    // recuerda al jugador cómo se usan.
+    if (def.category === 'mo') {
+      this.openDialog([`${def.name}: enseña este movimiento de campo.`,
+        'Úsalo desde EQUIPO → un Pokémon → A (USAR MO), o al toparte con el obstáculo.']);
+      return;
+    }
+    if (def.usableInField) {
       this.pendingItem = id;
       this.showTeam();
       return;

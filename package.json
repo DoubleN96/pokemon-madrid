@@ -13,7 +13,8 @@
     "test:core": "node tests/core.test.mjs",
     "test:pc": "node tests/pc.test.mjs",
     "test:shop": "node tests/shop.test.mjs",
-    "test": "node tests/core.test.mjs && node tests/pc.test.mjs && node tests/shop.test.mjs"
+    "test:fieldmoves": "node tests/fieldmoves.test.mjs",
+    "test": "node tests/core.test.mjs && node tests/pc.test.mjs && node tests/shop.test.mjs && node tests/fieldmoves.test.mjs"
   },
   "repository": {
     "type": "git",

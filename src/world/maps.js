@@ -14,6 +14,8 @@ import { buildGyms, GYM_LINKS } from './gyms.js';
 import { buildLiga, wireLigaDoor } from './liga.js';
 import { EXTRA_MAPS } from './areaExtra.js';
 import { BERCERO_MAPS, wireBerceroEntry } from './areaBercero.js';
+import { TORREVIEJA_MAPS, wireTorreviejaEntry } from './areaTorrevieja.js';
+import { addFieldObstacle } from './fieldMoves.js';
 
 const GRASS = 113;
 const TALL = 94;
@@ -428,6 +430,38 @@ const TETUAN_NPCS = [
       'Si entras al bar, pídete las bravas. Y dile a Manoli la peluquera que ya me toca corte, que parezco un Pidgey despeinado.',
     ],
   },
+  // Gustavo — entrenador NPC de la Plaza de Tetuán. Cerebrito con cuerpo de
+  // gimnasio (atlético, gafas, rapado): hace pesas en la plaza. Parodia CARIÑOSA
+  // del gym-bro intelectual. Equipo Gen-1 temático Lucha + un guiño Dragón
+  // (Dratini, único dragón de Gen 1). Sin PII; nada sobre su vida íntima.
+  // BALANCE: 1.ª ciudad, equipo Nv.5-7 (entrenador opcional de plaza).
+  {
+    id: 'gustavo', sprite: 'gustavo', x: 28, y: 26, dir: 'left', roam: false,
+    trainer: {
+      name: 'GUSTAVO',
+      title: 'Cerebro con Cuerpo de Gimnasio',
+      party: [
+        { species: 66, level: 5 },   // Machop — disciplina marcial, hierro en la plaza
+        { species: 56, level: 6 },   // Mankey — cardio y mala leche de gimnasio
+        { species: 147, level: 6 },  // Dratini — el guiño "dragón" (escamas como piercings)
+      ],
+      intro: [
+        'Hombre, Marcelino. Espera, que termino la serie. *acaba unas dominadas en la rama del árbol y se ajusta las gafas* Diez más y soy todo tuyo.',
+        'La gente cree que por hacer pesas no leo. Pues mira: estoy con el doctorado, soy de los mejores de mi promoción Y levanto más que tú. Cuerpo Y cabeza, ¿eh?',
+        'Va, combatimos. Te aviso: aquí se entrena en serio. Calienta, hidrátate y no me lo pongas fácil, anda.',
+      ],
+      win: [
+        '¡Buah! Pues nada, hoy te toca el día de tu vida. Bien jugado, en serio. Eso se respeta.',
+        'Oye, cuando subas a la Liga pásate por la playa de Torrevieja, que monto un gimnasio en la arena. Allí combatimos otra vez, pero con chanclas. ¡Un abrazo, máquina!',
+      ],
+      defeat: [
+        'Lo dicho: cuerpo Y cabeza. *bebe de la botella sin perder la postura* No te frustres, que entrenar es esto, fallar y volver.',
+        'Anda, hazte unas series y vuelve. Y come proteína, que ese inicial lo veo flojo de bíceps.',
+      ],
+      prize: 360,
+      flag: 'gustavo_tetuan',
+    },
+  },
   // Niño de la plaza, sueña con ser entrenador como Marcelino (el jugador).
   {
     id: 'nino_plaza', sprite: 'youngster', x: 29, y: 30, dir: 'left', roam: true,
@@ -436,6 +470,67 @@ const TETUAN_NPCS = [
       'Mi madre dice que primero el cole, luego la hierba alta. ¡Pero yo ya tengo nombre para mi primer Pokémon!',
       '¡Cuando lo atrape, te reto aquí en la plaza! Tú entrena, que yo voy a por ti.',
     ],
+  },
+  // ── REPARTIDORES DE MOs (HM) de Tetuán ─────────────────────────────────────
+  // JARDINERO de la plaza — regala la MO01 CORTE (corta arbustos). Lore: poda los
+  // setos de la Plaza de Tetuán.
+  {
+    id: 'jardinero_corte', sprite: 'aroma', x: 5, y: 30, dir: 'down', roam: false,
+    gift: {
+      item: 'mo01', flag: 'mo_cut_given',
+      lines: [
+        'Buenas, chaval. Soy el jardinero de la plaza. Llevo toda la vida podando los setos de Tetuán.',
+        'Mira, te voy a dar una cosa que me sobra: la MO01, CORTE. Enséñasela a un bicho de tipo planta o normal y podrás cortar los arbustos finos que bloquean el paso.',
+      ],
+      doneLines: [
+        '¿Qué tal va el CORTE? Acuérdate: un Pokémon de tipo planta, bicho o normal puede aprenderlo.',
+        'Por la Ruta 2, en un huerto escondido, hay arbustos y rocas que cortar. ¡Échale un ojo!',
+      ],
+    },
+  },
+  // OBRERO del Parque Móvil — regala la MO04 FUERZA (empuja rocas). Lore: mueve
+  // bloques de hormigón en las obras eternas del barrio.
+  {
+    id: 'obrero_fuerza', sprite: 'generic_m1', x: 20, y: 28, dir: 'down', roam: false,
+    gift: {
+      item: 'mo04', flag: 'mo_strength_given',
+      lines: [
+        'Eh, tú, el de los Pokémon. Yo trabajo en las obras del Parque Móvil, moviendo bloques de hormigón a pulso.',
+        'Toma, la MO04, FUERZA. Con un Pokémon fuerte (lucha, tierra, roca o normal) podrás empujar esas rocas enormes que cortan el camino. A mí me viene grande sin grúa.',
+      ],
+      doneLines: [
+        'La FUERZA es para las rocas GRANDES. Las pequeñas y quebradizas se rompen con Golpe Roca, que eso te lo da el cantero.',
+      ],
+    },
+  },
+  // CANTERO — regala la MO06 GOLPE ROCA (rompe rocas pequeñas). Lore: pica piedra.
+  {
+    id: 'cantero_golperoca', sprite: 'elder_m', x: 6, y: 29, dir: 'right', roam: false,
+    gift: {
+      item: 'mo06', flag: 'mo_rocksmash_given',
+      lines: [
+        'Soy cantero, muchacho. Me paso el día picando piedra. Hay rocas que se rompen de un golpe seco, si sabes dónde dar.',
+        'Quédate la MO06, GOLPE ROCA. Un Pokémon de lucha, tierra, roca o normal romperá las rocas pequeñas que estorban. A veces, debajo, sale algún bicho.',
+      ],
+      doneLines: [
+        'El GOLPE ROCA rompe las rocas chicas. Para las grandes, FUERZA, que esa la lleva el obrero del Parque Móvil.',
+      ],
+    },
+  },
+  // AVIADOR del barrio — regala la MO02 VUELO. Lore: cuida palomas mensajeras en
+  // una azotea de Bravo Murillo; te enseña a viajar volando.
+  {
+    id: 'aviador_vuelo', sprite: 'gentleman', x: 10, y: 21, dir: 'down', roam: false,
+    gift: {
+      item: 'mo02', flag: 'mo_fly_given',
+      lines: [
+        'Hombre, el aspirante a Campeón. Yo crío palomas mensajeras en la azotea, ¿sabes? Conocen Madrid mejor que el GPS.',
+        'Toma, la MO02, VUELO. Con un Pokémon de tipo volador podrás viajar al instante a cualquier zona con Centro Pokémon que ya hayas visitado. Ábrelo desde el MAPA.',
+      ],
+      doneLines: [
+        'Para VOLAR, abre el MAPA (en el menú) y elige una zona ya visitada con Centro Pokémon. Mi paloma te lleva. ¡Madrid en un visto y no visto!',
+      ],
+    },
   },
 ];
 
@@ -474,6 +569,19 @@ function buildRuta2() {
   sprinkle(m, BUSH, [[2, 12], [17, 10], [3, 35]]);
   addSign(m, 11, 3, 'RUTA 2 — Bravo Murillo abajo, dirección CHAMBERÍ. "Tramo con entrenadores. Camina con el equipo a tono."');
   addSign(m, 16, 16, 'QUIOSCO. Prensa, cromos y pipas. "Ya están los cromos de la Liga Chamberí. El de Álvarín fumando es el raro."');
+  // RINCÓN DE LAS MOs (jardincillo opcional, SO de la ruta): muestra de los tres
+  // movimientos de campo de TIERRA. Un ARBUSTO cortable (Corte), una ROCA grande
+  // empujable (Fuerza) y una ROCA pequeña rompible (Golpe Roca) bloquean un huerto
+  // con un cartel-recompensa. Está FUERA del camino principal (x9-10 / x13-14): no
+  // afecta a la navegación entre warps. Cada obstáculo guarda una baldosa distinta.
+  // Arbusto cortable: tapa la entrada al huerto desde el oeste (x6,y31).
+  addFieldObstacle(m, 6, 31, 'bush');
+  // Roca grande (Fuerza): corta el paso por el centro del huerto (x7,y32).
+  addFieldObstacle(m, 7, 33, 'boulder');
+  // Roca pequeña (Golpe Roca): última barrera antes del cartel (x8,y34).
+  addFieldObstacle(m, 8, 34, 'rock');
+  // Cartel-recompensa al fondo del huerto (solo se lee tras retirar los obstáculos).
+  addSign(m, 8, 33, 'HUERTO ESCONDIDO DE LA RUTA 2. "El que llega hasta aquí con Corte, Fuerza y Golpe Roca, se merece el secreto: las mejores pipas de Madrid se cultivan en este rincón. Chsss."');
   ruta2Data(m);
   return m;
 }
@@ -551,6 +659,38 @@ const RUTA2_NPCS = [
       ],
       prize: 420,
       flag: 'jesus_ruta2',
+    },
+  },
+  // David Guillén — HERMANO de Sergio Guillén (que está aquí mismo en la Ruta 2).
+  // Profesor de historia y "bienqueda" patológico: cambia de opinión tres veces en
+  // la misma frase para no quedar mal con nadie. Parodia CARIÑOSA del indeciso
+  // simpático. Equipo Gen-1 temático "variable/cambia de forma": Eevee (el que
+  // puede ser cualquier cosa) + Ditto (literalmente copia al de enfrente). Sin PII.
+  // BALANCE: ruta temprana, equipo Nv.6-7 (entrenador de paso).
+  {
+    id: 'david_guillen', sprite: 'david_guillen', x: 11, y: 20, dir: 'down', roam: false,
+    trainer: {
+      name: 'DAVID',
+      title: 'El Profesor Bienqueda',
+      party: [
+        { species: 133, level: 6 },  // Eevee — el que aún no sabe en qué evolucionar (indeciso)
+        { species: 132, level: 7 },  // Ditto — copia al rival para no llevarle la contraria
+      ],
+      intro: [
+        'Anda, ¡el compañero de piso de mi hermano Sergio! Oye, qué alegría... bueno, alegría a medias, que tampoco quiero exagerar, aunque sí, alegría plena, vamos.',
+        'Mira, yo de combatir... a favor totalmente. O sea, en contra no estoy, ¿eh? Bueno, depende de cómo lo veas. Tienes razón tú, y yo también. Los dos, vamos.',
+        'Soy profe de historia, ¿sabes? Y lo bonito de la historia es que cada uno tiene su versión y todas valen. Va, combatimos... si te parece. Si no, también. Tú dirás.',
+      ],
+      win: [
+        '¡Y has ganado! Qué bien, oye. O sea, yo quería ganar, claro, pero que ganes tú también me parece estupendo, no te creas.',
+        'Le diré a Sergio que eres un crack. Y al rival también le diré que es un crack, no vaya a ser. A todos crack, así nadie se enfada. ¡Un placer, de verdad de la buena!',
+      ],
+      defeat: [
+        'Vaya, gané yo. Lo siento mucho, ¿eh? O sea, no lo siento, que es un combate... pero sí lo siento, no quiero que te lo tomes a mal. ¿Estamos bien? Dime que estamos bien.',
+        'Entrena un poco y vuelves, que seguro que la próxima ganas tú. O yo. O empatamos, que sería lo más justo para todos, ¿no crees?',
+      ],
+      prize: 380,
+      flag: 'david_ruta2',
     },
   },
   // NPCs de charla del lore.
@@ -792,6 +932,41 @@ const CHAMBERI_NPCS = [
       flag: 'pablo_gallo_chamberi',
     },
   },
+  // Álvaro Benito — entrenador NPC junto al Café del Modernismo (la tertulia diaria
+  // le viene de perlas para soltar sus chapas). Historiador interino, cenizo,
+  // agotado y con mala suerte; te endosa el combate más aburrido del barrio mientras
+  // te da la chapa con sus opiniones. Parodia CARIÑOSA del cenizo coñazo — SIN
+  // etiqueta política explícita ni nada hiriente. Equipo Gen-1 temático "muro de
+  // ACERO/defensa lenta y testaruda" (sustituto de su Bastiodon canónico): Geodude,
+  // Onix (la pared prehistórica) y Magnemite (toque metálico). Sin PII.
+  // BALANCE: 3.ª ciudad, equipo Nv.16-19, muy defensivo (combate largo y tostón).
+  {
+    id: 'alvaro_benito', sprite: 'alvaro_benito', x: 24, y: 11, dir: 'down', roam: false,
+    trainer: {
+      name: 'ÁLVARO BENITO',
+      title: 'El Historiador Cenizo',
+      party: [
+        { species: 74, level: 16 },  // Geodude — la cabezonería hecha roca
+        { species: 81, level: 17 },  // Magnemite — el toque metálico/acero
+        { species: 95, level: 19 },  // Onix — el muro prehistórico, lento y testarudo
+      ],
+      intro: [
+        '*suspira y se estira la espalda con cara de dolor* Ah, eres tú. Justo le decía a la tertulia del café que esto, en mi época, se hacía mejor. Todo iba mejor antes, fíjate.',
+        'Soy historiador, ¿sabes? Interino, eso sí, que la oposición es un cenizo total. Como yo. *anda un poco encorvado, casi de puntillas* La espalda me está matando, pero da igual, total, qué más da.',
+        'Te aviso de que combatir conmigo es un tostón. Mi equipo solo defiende; tú ataca, ataca, que ya te cansarás antes tú. Y mientras, te cuento por qué todo va a salir mal. Va, cuando quieras.',
+      ],
+      win: [
+        '...Pues claro. Si es que tengo una suerte malísima, oye. Hasta perdiendo soy un cenizo. *se frota los riñones* Era de esperar.',
+        'Anda, llévate el premio antes de que me arrepienta. Y un consejo de historiador: visita más museos, que la juventud no valora el patrimonio. Ale, a otra cosa. Qué cansancio.',
+      ],
+      defeat: [
+        'Lo ves. Ganó la defensa. Aburrido pero efectivo, como las clases de los lunes a primera hora. *bosteza* Te lo dije, ¿eh? Que era un tostón.',
+        'Vuelve cuando tengas más paciencia... y un par de ataques que peguen de verdad. Yo me quedo aquí, dándole vueltas a lo mal que va todo. Como siempre.',
+      ],
+      prize: 660,
+      flag: 'alvaro_benito_chamberi',
+    },
+  },
   // Flavor castizo conservado, mejorado.
   {
     id: 'senora_olavide', sprite: 'generic_f1', x: 12, y: 20, dir: 'down', roam: true,
@@ -820,6 +995,7 @@ export const MAPS = {
   ...buildLiga(),   // ENDGAME: Liga Chamberí (Alto Mando + Campeón Álvaro)
   ...EXTRA_MAPS,    // zona nueva: Ruta 3 · Gran Vía + Parque del Retiro
   ...BERCERO_MAPS,  // zona nueva: BERCERO (pueblo de Valladolid, el padre + la pandilla)
+  ...TORREVIEJA_MAPS,  // zona nueva: TORREVIEJA (costa de Alicante, la madre Marilyn + playa/salinas)
 };
 
 // Enlaza las puertas del overworld con sus interiores (warps de ida).
@@ -832,3 +1008,7 @@ wireLigaDoor(MAPS);
 // la "Estación de Autobuses" en un tile libre de Tetuán (único punto de viaje) +
 // los warps de ida/vuelta. No reorganiza ningún mapa existente.
 wireBerceroEntry(MAPS);
+// Engancha la ZONA TORREVIEJA de forma aditiva: interior de la casa de la madre +
+// una SEGUNDA línea de bus (Levante) en un tile libre de Tetuán (distinto del de
+// Bercero) + los warps de ida/vuelta. No reorganiza ningún mapa existente ni Bercero.
+wireTorreviejaEntry(MAPS);

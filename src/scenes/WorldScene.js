@@ -3,7 +3,7 @@ import { TILE, WALK_MS, ENCOUNTER_RATE, SAVE_VERSION, MONEY_START } from '../con
 import { MAPS } from '../world/maps.js';
 import { createMonster, healFull } from '../core/monster.js';
 import { createPc, ensurePc } from '../core/pcStorage.js';
-import { ensureWallet } from '../core/items.js';
+import { ensureWallet, ITEM_NAMES } from '../core/items.js';
 import { openShop } from '../ui/shop.js';
 import { portraitForNpc } from '../data/portraits.js';
 import { playMusic, sfx } from '../audio/AudioManager.js';
@@ -13,7 +13,17 @@ import Npc from '../world/engine/Npc.js';
 import { rollEncounter } from '../world/engine/encounters.js';
 import { playGrassRustle } from '../world/grassRustle.js';
 import { whiteoutDestination, healPoint } from '../world/respawn.js';
+import {
+  FIELD_MOVES, OBSTACLE_TO_MOVE, OBSTACLE_TILES,
+  ensureFieldState, markVisited, isObstacleCleared, markObstacleCleared,
+  obstacleAt, canUseFieldMove, whyCannotUse, firstMonForMove,
+} from '../world/fieldMoves.js';
 import PcScene from './PcScene.js';
+import MapScene from './MapScene.js';
+
+// Tile de AGUA del overworld (mismo GID que usan los constructores de mapa). Sirve
+// para detectar al chocar si la casilla bloqueada es MAR/agua (→ ofrecer Surf).
+const WATER_TILE = 4183;
 
 const RUN_FACTOR = 0.6;     // correr con B = WALK_MS × 0.6
 const BIKE_FACTOR = 0.35;   // moto = WALK_MS × 0.35 (mucho más rápido)
@@ -47,7 +57,16 @@ export default class WorldScene extends Phaser.Scene {
     this.transitioning = false;
     this.turnUntil = 0;
 
+    this.registerOverlayScenes();
     this.layers = createMapLayers(this, this.mapData);
+    // MOs: normaliza el estado de campo del save (obstáculos retirados, zonas
+    // visitadas), registra esta zona como VISITADA (para el Vuelo) y refleja en el
+    // render los obstáculos ya retirados en partidas anteriores. NO altera la
+    // navegación: solo limpia tiles que el jugador ya había despejado.
+    ensureFieldState(save);
+    if (this.mapData.healSpawn || (this.mapData.warps || []).length) markVisited(save, this.mapId);
+    this.applyClearedObstacles(save);
+    this.surfing = false;
     this.createPlayer(pos);
     this.syncPlayerMount();
     this.npcs = (this.mapData.npcs || []).map((def) => new Npc(this, def));
@@ -148,6 +167,10 @@ export default class WorldScene extends Phaser.Scene {
     const ny = this.player.tileY + d.dy;
     if (this.isBlocked(nx, ny, this.player)) {
       this.player.idle();
+      // MO contextual: si la casilla bloqueada es un obstáculo de campo (arbusto,
+      // roca) o agua de mar, ofrecer usar la MO correspondiente (estilo FRLG). Solo
+      // se ofrece una vez por choque (debounce con _bumpAt) para no spamear.
+      if (this.maybeFieldMovePrompt(nx, ny)) return;
       if (this.time.now > (this._bumpAt || 0)) { sfx(this, 'bump', { volume: 0.5 }); this._bumpAt = this.time.now + 320; }
       return;
     }
@@ -162,6 +185,12 @@ export default class WorldScene extends Phaser.Scene {
   isBlocked(x, y, ignore = null) {
     const m = this.mapData;
     if (x < 0 || y < 0 || x >= m.width || y >= m.height) return true;
+    // SURF: mientras se surfea, el AGUA de mar deja de bloquear (se navega sobre
+    // ella). El resto de colisiones (bordes, edificios, NPCs) siguen vigentes.
+    if (ignore === this.player && this.surfing && this.isWaterTile(x, y)) {
+      if (this.player !== ignore && this.player.tileX === x && this.player.tileY === y) return true;
+      return this.npcs.some((n) => n.mover !== ignore && n.mover.tileX === x && n.mover.tileY === y);
+    }
     if (m.collision && m.collision[y] && m.collision[y][x] === 1) return true;
     if (this.player !== ignore && this.player.tileX === x && this.player.tileY === y) return true;
     return this.npcs.some((n) => n.mover !== ignore && n.mover.tileX === x && n.mover.tileY === y);
@@ -171,6 +200,8 @@ export default class WorldScene extends Phaser.Scene {
     this.persistPlayer();
     const x = this.player.tileX;
     const y = this.player.tileY;
+    // SURF: al pisar TIERRA firme (no agua) tras estar surfeando, se desembarca.
+    if (this.surfing && !this.isWaterTile(x, y)) this.surfing = false;
     const warp = (this.mapData.warps || []).find((w) => w.x === x && w.y === y);
     if (warp) { this.useWarp(warp); return; }
     if (this.isTallGrass(x, y)) {
@@ -243,6 +274,185 @@ export default class WorldScene extends Phaser.Scene {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // MOVIMIENTOS DE CAMPO (MOs) — uso contextual al chocar y desde el menú.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // Al CREAR la escena: limpia del render los obstáculos que el jugador ya retiró
+  // en una partida anterior (persistidos en save.flags.fieldObstacles). Borra el
+  // tile de deco y libera la colisión, sin tocar el resto del mapa.
+  applyClearedObstacles(save) {
+    const obstacles = (this.mapData && this.mapData.fieldObstacles) || [];
+    for (const o of obstacles) {
+      if (isObstacleCleared(save, this.mapId, o.x, o.y)) this.removeObstacleTile(o.x, o.y);
+    }
+  }
+
+  // Borra el tile de un obstáculo del render (capa deco) y libera su colisión EN
+  // VIVO (no muta MAPS: la colisión vive en this.mapData, compartido por la escena).
+  removeObstacleTile(x, y) {
+    if (this.mapData.collision[y]) this.mapData.collision[y][x] = 0;
+    if (this.mapData.layers.deco[y]) this.mapData.layers.deco[y][x] = -1;
+    const layer = this.layers && this.layers.deco;
+    if (layer && layer.removeTileAt) layer.removeTileAt(x, y, true);
+  }
+
+  // ¿Es la casilla (x,y) agua de mar? (tile WATER en la capa ground). Sirve para
+  // ofrecer Surf al chocar contra el mar.
+  isWaterTile(x, y) {
+    const g = this.mapData.layers && this.mapData.layers.ground;
+    return !!(g && g[y] && g[y][x] === WATER_TILE);
+  }
+
+  // Si la casilla bloqueada (x,y) es un obstáculo de MO (arbusto/roca) o agua de
+  // mar, ofrece usar la MO. Devuelve true si se mostró un prompt (para no sonar el
+  // bump). Si no se puede usar la MO (sin objeto/medalla/Pokémon), explica por qué.
+  maybeFieldMovePrompt(x, y) {
+    if (this.time.now <= (this._bumpAt || 0)) return false;
+    const ob = obstacleAt(this.mapData, x, y);
+    let moveId = null;
+    if (ob) moveId = OBSTACLE_TO_MOVE[ob.kind];
+    else if (this.isWaterTile(x, y)) moveId = OBSTACLE_TO_MOVE.water;
+    if (!moveId) return false;
+    this._bumpAt = this.time.now + 600;
+    const save = this.registry.get('save');
+    const def = FIELD_MOVES[moveId];
+    // Surf: solo si NO estamos ya surfeando hacia esa misma agua (evita re-prompt).
+    if (moveId === 'surf' && this.surfing) return false;
+    if (!canUseFieldMove(this.registry.get('pokedex'), save, moveId)) {
+      // Descripción del obstáculo + por qué no puedes (mensaje claro estilo FRLG).
+      this.inputLocked = true;
+      const what = this.obstacleFlavor(moveId);
+      const why = whyCannotUse(this.registry.get('pokedex'), save, moveId);
+      this.talk([what, why], () => { this.inputLocked = false; });
+      return true;
+    }
+    // Sí puede: pregunta SÍ/NO antes de usar (estilo FRLG).
+    this.inputLocked = true;
+    const what = this.obstacleFlavor(moveId);
+    this.scene.launch('Dialog', {
+      lines: [what, `¿Quieres usar ${def.name}?`],
+      prompt: {
+        options: ['SÍ', 'NO'],
+        defaultIndex: 1,
+        onSelect: (i) => { if (i === 0) this._pendingFieldUse = { moveId, x, y }; },
+      },
+      onClose: () => {
+        this.inputLocked = false;
+        const p = this._pendingFieldUse;
+        this._pendingFieldUse = null;
+        if (p) this.useFieldMove(p.moveId, p.x, p.y);
+      },
+    });
+    return true;
+  }
+
+  // Texto descriptivo del obstáculo (lo que el jugador "ve") por tipo de MO.
+  obstacleFlavor(moveId) {
+    if (moveId === 'cut') return '¡Es un arbusto fino que corta el paso!';
+    if (moveId === 'strength') return '¡Una roca enorme bloquea el camino!';
+    if (moveId === 'rocksmash') return '¡Una roca pequeña y quebradiza estorba!';
+    if (moveId === 'surf') return '¡El mar se extiende ante ti! El agua es de un azul intenso.';
+    return '¡Algo bloquea el paso!';
+  }
+
+  // Aplica una MO sobre el obstáculo (o agua) de (x,y). Reutilizable desde el menú
+  // (uso desde el detalle de un Pokémon) y desde el prompt contextual del choque.
+  // Devuelve true si la MO se aplicó. Valida de nuevo el gate por seguridad.
+  useFieldMove(moveId, x, y) {
+    const save = this.registry.get('save');
+    const pokedex = this.registry.get('pokedex');
+    if (!canUseFieldMove(pokedex, save, moveId)) {
+      this.inputLocked = true;
+      const why = whyCannotUse(pokedex, save, moveId);
+      this.talk([why], () => { this.inputLocked = false; });
+      return false;
+    }
+    const def = FIELD_MOVES[moveId];
+    const mon = firstMonForMove(pokedex, save.party, moveId);
+    const sp = mon ? (pokedex[mon.species - 1] || {}) : {};
+    const monName = (mon && (mon.nickname || sp.name)) ? String(mon.nickname || sp.name).toUpperCase() : 'TU POKÉMON';
+    // Vuelo: no actúa sobre un tile, abre el mapa de Vuelo.
+    if (moveId === 'fly') { this.openFlyMap(); return true; }
+    if (moveId === 'surf') return this.startSurf(x, y, monName, def);
+    // Corte / Fuerza / Golpe Roca: retiran el obstáculo de (x,y).
+    return this.clearObstacle(moveId, x, y, monName, def);
+  }
+
+  // Retira un obstáculo de tierra (arbusto/roca): anima el aviso, borra tile +
+  // colisión y PERSISTE en el save (no reaparece). Idempotente.
+  clearObstacle(moveId, x, y, monName, def) {
+    const ob = obstacleAt(this.mapData, x, y);
+    if (!ob || OBSTACLE_TO_MOVE[ob.kind] !== moveId) {
+      this.inputLocked = true;
+      this.talk(['No hay nada que hacer aquí.'], () => { this.inputLocked = false; });
+      return false;
+    }
+    this.inputLocked = true;
+    sfx(this, 'hit', { volume: 0.6 });
+    this.removeObstacleTile(x, y);
+    const save = this.registry.get('save');
+    markObstacleCleared(save, this.mapId, x, y);
+    this.talk([`¡${monName} usó ${def.name}!`, `${monName} ${def.verb}.`], () => {
+      this.inputLocked = false;
+    });
+    return true;
+  }
+
+  // Surf: el jugador entra al agua. Implementación SEGURA y simple: marca el estado
+  // `surfing` y da el primer paso hacia el agua, despejando la colisión SOLO de la
+  // casilla destino para poder entrar (las demás aguas se despejan al avanzar). Para
+  // no rehacer el motor de colisión, surfeamos liberando colisión de agua adyacente
+  // al moverse. Al pisar tierra firme de nuevo, se desactiva el surf.
+  startSurf(x, y, monName, def) {
+    this.inputLocked = true;
+    sfx(this, 'heal', { volume: 0.4 });
+    this.talk([`¡${monName} usó ${def.name}!`, `${monName} ${def.verb}. ¡A navegar!`], () => {
+      this.inputLocked = false;
+      this.surfing = true;
+      // Libera la colisión de la casilla de agua de entrada para poder pisarla.
+      if (this.mapData.collision[y]) this.mapData.collision[y][x] = 0;
+    });
+    return true;
+  }
+
+  // Abre el MAPA en modo VUELO (overlay). Registro perezoso de la escena 'Map'.
+  // Marca que el mapa debe permitir confirmar un destino volable; al elegirlo, la
+  // escena Map cierra y nos pasa el destino (this._flyDest) para teletransportar.
+  openFlyMap() {
+    if (!this.scene.get('Map')) this.scene.add('Map', MapScene, false);
+    this.inputLocked = true;
+    this.player.idle();
+    sfx(this, 'door', { volume: 0.45 });
+    this._flyDest = null;
+    this.scene.launch('Map', { flyMode: true, onFly: (dest) => { this._flyDest = dest; } });
+    const map = this.scene.get('Map');
+    const onClose = () => {
+      map.events.off('shutdown', onClose);
+      map.events.off('sleep', onClose);
+      const dest = this._flyDest;
+      this._flyDest = null;
+      if (dest) this.doFlyTo(dest);
+      else this.inputLocked = false;
+    };
+    map.events.once('shutdown', onClose);
+    map.events.once('sleep', onClose);
+  }
+
+  // Teletransporta al jugador a un destino de Vuelo { map, x, y } con fundido.
+  doFlyTo(dest) {
+    this.transitioning = true;
+    this.inputLocked = true;
+    this.player.idle();
+    sfx(this, 'door', { volume: 0.5 });
+    const target = { map: dest.map, x: dest.x, y: dest.y, dir: 'down' };
+    this.cameras.main.fadeOut(250, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => {
+      this.persistPlayer(target);
+      this.scene.restart(target);
+    });
+  }
+
   interact() {
     const d = DIRS[this.player.dir];
     const tx = this.player.tileX + d.dx;
@@ -270,8 +480,36 @@ export default class WorldScene extends Phaser.Scene {
     else if (npc.def.heal) this.healInteraction(npc);
     else if (npc.def.pcAccess) this.pcInteraction(npc);
     else if (npc.def.shop) this.shopInteraction(npc);
+    else if (npc.def.gift) this.giftInteraction(npc);
     else if (npc.def.trainer) this.talk(npc.def.trainer.win, () => this.endInteraction(npc), por);
     else this.talk(npc.def.dialog, () => this.endInteraction(npc), por);
+  }
+
+  // NPC que REGALA un objeto (p.ej. una MO) la PRIMERA vez que hablas. El regalo se
+  // marca con un flag único en save.flags para no repetirse. Tras el regalo (o si ya
+  // se entregó) se muestra el diálogo correspondiente. Estructura:
+  //   def.gift = { item, qty?, flag, lines:[...], doneLines?:[...] }
+  giftInteraction(npc) {
+    const por = portraitForNpc(npc.def);
+    const g = npc.def.gift;
+    const save = this.registry.get('save');
+    if (!save.flags) save.flags = {};
+    const already = !!(g.flag && save.flags[g.flag] === true);
+    if (already) {
+      const lines = (g.doneLines && g.doneLines.length) ? g.doneLines : (npc.def.dialog || ['...']);
+      this.talk(lines, () => this.endInteraction(npc), por);
+      return;
+    }
+    this.talk(g.lines || ['¡Toma esto!'], () => {
+      // Entrega el objeto (suma a la bolsa) y marca el flag. Idempotente.
+      if (!save.bag || typeof save.bag !== 'object') save.bag = {};
+      const qty = Math.max(1, g.qty || 1);
+      save.bag[g.item] = (save.bag[g.item] || 0) + qty;
+      if (g.flag) save.flags[g.flag] = true;
+      sfx(this, 'heal', { volume: 0.6 });
+      const itemName = (ITEM_NAMES[g.item] || g.item);
+      this.chainTalk([`¡Has recibido ${itemName}!`], () => this.endInteraction(npc), por);
+    }, por);
   }
 
   // ¿Ya derrotado este entrenador? (bandera única en save.flags).
@@ -367,16 +605,29 @@ export default class WorldScene extends Phaser.Scene {
     }, por);
   }
 
+  // Registra las escenas overlay 'Pc' y 'Map' UNA VEZ al crear el mundo (sin tocar
+  // main.js, contrato del proyecto). Antes se hacía perezosamente DENTRO de openPc/
+  // openFlyMap, pero esos se invocan desde callbacks transitorios (p.ej. al cerrar el
+  // diálogo del NPC del PC): el ScenePlugin DIFIERE el `add` y el `launch` posterior
+  // apunta a una escena aún no registrada → la escena NUNCA arrancaba (el PC "no se
+  // abría"). Registrándolas aquí, en create(), el `launch` posterior es determinista.
+  registerOverlayScenes() {
+    if (!this.scene.get('Pc')) this.scene.add('Pc', PcScene, false);
+    if (!this.scene.get('Map')) this.scene.add('Map', MapScene, false);
+  }
+
   // Lanza la escena 'Pc' como overlay sobre World (mismo patrón que el menú: World
   // sigue por debajo pero con inputLocked, así NO se dispara el onWake de combate).
-  // La escena se registra perezosamente para no tocar main.js (contrato del proyecto).
   openPc(onClose) {
-    if (!this.scene.get('Pc')) this.scene.add('Pc', PcScene, false);
+    // 'Pc' ya está registrada (registerOverlayScenes en create). Salvaguarda por si
+    // se invocara en un estado inesperado: nunca reventar el mundo.
+    let pc = this.scene.get('Pc');
+    if (!pc) pc = this.scene.add('Pc', PcScene, false);
+    if (!pc) { if (onClose) onClose(); return; }
     this.inputLocked = true;
     this.player.idle();
     sfx(this, 'door', { volume: 0.45 });
     this.scene.launch('Pc');
-    const pc = this.scene.get('Pc');
     const resume = () => {
       pc.events.off('shutdown', resume);
       pc.events.off('sleep', resume);
@@ -394,14 +645,49 @@ export default class WorldScene extends Phaser.Scene {
     const menu = this.scene.get('Menu');
     const unlock = () => {
       menu.events.off('shutdown', unlock);
-      menu.events.off('sleep', unlock);
       this.inputLocked = false;
       // El menú pudo alternar la moto (toggleMoto → save.flags.riding): refleja el
       // estado montado/a pie en el sprite del jugador al cerrar el menú.
       this.syncPlayerMount();
     };
+    // IMPORTANTE: solo desbloquear el input de World cuando el menú se CIERRA del
+    // todo ('shutdown' por closeMenu → scene.stop), NUNCA cuando se DUERME ('sleep').
+    // El menú DUERME para abrir el MAPA por encima (openMap → scene.sleep): si en ese
+    // momento desbloqueáramos World, las pulsaciones dentro del mapa (Enter/Z, p.ej.
+    // confirmar destino de VUELO) se filtrarían a World.openMenu()/interact(),
+    // corrompiendo la pila de escenas y dejando el menú y el PC sin poder abrirse.
     menu.events.once('shutdown', unlock);
-    menu.events.once('sleep', unlock);
+    // Handoff de MOs: el consumo de acciones (VUELO / MO de campo) SOLO debe ocurrir
+    // cuando el menú se CIERRA del todo ('shutdown' por closeMenu), NO cuando se
+    // DUERME ('sleep') al abrir el mapa por encima — si no, se consumiría antes de
+    // que el mapa devuelva el destino. Por eso va en su propio listener de shutdown.
+    const afterClosed = () => {
+      menu.events.off('shutdown', afterClosed);
+      this.consumeMenuFieldActions();
+    };
+    menu.events.once('shutdown', afterClosed);
+  }
+
+  // Aplica las acciones de MO que el menú dejó pendientes en el registry:
+  //   - pendingFly: { map, x, y } → viaje rápido de Vuelo.
+  //   - pendingFieldMove: id de MO elegida en el detalle de un Pokémon → se aplica
+  //     a la casilla de enfrente (o, para Vuelo, abre el mapa de Vuelo).
+  consumeMenuFieldActions() {
+    const fly = this.registry.get('pendingFly');
+    if (fly) {
+      this.registry.set('pendingFly', null);
+      this.doFlyTo(fly);
+      return;
+    }
+    const moveId = this.registry.get('pendingFieldMove');
+    if (moveId) {
+      this.registry.set('pendingFieldMove', null);
+      if (moveId === 'fly') { this.openFlyMap(); return; }
+      const d = DIRS[this.player.dir];
+      const tx = this.player.tileX + d.dx;
+      const ty = this.player.tileY + d.dy;
+      this.useFieldMove(moveId, tx, ty);
+    }
   }
 
   // Vuelta desde Battle (sleep/wake): registry.save ya viene actualizado por Battle.
